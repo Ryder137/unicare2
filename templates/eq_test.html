@@ -1,0 +1,608 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h1 class="h3 mb-0 text-center">Emotional Intelligence Assessment</h1>
+                    <p class="text-muted text-center mb-0">This test will help you understand your emotional intelligence across different dimensions.</p>
+                </div>
+                <div class="card-body p-4">
+                    <div id="test-intro">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-emoji-smile fs-1 text-primary mb-3"></i>
+                            <h3>About This Test</h3>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Note on Accuracy:</strong> This is a self-assessment tool that provides insight into your 
+                                emotional intelligence. For a comprehensive evaluation, consider professional assessment.
+                            </div>
+                            <p class="lead mt-3">This assessment measures your emotional intelligence across four key areas:</p>
+                        </div>
+                        
+                        <div class="row g-4 mb-5">
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded h-100">
+                                    <h5><i class="bi bi-person-check-fill text-primary me-2"></i>Self-Awareness</h5>
+                                    <p class="mb-0">Recognizing your own emotions and their effects.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded h-100">
+                                    <h5><i class="bi bi-people-fill text-primary me-2"></i>Social Awareness</h5>
+                                    <p class="mb-0">Understanding others' emotions and perspectives.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded h-100">
+                                    <h5><i class="bi bi-emoji-frown-fill text-primary me-2"></i>Self-Management</h5>
+                                    <p class="mb-0">Managing your emotions in healthy ways.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded h-100">
+                                    <h5><i class="bi bi-chat-heart-fill text-primary me-2"></i>Relationship Skills</h5>
+                                    <p class="mb-0">Building and maintaining healthy relationships.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center">
+                            <p class="mb-4">This test contains 20 questions and takes about 10 minutes to complete.</p>
+                            <button id="start-test" class="btn btn-primary btn-lg px-4">
+                                <i class="bi bi-arrow-right-circle me-2"></i>Begin Assessment
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="test-questions" style="display: none;">
+                        <div class="progress mb-4" style="height: 8px;">
+                            <div id="test-progress" class="progress-bar" role="progressbar" style="width: 0%;"></div>
+                        </div>
+                        
+                        <div id="question-container">
+                            <!-- Questions will be loaded here by JavaScript -->
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <button id="prev-question" class="btn btn-outline-secondary" disabled>
+                                <i class="bi bi-arrow-left me-1"></i> Previous
+                            </button>
+                            <div id="question-counter" class="text-muted">Question 1 of 20</div>
+                            <button id="next-question" class="btn btn-primary">
+                                Next <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="test-results" style="display: none;">
+                        <div class="text-center mb-5">
+                            <i class="bi bi-emoji-laughing text-primary" style="font-size: 3.5rem;"></i>
+                            <h2 class="mt-3">Your Emotional Intelligence Profile</h2>
+                            <p class="lead text-muted">Here's a detailed breakdown of your results</p>
+                        </div>
+                        
+                        <div id="results-container" class="mb-5">
+                            <!-- Results will be dynamically inserted here -->
+                        </div>
+                        
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center border-top pt-4">
+                            <div class="mb-3 mb-md-0">
+                                <p class="text-muted mb-0">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Results are based on your self-assessment and are for informational purposes only.
+                                </p>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button id="retake-test" class="btn btn-outline-primary">
+                                    <i class="bi bi-arrow-repeat me-2"></i>Retake Test
+                                </button>
+                                <button id="print-results" class="btn btn-outline-secondary" onclick="window.print()">
+                                    <i class="bi bi-printer me-2"></i>Print Results
+                                </button>
+                                <button id="save-results" class="btn btn-primary">
+                                    <i class="bi bi-download me-2"></i>Save Results
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Test questions - 5 questions per category (20 total)
+    const questions = [
+        // Self-Awareness (5 questions)
+        {
+            question: "I can easily recognize my emotions as I experience them.",
+            category: "selfAwareness",
+            reversed: false,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I'm aware of how my emotions affect my thoughts and behavior.",
+            category: "selfAwareness",
+            reversed: false,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I often don't understand why I feel the way I do.",
+            category: "selfAwareness",
+            reversed: true,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I can accurately identify what I'm feeling at any given moment.",
+            category: "selfAwareness",
+            reversed: false,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I'm often surprised by my own emotional reactions.",
+            category: "selfAwareness",
+            reversed: true,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        
+        // Social Awareness (5 questions)
+        {
+            question: "I can easily pick up on how other people are feeling.",
+            category: "socialAwareness",
+            reversed: false,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I can sense the unspoken emotions in a group.",
+            category: "socialAwareness",
+            reversed: false,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I often misunderstand others' feelings.",
+            category: "socialAwareness",
+            reversed: true,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I can read people's emotions through their body language.",
+            category: "socialAwareness",
+            reversed: false,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I'm often unaware of how my behavior affects others.",
+            category: "socialAwareness",
+            reversed: true,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        
+        // Self-Management (5 questions)
+        {
+            question: "I remain calm under pressure.",
+            category: "selfManagement",
+            reversed: false,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I can control my temper when I'm upset.",
+            category: "selfManagement",
+            reversed: false,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I often act on impulse without thinking things through.",
+            category: "selfManagement",
+            reversed: true,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I can adapt to changing circumstances.",
+            category: "selfManagement",
+            reversed: false,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I find it hard to control my emotions.",
+            category: "selfManagement",
+            reversed: true,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        
+        // Relationship Skills (5 questions)
+        {
+            question: "I'm good at resolving conflicts with others.",
+            category: "relationshipSkills",
+            reversed: false,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I find it difficult to build strong relationships.",
+            category: "relationshipSkills",
+            reversed: true,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I'm good at communicating my feelings to others.",
+            category: "relationshipSkills",
+            reversed: false,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I often feel misunderstood by others.",
+            category: "relationshipSkills",
+            reversed: true,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        },
+        {
+            question: "I can inspire and influence others positively.",
+            category: "relationshipSkills",
+            reversed: false,
+            options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+        }
+    ];
+
+    // Shuffle questions
+    questions.sort(() => Math.random() - 0.5);
+    
+    // Test state
+    let currentQuestion = 0;
+    const answers = [];
+    const results = {
+        selfAwareness: { score: 0, count: 0 },
+        socialAwareness: { score: 0, count: 0 },
+        selfManagement: { score: 0, count: 0 },
+        relationshipSkills: { score: 0, count: 0 }
+    };
+    
+    // Category descriptions
+    const categoryDescriptions = {
+        selfAwareness: {
+            title: "Self-Awareness",
+            description: "Your ability to recognize and understand your own emotions and how they affect your thoughts and behavior.",
+            low: "You may struggle to identify your emotions and how they influence your behavior. Consider practicing mindfulness to become more aware of your emotional states.",
+            moderate: "You have some awareness of your emotions but may sometimes be surprised by your reactions. Continue developing your emotional vocabulary and self-reflection skills.",
+            high: "You have excellent self-awareness and understand how your emotions affect your thoughts and behavior. Use this strength to guide your decisions and interactions."
+        },
+        socialAwareness: {
+            title: "Social Awareness",
+            description: "Your ability to understand the emotions, needs, and concerns of other people, pick up on emotional cues, and feel comfortable socially.",
+            low: "You may find it challenging to read others' emotions or understand social dynamics. Practice active listening and observing non-verbal cues to improve.",
+            moderate: "You can usually understand others' feelings but may sometimes miss subtle social cues. Paying closer attention to body language and tone can help.",
+            high: "You're highly attuned to others' emotions and social dynamics. Your ability to read people helps you navigate social situations effectively."
+        },
+        selfManagement: {
+            title: "Self-Management",
+            description: "Your ability to control impulsive feelings and behaviors, manage your emotions in healthy ways, and adapt to changing circumstances.",
+            low: "You may struggle with impulse control and emotional regulation. Techniques like deep breathing and pausing before responding can be helpful.",
+            moderate: "You generally manage your emotions well but may sometimes react impulsively. Developing stress management techniques could be beneficial.",
+            high: "You excel at managing your emotions and impulses. Your self-control helps you handle challenging situations with composure."
+        },
+        relationshipSkills: {
+            title: "Relationship Skills",
+            description: "Your ability to develop and maintain good relationships, communicate clearly, work well in a team, and manage conflict.",
+            low: "You may find it challenging to build and maintain relationships. Working on communication and conflict resolution skills could be beneficial.",
+            moderate: "You have decent relationship skills but may sometimes struggle with communication or conflict. Active listening and empathy can help strengthen your connections.",
+            high: "You excel at building and maintaining strong relationships. Your communication and conflict resolution skills help you connect effectively with others."
+        }
+    };
+    
+    // DOM elements
+    const startBtn = document.getElementById('start-test');
+    const prevBtn = document.getElementById('prev-question');
+    const nextBtn = document.getElementById('next-question');
+    const retakeBtn = document.getElementById('retake-test');
+    const questionContainer = document.getElementById('question-container');
+    const questionCounter = document.getElementById('question-counter');
+    const progressBar = document.getElementById('test-progress');
+    
+    // Event listeners
+    startBtn.addEventListener('click', startTest);
+    prevBtn.addEventListener('click', showPreviousQuestion);
+    nextBtn.addEventListener('click', showNextQuestion);
+    
+    // Retake test button
+    document.getElementById('retake-test').addEventListener('click', resetTest);
+    
+    // Save results button
+    document.getElementById('save-results').addEventListener('click', function() {
+        // In a real app, this would save to the user's account
+        alert('In a complete implementation, this would save your results to your account.');
+        
+        // For now, just show a success message
+        const saveBtn = document.getElementById('save-results');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="bi bi-check2 me-2"></i>Saved!';
+        
+        // Revert after 2 seconds
+        setTimeout(() => {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }, 2000);
+    });
+    
+    // Calculate scores with detailed analysis
+    function calculateScores() {
+        // Reset scores
+        Object.keys(results).forEach(key => {
+            results[key] = { score: 0, count: 0 };
+        });
+        
+        // Calculate scores for each category
+        answers.forEach(answer => {
+            if (answer && answer.category && (answer.score >= 0)) { // Ensure score is a valid number
+                results[answer.category].score += answer.score;
+                results[answer.category].count++;
+            }
+        });
+        
+        // Calculate average scores (0-100 scale) and add interpretation
+        const calculatedResults = {};
+        Object.keys(results).forEach(category => {
+            const count = results[category].count || 1; // Avoid division by zero
+            const totalPossible = count * 5; // 5 is the maximum score per question (1-5 scale)
+            const totalScore = results[category].score;
+            
+            // Calculate percentage (0-100)
+            const percentage = Math.min(100, Math.max(0, (totalScore / totalPossible) * 100));
+            const roundedScore = Math.round(percentage);
+            
+            // Ensure score is within valid range
+            const safeScore = Math.min(100, Math.max(0, roundedScore));
+            
+            // Determine interpretation
+            let interpretation, description;
+            if (safeScore < 40) {
+                interpretation = 'Low';
+                description = categoryDescriptions[category].low;
+            } else if (safeScore < 70) {
+                interpretation = 'Moderate';
+                description = categoryDescriptions[category].moderate;
+            } else {
+                interpretation = 'High';
+                description = categoryDescriptions[category].high;
+            }
+            
+            calculatedResults[category] = {
+                score: safeScore,
+                interpretation: interpretation,
+                description: description,
+                title: categoryDescriptions[category].title,
+                categoryDescription: categoryDescriptions[category].description
+            };
+        });
+        
+        return calculatedResults;
+    }
+    
+    // Start the test
+    function startTest() {
+        document.getElementById('test-intro').style.display = 'none';
+        document.getElementById('test-questions').style.display = 'block';
+        showQuestion();
+    }
+    
+    // Show current question
+    function showQuestion() {
+        if (currentQuestion >= questions.length) {
+            showResults();
+            return;
+        }
+        
+        const question = questions[currentQuestion];
+        const progress = ((currentQuestion) / questions.length) * 100;
+        
+        // Update progress
+        progressBar.style.width = `${progress}%`;
+        questionCounter.textContent = `Question ${currentQuestion + 1} of ${questions.length}`;
+        
+        // Update navigation buttons
+        prevBtn.disabled = currentQuestion === 0;
+        nextBtn.textContent = currentQuestion === questions.length - 1 ? 'See Results' : 'Next';
+        
+        // Render question
+        let optionsHtml = '';
+        question.options.forEach((option, index) => {
+            const isChecked = answers[currentQuestion] && answers[currentQuestion].answer === index ? 'checked' : '';
+            optionsHtml += `
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="answer" id="option-${index}" 
+                           value="${index}" ${isChecked}>
+                    <label class="form-check-label w-100" for="option-${index}">
+                        ${option}
+                    </label>
+                </div>
+            `;
+        });
+        
+        questionContainer.innerHTML = `
+            <h4 class="mb-4">${question.question}</h4>
+            <div class="options">
+                ${optionsHtml}
+            </div>
+        `;
+        
+        // Handle answer selection
+        const radioButtons = document.querySelectorAll('input[name="answer"]');
+        radioButtons.forEach(button => {
+            button.addEventListener('change', () => {
+                selectAnswer(button.value);
+            });
+        });
+    }
+    
+    // Handle answer selection
+    function selectAnswer(optionIndex) {
+        const question = questions[currentQuestion];
+        const score = question.reversed ? (4 - optionIndex) : optionIndex;
+        
+        answers[currentQuestion] = {
+            question: question.question,
+            category: question.category,
+            answer: optionIndex,
+            score: score + 1 // Convert from 0-4 to 1-5 scale
+        };
+        
+        updateProgress();
+    }
+    
+    // Update progress and enable/disable navigation
+    function updateProgress() {
+        const selectedOption = document.querySelector('input[name="answer"]:checked');
+        const progress = ((currentQuestion + 1) / questions.length) * 100;
+        
+        // Update progress bar
+        document.getElementById('test-progress').style.width = `${progress}%`;
+        
+        // Update question counter
+        document.getElementById('question-counter').textContent = `Question ${currentQuestion + 1} of ${questions.length}`;
+        
+        // Update navigation buttons
+        prevBtn.disabled = currentQuestion === 0;
+        nextBtn.disabled = !selectedOption && !answers[currentQuestion];
+        
+        // Update submit button on last question
+        const submitBtn = document.getElementById('submit-test');
+        if (submitBtn) {
+            submitBtn.style.display = currentQuestion === questions.length - 1 ? 'block' : 'none';
+            nextBtn.style.display = currentQuestion === questions.length - 1 ? 'none' : 'block';
+            submitBtn.disabled = !selectedOption && !answers[currentQuestion];
+        }
+    }
+    
+    // Show next question or results if test is complete
+    function showNextQuestion() {
+        const selectedOption = document.querySelector('input[name="answer"]:checked');
+        
+        // Save the current answer if an option is selected
+        if (selectedOption) {
+            selectAnswer(selectedOption.value);
+        } else if (!answers[currentQuestion]) {
+            // If no answer selected and no previous answer, show alert
+            alert('Please select an answer before continuing.');
+            return;
+        }
+        
+        // Move to next question or show results
+        if (currentQuestion < questions.length - 1) {
+            currentQuestion++;
+            showQuestion();
+        } else {
+            showResults();
+        }
+    }
+    
+    // Show previous question
+    function showPreviousQuestion() {
+        currentQuestion--;
+        showQuestion();
+    }
+    
+    // Show test results with detailed analysis
+    function showResults() {
+        const scores = calculateScores();
+        const resultsContainer = document.getElementById('results-container');
+        
+        // Clear previous results
+        resultsContainer.innerHTML = '';
+        
+        // Create results cards for each category
+        Object.keys(scores).forEach(category => {
+            const scoreData = scores[category];
+            const progressClass = scoreData.interpretation === 'High' ? 'bg-success' : 
+                                (scoreData.interpretation === 'Moderate' ? 'bg-warning' : 'bg-danger');
+            
+            const categoryCard = document.createElement('div');
+            categoryCard.className = 'card mb-4 border-0 shadow-sm';
+            categoryCard.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="card-title mb-0">${scoreData.title}
+                            <span class="badge ${progressClass} ms-2">
+                                ${scoreData.interpretation}
+                            </span>
+                        </h5>
+                        <span class="fw-bold">${scoreData.score}%</span>
+                    </div>
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar ${progressClass}" role="progressbar" 
+                            style="width: ${scoreData.score}%" 
+                            aria-valuenow="${scoreData.score}" 
+                            aria-valuemin="0" 
+                            aria-valuemax="100">
+                        </div>
+                    </div>
+                    <p class="card-text">${scoreData.description}</p>
+                    <small class="text-muted">${scoreData.categoryDescription}</small>
+                </div>
+            `;
+            resultsContainer.appendChild(categoryCard);
+        });
+        
+        // Add overall feedback
+        const overallCard = document.createElement('div');
+        overallCard.className = 'card border-0 shadow-sm mt-4';
+        overallCard.innerHTML = `
+            <div class="card-body">
+                <h5 class="card-title">Understanding Your Results</h5>
+                <p class="card-text">
+                    This assessment measures four key components of emotional intelligence:
+                    <ul>
+                        <li><strong>Self-Awareness:</strong> Recognizing your own emotions and their effects.</li>
+                        <li><strong>Social Awareness:</strong> Understanding others' emotions and perspectives.</li>
+                        <li><strong>Self-Management:</strong> Managing your emotions in healthy ways.</li>
+                        <li><strong>Relationship Skills:</strong> Building and maintaining healthy relationships.</li>
+                    </ul>
+                    Emotional intelligence can be developed and improved with practice. Use these results as a starting point 
+                    for personal growth and development.
+                </p>
+            </div>
+        `;
+        resultsContainer.appendChild(overallCard);
+        
+        // Show results section and hide test questions
+        document.getElementById('test-questions').style.display = 'none';
+        document.getElementById('test-results').style.display = 'block';
+        
+        // Scroll to top for better UX
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    // Reset the test
+    function resetTest() {
+        currentQuestion = 0;
+        answers.length = 0;
+        
+        // Reset all form inputs
+        const radioInputs = document.querySelectorAll('input[type="radio"]');
+        radioInputs.forEach(input => {
+            input.checked = false;
+        });
+        
+        // Reset progress
+        document.getElementById('test-progress').style.width = '0%';
+        document.getElementById('question-counter').textContent = `Question 1 of ${questions.length}`;
+        
+        // Show test questions and hide results
+        document.getElementById('test-results').style.display = 'none';
+        document.getElementById('test-questions').style.display = 'block';
+        
+        // Reset navigation buttons
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        nextBtn.textContent = 'Next';
+        
+        // Show first question
+        showQuestion();
+    }
+});
+</script>
+{% endblock %}

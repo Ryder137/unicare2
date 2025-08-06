@@ -1,0 +1,690 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="breathing-exercise">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h1 class="mb-4 text-center">Breathing Exercise</h1>
+                
+                <div class="row align-items-center">
+                    <!-- Breathing Circle -->
+                    <div class="col-md-6 text-center">
+                        <div class="breathing-container">
+                            <div class="circle-container">
+                                <div class="circle"></div>
+                                <div class="text">Breathe In</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Exercise Info -->
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">About This Exercise</h5>
+                                <p class="card-text">This guided breathing exercise helps reduce stress, improve focus, and promote relaxation.</p>
+                                
+                                <h6 class="mt-4">Available Patterns:</h6>
+                                <div class="row">
+                                    <div class="col-12 mb-3">
+                                        <div class="card bg-light">
+                                            <div class="card-body p-3">
+                                                <h6 class="card-subtitle mb-2 text-muted">4-4-4-4 (Box Breathing)</h6>
+                                                <p class="card-text small mb-1">• Inhale for 4s</p>
+                                                <p class="card-text small mb-1">• Hold for 4s</p>
+                                                <p class="card-text small mb-1">• Exhale for 4s</p>
+                                                <p class="card-text small">• Hold for 4s</p>
+                                                <p class="card-text small text-muted"><em>Best for focus and stress relief</em></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="card bg-light">
+                                            <div class="card-body p-3">
+                                                <h6 class="card-subtitle mb-2 text-muted">4-7-8 (Relaxing Breath)</h6>
+                                                <p class="card-text small mb-1">• Inhale for 4s</p>
+                                                <p class="card-text small mb-1">• Hold for 7s</p>
+                                                <p class="card-text small">• Exhale for 8s</p>
+                                                <p class="card-text small text-muted"><em>Best for relaxation and sleep</em></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3 text-center">
+                                    <button class="btn btn-sm btn-outline-info" data-bs-toggle="collapse" data-bs-target="#breathingTips">
+                                        <i class="bi bi-info-circle"></i> Quick Tips
+                                    </button>
+                                    <div id="breathingTips" class="collapse mt-2 small text-muted">
+                                        Find a quiet space, sit comfortably, and follow the animation. Breathe through your nose and out through your mouth.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                    
+                    <div class="controls mt-5">
+                        <button id="start-btn" class="btn btn-primary btn-lg">Start</button>
+                        <button id="pause-btn" class="btn btn-outline-secondary btn-lg d-none">Pause</button>
+                        <button id="reset-btn" class="btn btn-link">Reset</button>
+                    </div>
+                    
+                    <div class="settings mt-4">
+                        <div class="form-group">
+                            <label for="duration">Duration (minutes):</label>
+                            <select id="duration" class="form-select d-inline-block w-auto mx-2">
+                                <option value="1">1 minute</option>
+                                <option value="3" selected>3 minutes</option>
+                                <option value="5">5 minutes</option>
+                                <option value="10">10 minutes</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group mt-3">
+                            <label>Breathing Pattern:</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="pattern" id="pattern1" value="4-4-4-4" checked>
+                                <label class="form-check-label" for="pattern1">4-4-4-4 (Box)</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="pattern" id="pattern2" value="4-7-8">
+                                <label class="form-check-label" for="pattern2">4-7-8 (Relaxing)</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="timer mt-4">
+                        <div class="time">03:00</div>
+                        <div class="phase">Ready when you are</div>
+                    </div>
+                </div>
+                
+                <div class="instructions mt-5">
+                    <h3>How to use this exercise:</h3>
+                    <ol class="text-start">
+                        <li>Find a quiet, comfortable place to sit or lie down.</li>
+                        <li>Close your eyes and focus on your breath.</li>
+                        <li>Follow the animation and instructions on screen.</li>
+                        <li>Breathe in through your nose and out through your mouth.</li>
+                        <li>Try to clear your mind and focus only on your breathing.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Make radio buttons perfectly circular */
+.form-check-input[type="radio"] {
+    border-radius: 50%;
+    width: 1.2em;
+    height: 1.2em;
+    margin-top: 0.2em;
+}
+
+.breathing-container {
+    max-width: 400px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.circle-container {
+    position: relative;
+    width: 250px;
+    height: 250px;
+    margin: 0 auto 2rem;
+}
+
+.circle {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4CAF50, #81C784);
+    transform: scale(0.6);
+    transition: transform 8s ease-in-out;
+    box-shadow: 0 0 30px rgba(76, 175, 80, 0.3);
+    margin: 0 auto;
+}
+
+.breathing .circle {
+    animation: breathe 8s infinite;
+}
+
+@keyframes breathe {
+    0%, 100% { transform: scale(0.6); }
+    25% { transform: scale(1); }
+    50% { transform: scale(0.6); }
+    75% { transform: scale(0.6); }
+}
+
+.text {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+}
+
+.timer {
+    font-family: 'Courier New', monospace;
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 1rem 0;
+}
+
+.phase {
+    font-size: 1.2rem;
+    color: #666;
+    min-height: 2rem;
+}
+
+.controls {
+    margin: 2rem 0;
+}
+
+.controls .btn {
+    margin: 0 0.5rem;
+    min-width: 100px;
+}
+
+/* Pattern-specific animations */
+.pattern-4-4-4-4 .circle {
+    animation: breathe-4-4-4-4 16s infinite;
+}
+
+@keyframes breathe-4-4-4-4 {
+    /* Breathe in (4s) */
+    0% { transform: scale(0.6); }
+    12.5% { transform: scale(1); }
+    /* Hold (4s) */
+    37.5% { transform: scale(1); }
+    /* Breathe out (4s) */
+    50% { transform: scale(0.6); }
+    /* Hold (4s) */
+    100% { transform: scale(0.6); }
+}
+
+.pattern-4-7-8 .circle {
+    animation: breathe-4-7-8 19s infinite;
+}
+
+@keyframes breathe-4-7-8 {
+    /* Breathe in (4s) */
+    0% { transform: scale(0.6); }
+    21% { transform: scale(1); }
+    /* Hold (7s) */
+    58% { transform: scale(1); }
+    /* Breathe out (8s) */
+    100% { transform: scale(0.6); }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Breathing Exercise State
+const breathingState = {
+    isRunning: false,
+    isPaused: false,
+    timeLeft: 180, // 3 minutes in seconds
+    timerInterval: null,
+    animationInterval: null,
+    currentPhase: 'in', // 'in', 'hold1', 'out', 'hold2'
+    phaseStartTime: 0,
+    phaseDuration: 4000, // 4 seconds per phase by default
+    patterns: {
+        '4-4-4-4': {
+            name: 'Box Breathing',
+            description: 'Equal parts inhale, hold, exhale, hold',
+            phases: [
+                { name: 'Breathe In', duration: 4000, color: '#4CAF50', emoji: '⬆️' },
+                { name: 'Hold', duration: 4000, color: '#2196F3', emoji: '⏸️' },
+                { name: 'Breathe Out', duration: 4000, color: '#FF9800', emoji: '⬇️' },
+                { name: 'Hold', duration: 4000, color: '#9C27B0', emoji: '⏸️' }
+            ]
+        },
+        '4-7-8': {
+            name: '4-7-8 Relaxation',
+            description: 'Calming technique for stress relief',
+            phases: [
+                { name: 'Breathe In', duration: 4000, color: '#4CAF50', emoji: '⬆️' },
+                { name: 'Hold', duration: 7000, color: '#2196F3', emoji: '⏸️' },
+                { name: 'Breathe Out', duration: 8000, color: '#FF9800', emoji: '⬇️' }
+            ]
+        },
+        'wim-hof': {
+            name: 'Wim Hof Method',
+            description: 'Energizing breathing technique',
+            phases: [
+                { name: 'Breathe In Deeply', duration: 2500, color: '#4CAF50', emoji: '⬆️' },
+                { name: 'Let Go', duration: 1500, color: '#FF9800', emoji: '⬇️' },
+                { name: 'Hold After Exhale', duration: 1000, color: '#2196F3', emoji: '⏸️' }
+            ],
+            cycles: 30 // Number of cycles before retention
+        },
+        'equal': {
+            name: 'Equal Breathing',
+            description: 'Balanced breathing for focus',
+            phases: [
+                { name: 'Breathe In', duration: 5000, color: '#4CAF50', emoji: '⬆️' },
+                { name: 'Breathe Out', duration: 5000, color: '#FF9800', emoji: '⬇️' }
+            ]
+        },
+        'relaxing': {
+            name: 'Relaxing Breath',
+            description: 'Gentle breathing for relaxation',
+            phases: [
+                { name: 'Breathe In', duration: 4000, color: '#4CAF50', emoji: '⬆️' },
+                { name: 'Hold', duration: 2000, color: '#2196F3', emoji: '⏸️' },
+                { name: 'Breathe Out', duration: 6000, color: '#FF9800', emoji: '⬇️' },
+                { name: 'Pause', duration: 2000, color: '#9C27B0', emoji: '⏸️' }
+            ]
+        }
+    },
+    currentPattern: '4-4-4-4',
+    currentCycle: 0,
+    totalCycles: 0,
+    history: JSON.parse(localStorage.getItem('breathingHistory')) || [],
+    sounds: {
+        bell: new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3'),
+        complete: new Audio('https://assets.mixkit.co/active_storage/sfx/2128/2128-preview.mp3')
+    },
+    vibrationEnabled: 'vibrate' in navigator
+};
+
+// DOM Elements
+const circle = document.querySelector('.circle');
+const phaseText = document.querySelector('.text');
+const timeDisplay = document.querySelector('.time');
+const phaseDisplay = document.querySelector('.phase');
+const startBtn = document.getElementById('start-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const resetBtn = document.getElementById('reset-btn');
+const durationSelect = document.getElementById('duration');
+const patternRadios = document.querySelectorAll('input[name="pattern"]');
+const patternInfo = document.getElementById('pattern-info');
+const cycleCounter = document.getElementById('cycle-counter');
+const progressBar = document.querySelector('.progress');
+
+// Initialize the exercise
+function initExercise() {
+    resetExercise();
+    updatePatternInfo();
+    
+    // Set up pattern radio buttons
+    patternRadios.forEach(radio => {
+        if (radio.value === breathingState.currentPattern) {
+            radio.checked = true;
+        }
+        
+        radio.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                breathingState.currentPattern = e.target.value;
+                updatePatternInfo();
+                if (!breathingState.isRunning) {
+                    resetExercise();
+                }
+            }
+        });
+    });
+    
+    // Set up duration selector
+    durationSelect.addEventListener('change', () => {
+        if (!breathingState.isRunning) {
+            breathingState.timeLeft = parseInt(durationSelect.value) * 60;
+            updateTimerDisplay();
+        }
+    });
+    
+    // Preload sounds
+    Object.values(breathingState.sounds).forEach(sound => {
+        sound.volume = 0.3;
+        sound.load();
+    });
+}
+
+// Update pattern information display
+function updatePatternInfo() {
+    const pattern = breathingState.patterns[breathingState.currentPattern];
+    patternInfo.innerHTML = `
+        <h5>${pattern.name}</h5>
+        <p class="mb-0">${pattern.description}</p>
+        <div class="pattern-phases mt-2">
+            ${pattern.phases.map(phase => 
+                `<span class="badge me-1" style="background-color: ${phase.color};">
+                    ${phase.emoji} ${phase.name} (${phase.duration/1000}s)
+                </span>`
+            ).join('')}
+        </div>
+    `;
+}
+
+// Start the exercise
+function startExercise() {
+    if (breathingState.isRunning) return;
+    
+    // If resuming from pause
+    if (breathingState.isPaused) {
+        breathingState.isPaused = false;
+        breathingState.isRunning = true;
+        breathingState.phaseStartTime = Date.now() - (breathingState.phaseDuration - (breathingState.timeLeft * 1000));
+        
+        // Restart the timer
+        breathingState.timerInterval = setInterval(updateTimer, 1000);
+        
+        // Continue with the current phase
+        startPhase(breathingState.currentPhase);
+    } else {
+        // Starting fresh
+        breathingState.isRunning = true;
+        breathingState.isPaused = false;
+        breathingState.phaseStartTime = Date.now();
+        breathingState.currentCycle = 0;
+        breathingState.totalCycles = 0;
+        breathingState.timeLeft = parseInt(durationSelect.value) * 60;
+        
+        // Start the timer
+        if (breathingState.timerInterval) {
+            clearInterval(breathingState.timerInterval);
+        }
+        breathingState.timerInterval = setInterval(updateTimer, 1000);
+        
+        // Start the first phase
+        startPhase(0);
+    }
+    
+    // Update UI
+    updateButtonStates();
+    updateTimerDisplay();
+}
+
+// Pause the exercise
+function pauseExercise() {
+    if (!breathingState.isRunning) return;
+    
+    breathingState.isPaused = true;
+    breathingState.isRunning = false;
+    
+    // Clear intervals
+    clearInterval(breathingState.animationInterval);
+    clearInterval(breathingState.timerInterval);
+    
+    // Update UI
+    updateButtonStates();
+    phaseDisplay.textContent = 'Paused';
+}
+
+// Reset the exercise
+function resetExercise() {
+    // Clear any running intervals
+    clearInterval(breathingState.timerInterval);
+    clearInterval(breathingState.animationInterval);
+    
+    // Reset state
+    breathingState.isRunning = false;
+    breathingState.isPaused = false;
+    breathingState.timeLeft = parseInt(durationSelect.value) * 60;
+    breathingState.currentPhase = 0;
+    breathingState.currentCycle = 0;
+    
+    // Reset UI
+    circle.style.transform = 'scale(0.6)';
+    circle.style.backgroundColor = '#4CAF50';
+    circle.style.transition = 'all 0.5s ease-in-out';
+    
+    phaseText.textContent = 'Ready';
+    phaseDisplay.textContent = 'Press Start to begin';
+    cycleCounter.textContent = '';
+    progressBar.style.width = '0%';
+    
+    // Update button states
+    updateButtonStates();
+    updateTimerDisplay();
+}
+
+// Start a breathing phase
+function startPhase(phaseIndex) {
+    const pattern = breathingState.patterns[breathingState.currentPattern];
+    const phase = pattern.phases[phaseIndex];
+    
+    // Update state
+    breathingState.currentPhase = phaseIndex;
+    breathingState.phaseDuration = phase.duration;
+    breathingState.phaseStartTime = Date.now();
+    
+    // Update UI
+    circle.style.backgroundColor = phase.color;
+    phaseText.textContent = phase.name;
+    
+    // Animate the circle
+    const targetScale = phase.name.toLowerCase().includes('in') ? 1 : 0.6;
+    circle.style.transition = `transform ${phase.duration}ms ease-in-out`;
+    circle.style.transform = `scale(${targetScale})`;
+    
+    // Update cycle counter for Wim Hof method
+    if (breathingState.currentPattern === 'wim-hof') {
+        breathingState.currentCycle = Math.floor(breathingState.totalCycles / pattern.phases.length);
+        cycleCounter.textContent = `Cycle: ${breathingState.currentCycle + 1}/30`;
+    }
+    
+    // Set up the next phase
+    breathingState.animationInterval = setTimeout(() => {
+        breathingState.totalCycles++;
+        const nextPhase = (phaseIndex + 1) % pattern.phases.length;
+        
+        // For Wim Hof, check if we've completed all cycles
+        if (breathingState.currentPattern === 'wim-hof' && 
+            breathingState.currentCycle >= 29 && 
+            nextPhase === 0) {
+            completeExercise();
+            return;
+        }
+        
+        startPhase(nextPhase);
+    }, phase.duration);
+    
+    // Haptic feedback on mobile
+    if (breathingState.vibrationEnabled) {
+        navigator.vibrate(50);
+    }
+    
+    // Play sound for phase change
+    breathingState.sounds.bell.currentTime = 0;
+    breathingState.sounds.bell.play().catch(e => console.log('Audio play failed:', e));
+}
+
+// Update the timer
+function updateTimer() {
+    if (breathingState.isPaused) return;
+    
+    breathingState.timeLeft--;
+    
+    // Update progress bar
+    const totalDuration = parseInt(durationSelect.value) * 60;
+    const progress = ((totalDuration - breathingState.timeLeft) / totalDuration) * 100;
+    progressBar.style.width = `${progress}%`;
+    
+    if (breathingState.timeLeft <= 0) {
+        completeExercise();
+    } else {
+        updateTimerDisplay();
+    }
+}
+
+// Update the timer display
+function updateTimerDisplay() {
+    const minutes = Math.floor(breathingState.timeLeft / 60);
+    const seconds = breathingState.timeLeft % 60;
+    timeDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+}
+
+// Complete the exercise
+function completeExercise() {
+    clearInterval(breathingState.timerInterval);
+    clearInterval(breathingState.animationInterval);
+    
+    breathingState.isRunning = false;
+    
+    // Update UI
+    circle.style.transition = 'transform 1s ease-in-out';
+    circle.style.transform = 'scale(0.8)';
+    phaseText.textContent = 'Complete!';
+    timeDisplay.textContent = '0:00';
+    phaseDisplay.textContent = 'Great job! Take a moment to notice how you feel.';
+    
+    // Play completion sound
+    breathingState.sounds.complete.play().catch(e => console.log('Audio play failed:', e));
+    
+    // Haptic feedback
+    if (breathingState.vibrationEnabled) {
+        navigator.vibrate([100, 50, 100, 50, 100]);
+    }
+    
+    // Save to history
+    saveSessionToHistory();
+    
+    // Show completion message
+    const completionModal = new bootstrap.Modal(document.getElementById('completionModal'));
+    document.getElementById('sessionDuration').textContent = `${durationSelect.value} minutes`;
+    document.getElementById('sessionPattern').textContent = breathingState.patterns[breathingState.currentPattern].name;
+    
+    // Show history
+    updateHistoryDisplay();
+    
+    // Auto-close after 5 seconds
+    setTimeout(() => {
+        if (completionModal._isShown) {
+            completionModal.hide();
+        }
+    }, 10000);
+    
+    completionModal.show();
+}
+
+// Save session to history
+function saveSessionToHistory() {
+    const session = {
+        date: new Date().toISOString(),
+        duration: parseInt(durationSelect.value),
+        pattern: breathingState.currentPattern,
+        cycles: breathingState.totalCycles
+    };
+    
+    breathingState.history.unshift(session);
+    
+    // Keep only the last 30 sessions
+    if (breathingState.history.length > 30) {
+        breathingState.history.pop();
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('breathingHistory', JSON.stringify(breathingState.history));
+}
+
+// Update history display
+function updateHistoryDisplay() {
+    const historyList = document.getElementById('historyList');
+    
+    if (breathingState.history.length === 0) {
+        historyList.innerHTML = '<div class="text-muted text-center py-3">No history yet. Complete a session to see your progress here!</div>';
+        return;
+    }
+    
+    // Group by date
+    const groupedByDate = breathingState.history.reduce((acc, session) => {
+        const date = new Date(session.date).toDateString();
+        if (!acc[date]) {
+            acc[date] = [];
+        }
+        acc[date].push(session);
+        return acc;
+    }, {});
+    
+    // Generate HTML
+    let html = '';
+    
+    for (const [date, sessions] of Object.entries(groupedByDate)) {
+        const totalDuration = sessions.reduce((sum, s) => sum + s.duration, 0);
+        const patterns = [...new Set(sessions.map(s => breathingState.patterns[s.pattern].name))].join(', ');
+        
+        html += `
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">${date}</h6>
+            </div>
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between">
+                    <span>Sessions: <strong>${sessions.length}</strong></span>
+                    <span>Total: <strong>${totalDuration} min</strong></span>
+                    <span>Patterns: <strong>${patterns}</strong></span>
+                </div>
+            </div>
+        </div>`;
+    }
+    
+    historyList.innerHTML = html;
+}
+
+// Initialize the exercise when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize the exercise
+    initExercise();
+    
+    // Event listeners for buttons
+    startBtn.addEventListener('click', startExercise);
+    pauseBtn.addEventListener('click', pauseExercise);
+    resetBtn.addEventListener('click', resetExercise);
+    
+    // Show history on history tab click
+    const historyTab = document.getElementById('history-tab');
+    if (historyTab) {
+        historyTab.addEventListener('click', updateHistoryDisplay);
+    }
+    
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Set initial button states
+    updateButtonStates();
+});
+
+// Update button states based on exercise state
+function updateButtonStates() {
+    if (breathingState.isRunning) {
+        startBtn.classList.add('d-none');
+        pauseBtn.classList.remove('d-none');
+        pauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i> Pause';
+        resetBtn.disabled = false;
+    } else if (breathingState.isPaused) {
+        startBtn.classList.remove('d-none');
+        startBtn.innerHTML = '<i class="bi bi-play-fill"></i> Resume';
+        pauseBtn.classList.add('d-none');
+        resetBtn.disabled = false;
+    } else {
+        // Not running
+        startBtn.classList.remove('d-none');
+        startBtn.innerHTML = '<i class="bi bi-play-fill"></i> Start';
+        pauseBtn.classList.add('d-none');
+        resetBtn.disabled = true;
+    }
+    
+    // Enable/disable form controls
+    const formControls = document.querySelectorAll('input[type="radio"], select');
+    formControls.forEach(control => {
+        control.disabled = breathingState.isRunning || breathingState.isPaused;
+    });
+}
+</script>
+{% endblock %}

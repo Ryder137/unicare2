@@ -1,0 +1,610 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="py- b1g-light">
+  <div class="gratitude-journal bg-primary bg-opacity-10 min-vh-100 py-5">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                    <h1>Gratitude Journal</h1>
+                    <p class="lead">Take a moment to reflect on the positive things in your life. Practicing gratitude can improve your mood and overall well-being.</p>
+                </div>
+                
+                <div class="journal-container">
+                    <div class="card shadow-sm border-0 bg-primary text-white rounded-4">
+                            <h2 class="h2 mb-0" style="color: #225b93;">Today's Entry</h2>
+                            <small id="current-date" style="color: #225b93;">{{ now.strftime('%A, %B %d, %Y') }}</small>
+                        <div class="card-body" style="margin-top: 0.25rem;">
+                            <form id="journal-form">
+                                <div class="form-group mb-4">
+                                    <label for="mood" class="form-label">How are you feeling today?</label>
+                                    <div class="mood-selector d-flex justify-content-between mb-3">
+                                        {% for i in range(1, 6) %}
+                                        <div class="mood-option text-center" data-value="{{ i }}" tabindex="0" role="button" aria-label="Select mood {{ i }}">
+                                            <div class="mood-icon">
+                                                {% if i == 1 %}
+<span style="font-size: 2.2rem;">😢</span>
+{% elif i == 2 %}
+<span style="font-size: 2.2rem;">🙁</span>
+{% elif i == 3 %}
+<span style="font-size: 2.2rem;">😐</span>
+{% elif i == 4 %}
+<span style="font-size: 2.2rem;">🙂</span>
+{% else %}
+<span style="font-size: 2.2rem;">😄</span>
+{% endif %}
+                                            </div>
+                                            <div class="mood-label">
+                                                {% if i == 1 %}Awful{% endif %}
+                                                {% if i == 2 %}Not Great{% endif %}
+                                                {% if i == 3 %}Neutral{% endif %}
+                                                {% if i == 4 %}Good{% endif %}
+                                                {% if i == 5 %}Great!{% endif %}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <input type="hidden" id="mood-rating" name="mood" value="3">
+                                </div>
+                                
+                                <div class="form-group mb-4">
+                                    <label for="gratitude-1" class="form-label">I am grateful for...</label>
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text">1</span>
+                                        <input type="text" class="form-control" id="gratitude-1" name="gratitude[]" required>
+                                    </div>
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text">2</span>
+                                        <input type="text" class="form-control" id="gratitude-2" name="gratitude[]" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <span class="input-group-text">3</span>
+                                        <input type="text" class="form-control" id="gratitude-3" name="gratitude[]" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group mb-4">
+                                    <label for="journal-entry" class="form-label">Today's Reflection</label>
+                                    <textarea class="form-control" id="journal-entry" name="entry" rows="5" placeholder="Write about something positive that happened today, something you learned, or anything else you'd like to remember..."></textarea>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" id="save-draft" class="btn btn-outline-secondary">Save as Draft</button>
+                                    <button type="submit" class="btn btn-primary">Save Entry</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div class="previous-entries mt-5">
+                        <h3 class="h5 mb-4">Previous Entries</h3>
+                        <div id="entries-list">
+                            <!-- Journal entries will be loaded here -->
+                            <div class="text-muted text-center py-4">
+                                <p>No previous entries found. Start your gratitude journal today!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.gratitude-journal {
+    background: linear-gradient(135deg, #e3f0ff 0%, #b9d6f7 100%) !important;
+}
+.journal-container .card {
+    background: linear-gradient(190deg, #ffffff 50%, #66b1fb 100%) !important;
+    box-shadow: 0 6px 32px 0 rgba(74,108,247,0.10);
+    border: none;
+}
+.card-header, .card-body {
+    background: transparent !important;
+}
+.form-label, .form-control, .input-group-text, .mood-selector label, .mood-icon, .previous-entries h3, .entry-date, .entry-mood, .entry-content, .gratitude-list li {
+    color: #124086 !important;
+}
+.form-control, .input-group-text {
+    background: #eaf3ff !important;
+    border-color: #b6d4fe !important;
+}
+.form-control:focus {
+    border-color: #4a6cf7 !important;
+    box-shadow: 0 0 0 0.2rem rgba(74,108,247,0.15) !important;
+}
+.btn-primary, .btn-primary:focus, .btn-primary:active {
+    background: #4a6cf7 !important;
+    border-color: #4a6cf7 !important;
+}
+.btn-primary:hover {
+    background: #3763d8 !important;
+    border-color: #3763d8 !important;
+}
+.previous-entries {
+    background: #eaf3ff;
+    border-radius: 1rem;
+    padding: 2rem 1.5rem;
+    margin-top: 2rem;
+    box-shadow: 0 2px 12px 0 rgba(74,108,247,0.06);
+}
+.journal-entry {
+    background: #fff;
+    border-left: 4px solid #4a6cf7;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    color: #124086;
+}
+</style>
+.mood-selector {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.mood-option {
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    opacity: 0.6;
+}
+
+.mood-option:hover {
+    background-color: rgba(76, 175, 80, 0.1);
+    opacity: 0.8;
+}
+
+.mood-option.selected {
+    background-color: rgba(76, 175, 80, 0.2);
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.mood-option .mood-icon {
+    margin-bottom: 5px;
+}
+
+.mood-option .mood-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.journal-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.journal-entry {
+    border-left: 4px solid var(--primary);
+    padding-left: 15px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.journal-entry:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.entry-date {
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 5px;
+}
+
+.entry-mood {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.entry-content {
+    white-space: pre-line;
+    margin-bottom: 10px;
+}
+
+.gratitude-list {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.gratitude-list li {
+    padding: 5px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.gratitude-list li:last-child {
+    border-bottom: none;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize data from localStorage
+let journalEntries = JSON.parse(localStorage.getItem('gratitudeJournalEntries')) || [];
+let currentEntry = {};
+
+// DOM Elements
+const journalForm = document.getElementById('journal-form');
+const moodOptions = document.querySelectorAll('.mood-option');
+const moodInput = document.getElementById('mood-rating');
+const gratitudeInputs = [
+    document.getElementById('gratitude-1'),
+    document.getElementById('gratitude-2'),
+    document.getElementById('gratitude-3')
+];
+const journalTextarea = document.getElementById('journal-entry');
+const saveDraftBtn = document.getElementById('save-draft');
+const entriesList = document.getElementById('entries-list');
+const notification = document.createElement('div');
+notification.className = 'alert alert-dismissible fade show position-fixed top-0 end-0 m-3';
+notification.style.zIndex = '1100';
+document.body.appendChild(notification);
+
+// Show notification
+function showNotification(message, type = 'success') {
+    notification.textContent = message;
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    notification.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        const bsAlert = new bootstrap.Alert(notification);
+        bsAlert.close();
+    }, 3000);
+}
+
+// Save entries to localStorage
+function saveEntries() {
+    localStorage.setItem('gratitudeJournalEntries', JSON.stringify(journalEntries));
+}
+
+// Create a new journal entry
+function createJournalEntry() {
+    const gratitudeItems = gratitudeInputs.map(input => input.value.trim()).filter(item => item);
+    
+    if (gratitudeItems.length === 0) {
+        showNotification('Please enter at least one thing you\'re grateful for.', 'danger');
+        return null;
+    }
+    
+    return {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        mood: parseInt(moodInput.value) || 3,
+        gratitude: gratitudeItems,
+        entry: journalTextarea.value.trim(),
+        isDraft: false
+    };
+}
+
+// Save entry
+function saveEntry(isDraft = false) {
+    const entry = createJournalEntry();
+    if (!entry && !isDraft) return;
+    
+    if (isDraft) {
+        // Save draft with current values
+        const draft = {
+            id: 'draft-' + Date.now(),
+            date: new Date().toISOString(),
+            mood: parseInt(moodInput.value) || 3,
+            gratitude: gratitudeInputs.map(input => input.value.trim()),
+            entry: journalTextarea.value.trim(),
+            isDraft: true
+        };
+        
+        // Remove any existing draft
+        journalEntries = journalEntries.filter(e => !e.isDraft);
+        journalEntries.unshift(draft);
+        saveEntries();
+        showNotification('Draft saved successfully!', 'info');
+    } else {
+        // Save as final entry
+        entry.isDraft = false;
+        journalEntries.unshift(entry);
+        saveEntries();
+        showNotification('Entry saved successfully!', 'success');
+        
+        // Clear form
+        gratitudeInputs.forEach(input => input.value = '');
+        journalTextarea.value = '';
+        setMood(3); // Reset to neutral
+        
+        // Remove any draft
+        journalEntries = journalEntries.filter(e => !e.isDraft);
+        saveEntries();
+    }
+    
+    renderEntries();
+}
+
+// Set mood selection
+function setMood(value) {
+    moodInput.value = value;
+    moodOptions.forEach(option => {
+        if (parseInt(option.dataset.value) === value) {
+            option.classList.add('selected');
+        } else {
+            option.classList.remove('selected');
+        }
+    });}
+
+// Render journal entries
+function renderEntries() {
+    if (journalEntries.length === 0) {
+        entriesList.innerHTML = `
+            <div class="text-muted text-center py-4">
+                <p>No entries yet. Start your gratitude journal today!</p>
+            </div>`;
+        return;
+    }
+    
+    // Group entries by date
+    const entriesByDate = journalEntries.reduce((acc, entry) => {
+        const date = new Date(entry.date).toDateString();
+        if (!acc[date]) {
+            acc[date] = [];
+        }
+        acc[date].push(entry);
+        return acc;
+    }, {});
+    
+    // Render entries
+    let html = '';
+    for (const [date, entries] of Object.entries(entriesByDate)) {
+        html += `
+            <div class="entry-date mb-3">
+                <h5 class="text-muted">${date}</h5>
+            </div>`;
+        
+        entries.forEach(entry => {
+            const moodLabels = ['😢 Awful', '😕 Not Great', '😐 Neutral', '🙂 Good', '😊 Great!'];
+            const moodLabel = moodLabels[entry.mood - 1] || 'No mood set';
+            
+            html += `
+            <div class="card mb-3 ${entry.isDraft ? 'border-warning' : ''}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge ${entry.isDraft ? 'bg-warning text-dark' : 'bg-primary'}">
+                            ${entry.isDraft ? 'Draft' : new Date(entry.date).toLocaleTimeString()}
+                        </span>
+                        <div class="mood-display">
+                            <small class="text-muted">Mood:</small>
+                            <span class="ms-1">${moodLabel}</span>
+                        </div>
+                    </div>
+                    
+                    ${entry.gratitude.length > 0 ? `
+                    <ul class="gratitude-list">
+                        ${entry.gratitude.filter(item => item).map(item => 
+                            `<li>${item}</li>`
+                        ).join('')}
+                    </ul>` : ''}
+                    
+                    ${entry.entry ? `
+                    <div class="entry-content mt-2">
+                        ${entry.entry.replace(/\n/g, '<br>')}
+                    </div>` : ''}
+                    
+                    ${entry.isDraft ? `
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-outline-secondary edit-draft" data-id="${entry.id}">
+                            <i class="bi bi-pencil"></i> Continue Editing
+                        </button>
+                    </div>` : ''}
+                </div>
+            </div>`;
+        });
+    }
+    
+    entriesList.innerHTML = html || `
+        <div class="text-muted text-center py-4">
+            <p>No entries found. Start your gratitude journal today!</p>
+        </div>`;
+    
+    // Add event listeners to draft edit buttons
+    document.querySelectorAll('.edit-draft').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const entryId = e.target.closest('button').dataset.id;
+            const draft = journalEntries.find(e => e.id === entryId);
+            if (draft) {
+                // Load draft into form
+                setMood(draft.mood);
+                draft.gratitude.forEach((item, i) => {
+                    if (gratitudeInputs[i]) {
+                        gratitudeInputs[i].value = item;
+                    }
+                });
+                journalTextarea.value = draft.entry || '';
+                
+                // Remove the draft from the list
+                journalEntries = journalEntries.filter(e => e.id !== entryId);
+                saveEntries();
+                
+                // Scroll to form
+                document.querySelector('#journal-form').scrollIntoView({ behavior: 'smooth' });
+                
+                showNotification('Draft loaded. Continue editing...', 'info');
+            }
+        });
+    });
+}
+
+// Load any saved draft
+function loadDraft() {
+    const draft = journalEntries.find(entry => entry.isDraft);
+    if (draft) {
+        if (confirm('You have a saved draft. Would you like to continue working on it?')) {
+            setMood(draft.mood);
+            draft.gratitude.forEach((item, i) => {
+                if (gratitudeInputs[i]) {
+                    gratitudeInputs[i].value = item;
+                }
+            });
+            journalTextarea.value = draft.entry || '';
+            
+            // Remove the draft from the list
+            journalEntries = journalEntries.filter(e => e.id !== draft.id);
+            saveEntries();
+            
+            showNotification('Draft loaded. Continue editing...', 'info');
+        }
+    }
+}
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // Mood selection
+    moodOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            const value = parseInt(option.dataset.value);
+            setMood(value);
+        });
+    });
+    
+    // Form submission
+    journalForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveEntry(false);
+    });
+    
+    // Save draft
+    saveDraftBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        saveEntry(true);
+    });
+    
+    // Initial render and load any draft
+    renderEntries();
+    loadDraft();
+});
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize date
+    const now = new Date();
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', options);
+    
+    // Mood selector
+    const moodOptions = document.querySelectorAll('.mood-option');
+    const moodInput = document.getElementById('mood-rating');
+    
+    moodOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const value = this.getAttribute('data-value');
+            moodInput.value = value;
+            
+            // Update UI
+            moodOptions.forEach(opt => opt.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+    });
+    
+    // Set default mood to 3 (Neutral)
+    document.querySelector(`.mood-option[data-value="3"]`).classList.add('selected');
+    
+    // Form submission
+    const journalForm = document.getElementById('journal-form');
+    
+    journalForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = {
+            date: new Date().toISOString(),
+            mood: parseInt(moodInput.value),
+            gratitude: [
+                document.getElementById('gratitude-1').value,
+                document.getElementById('gratitude-2').value,
+                document.getElementById('gratitude-3').value
+            ],
+            entry: document.getElementById('journal-entry').value
+        };
+        
+        // In a real app, you would save this to the server
+        console.log('Saving journal entry:', formData);
+        
+        // Show success message
+        alert('Journal entry saved successfully!');
+        
+        // Reset form
+        journalForm.reset();
+        document.querySelector(`.mood-option[data-value="3"]`).click();
+        
+        // Add to entries list
+        addJournalEntry(formData);
+    });
+    
+    // Save as draft
+    document.getElementById('save-draft').addEventListener('click', function() {
+        // In a real app, you would save this to local storage or the server as a draft
+        alert('Draft saved!');
+    });
+    
+    // Load previous entries (in a real app, this would come from the server)
+    function loadJournalEntries() {
+        // This is just a placeholder - in a real app, you would fetch entries from the server
+        const entries = [];
+        
+        const entriesList = document.getElementById('entries-list');
+        
+        if (entries.length === 0) {
+            entriesList.innerHTML = `
+                <div class="text-muted text-center py-4">
+                    <p>No previous entries found. Start your gratitude journal today!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Sort entries by date (newest first)
+        entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        // Generate HTML for each entry
+        entriesList.innerHTML = entries.map(entry => createJournalEntryHTML(entry)).join('');
+    }
+    
+    // Create HTML for a journal entry
+    function createJournalEntryHTML(entry) {
+        const date = new Date(entry.date);
+        const moodLabels = ['Awful', 'Not Great', 'Neutral', 'Good', 'Great!'];
+        const moodEmojis = ['😞', '🙁', '😐', '🙂', '😊'];
+        
+        return `
+            <div class="journal-entry">
+                <div class="entry-date">${date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div class="entry-mood">Mood: ${moodEmojis[entry.mood - 1]} ${moodLabels[entry.mood - 1]}</div>
+                
+                <h4 class="h6 mt-3">I'm grateful for:</h4>
+                <ul class="gratitude-list">
+                    ${entry.gratitude.map(item => `<li>${item}</li>`).join('')}
+                </ul>
+                
+                <div class="entry-content">${entry.entry.replace(/\n/g, '<br>')}</div>
+            </div>
+        `;
+    }
+    
+    // Add a new journal entry to the list
+    function addJournalEntry(entry) {
+        const entriesList = document.getElementById('entries-list');
+        
+        // If the "no entries" message is showing, remove it
+        if (entriesList.querySelector('.text-muted')) {
+            entriesList.innerHTML = '';
+        }
+        
+        // Add the new entry at the top
+        entriesList.insertAdjacentHTML('afterbegin', createJournalEntryHTML(entry));
+    }
+    
+    // Load any saved entries
+    loadJournalEntries();
+});
+</script>
+{% endblock %}

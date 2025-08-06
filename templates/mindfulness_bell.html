@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-5">
+                <h1>Mindfulness Bell</h1>
+                <p class="lead">Set gentle reminders to take mindful breaks throughout your day.</p>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center">
+                    <div class="bell-container mb-4">
+                        <i class="bi bi-bell" style="font-size: 4rem; color: var(--primary-500);"></i>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h3 class="h5 mb-3">Next Reminder</h3>
+                        <div class="display-4 mb-3" id="countdown">--:--</div>
+                        <button class="btn btn-primary" id="start-timer">Start Timer</button>
+                        <button class="btn btn-outline-secondary d-none" id="stop-timer">Stop Timer</button>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="interval" class="form-label">Reminder Interval</label>
+                        <select class="form-select w-auto mx-auto" id="interval">
+                            <option value="5">5 minutes</option>
+                            <option value="15" selected>15 minutes</option>
+                            <option value="30">30 minutes</option>
+                            <option value="60">1 hour</option>
+                            <option value="120">2 hours</option>
+                        </select>
+                    </div>
+                    
+                    <div class="alert alert-info mt-4">
+                        <i class="bi bi-info-circle me-2"></i>
+                        When the bell rings, take a moment to pause and take 3 deep breaths.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <a href="{{ url_for('games') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Games
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startBtn = document.getElementById('start-timer');
+    const stopBtn = document.getElementById('stop-timer');
+    const countdownEl = document.getElementById('countdown');
+    const intervalSelect = document.getElementById('interval');
+    
+    let countdown;
+    let endTime;
+    
+    // Sound for the bell
+    const bellSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.mp3');
+    
+    // Format time as MM:SS
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    // Play bell sound
+    function playBell() {
+        bellSound.play().catch(e => console.log('Audio play failed:', e));
+    }
+    
+    // Update the countdown display
+    function updateCountdown() {
+        const now = new Date().getTime();
+        const distance = endTime - now;
+        
+        if (distance <= 0) {
+            clearInterval(countdown);
+            countdownEl.textContent = '00:00';
+            playBell();
+            startTimer(); // Restart the timer
+            return;
+        }
+        
+        const seconds = Math.ceil(distance / 1000);
+        countdownEl.textContent = formatTime(seconds);
+    }
+    
+    // Start the timer
+    function startTimer() {
+        const minutes = parseInt(intervalSelect.value);
+        endTime = new Date().getTime() + (minutes * 60 * 1000);
+        
+        updateCountdown();
+        countdown = setInterval(updateCountdown, 1000);
+        
+        startBtn.classList.add('d-none');
+        stopBtn.classList.remove('d-none');
+    }
+    
+    // Stop the timer
+    function stopTimer() {
+        clearInterval(countdown);
+        countdownEl.textContent = '--:--';
+        startBtn.classList.remove('d-none');
+        stopBtn.classList.add('d-none');
+    }
+    
+    // Event listeners
+    startBtn.addEventListener('click', startTimer);
+    stopBtn.addEventListener('click', stopTimer);
+    
+    // Request notification permission
+    if ('Notification' in window) {
+        Notification.requestPermission();
+    }
+});
+</script>
+
+<style>
+.bell-container {
+    transition: transform 0.3s ease;
+}
+
+.bell-container.ringing {
+    animation: ring 0.5s ease-in-out infinite;
+}
+
+@keyframes ring {
+    0% { transform: rotate(-15deg); }
+    50% { transform: rotate(15deg); }
+    100% { transform: rotate(-15deg); }
+}
+</style>
+{% endblock %}

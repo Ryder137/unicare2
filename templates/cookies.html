@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4 p-md-5">
+                    <h1 class="mb-4 text-dark">Cookie Policy</h1>
+                    <p class="text-body-secondary mb-5">Last updated: {{ current_year }}</p>
+                    
+                    <div class="mb-5">
+                        <h2 class="h4 mb-3 text-dark">What are Cookies?</h2>
+                        <p>Cookies are small text files that are placed on your computer or mobile device when you visit a website. They are widely used to make websites work more efficiently and to provide information to the site owners.</p>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <h2 class="h4 mb-3 text-dark">How We Use Cookies</h2>
+                        <p>We use cookies for the following purposes:</p>
+                        <ul class="mb-4">
+                            <li class="mb-2">
+                                <strong>Essential Cookies:</strong> These are necessary for the website to function and cannot be switched off.
+                            </li>
+                            <li class="mb-2">
+                                <strong>Performance Cookies:</strong> These help us understand how visitors interact with our website by collecting and reporting information anonymously.
+                            </li>
+                            <li class="mb-2">
+                                <strong>Functional Cookies:</strong> These enable the website to provide enhanced functionality and personalization.
+                            </li>
+                            <li>
+                                <strong>Analytics Cookies:</strong> These help us improve our website by understanding how users navigate through and interact with our site.
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <h2 class="h4 mb-3 text-dark">Managing Cookies</h2>
+                        <p>You can control and/or delete cookies as you wish. You can delete all cookies that are already on your computer and you can set most browsers to prevent them from being placed. However, if you do this, you may have to manually adjust some preferences every time you visit a site and some services and functionalities may not work.</p>
+                        <p>To learn more about cookies and how to manage them, visit <a href="https://www.aboutcookies.org/" target="_blank" class="text-decoration-none">All About Cookies</a>.</p>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <h2 class="h4 mb-3 text-dark">Third-Party Cookies</h2>
+                        <p>We may also use various third-party cookies to report usage statistics and deliver advertisements on and through the service.</p>
+                        <p>Some of these third parties may use technology such as cookies, web beacons, and other storage technologies to collect or receive information from our website and elsewhere on the internet and use that information to provide measurement services and target ads.</p>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            <div>
+                                <p class="mb-0 text-dark">By continuing to use our website without changing your browser settings, you consent to our use of cookies as described in this policy.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5 pt-4 border-top">
+                        <h2 class="h4 mb-3 text-dark">Contact Us</h2>
+                        <p class="text-body">If you have any questions about our Cookie Policy, please contact us at <a href="mailto:privacy@unicare.com" class="text-decoration-none text-primary">privacy@unicare.com</a>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

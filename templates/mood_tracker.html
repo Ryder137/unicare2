@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5">
+    <div class="card mx-auto shadow-lg" style="max-width: 500px;">
+        <div class="card-body">
+            <h2 class="card-title text-center mb-4">Mood Tracker</h2>
+            <form method="POST" action="{{ url_for('mood_tracker') }}">
+                <div class="mb-3">
+                    <label for="mood" class="form-label">How are you feeling today?</label>
+                    <select class="form-select" id="mood" name="mood" required>
+                        <option value="" disabled selected>Select your mood</option>
+                        <option value="happy">😊 Happy</option>
+                        <option value="sad">😢 Sad</option>
+                        <option value="anxious">😰 Anxious</option>
+                        <option value="angry">😡 Angry</option>
+                        <option value="neutral">😐 Neutral</option>
+                        <option value="excited">🤩 Excited</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="note" class="form-label">Notes (optional)</label>
+                    <textarea class="form-control" id="note" name="note" rows="2" placeholder="Add any details..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Submit Mood</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

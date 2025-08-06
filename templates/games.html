@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Guest Info Modal -->
+<div id="guestInfoModal" class="position-fixed w-100 h-100" style="display: none; top: 0; left: 0; background-color: rgba(0,0,0,0.5); z-index: 1050; overflow-y: auto;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #4a6cf7 0%, #1e3a8a 100%);">
+                <h5 class="modal-title" id="guestInfoModalLabel">
+                    <i class="bi bi-info-circle-fill me-2"></i>Guest Mode
+                </h5>
+            </div>
+            <div class="modal-body p-4" style="padding: 1.5rem 2rem;">
+                <div class="d-flex align-items-center mb-4">
+                    <i class="bi bi-person-circle me-2" style="color: #4a6cf7; font-size: 1.5rem;"></i>
+                    <h5 class="mb-0" style="color: #1e3a8a;">You're in Guest Mode</h5>
+                </div>
+                <p class="mb-4" style="color: #4b5563; padding: 0 0.5rem;">You're currently playing as a guest. Some features may be limited.</p>
+                <div class="p-4 rounded mb-4" style="background-color: #f0f4ff; border-left: 4px solid #4a6cf7; margin: 0 -0.5rem;">
+                    <div class="d-flex">
+                        <i class="bi bi-lightbulb-fill me-2" style="color: #4a6cf7;"></i>
+                        <div>
+                            <span style="color: #1f2937; display: inline-block; padding: 0.25rem 0;">To save your progress and access all features, please 
+                                <a href="{{ url_for('login') }}" class="text-primary fw-bold">sign in</a> or 
+                                <a href="{{ url_for('register') }}" class="text-primary fw-bold">create an account</a>.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 bg-light">
+                <button type="button" class="btn btn-primary px-4" id="gotItBtn">
+                    <i class="bi bi-check-lg me-2"></i>Got it!
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="py-5 bg-light" style="margin-top: 76px;">
+    <div class="container">
+        <div class="text-center">
+            <h1 class="mb-3">Games & Assessments</h1>
+            <p class="lead text-muted">Engage with our interactive tools to learn more about yourself and improve your mental well-being.</p>
+        </div>
+    </div>
+</div>
+
+<main class="py-5" style="margin-top: 1rem;">
+    <div class="container">
+
+        <!-- Personality Test Section -->
+        <div class="assessment-card mb-5">
+            <div class="assessment-header">
+                <h2>Personality Assessment</h2>
+                <p>Discover your personality traits and how they affect your daily life and relationships.</p>
+            </div>
+            <div class="assessment-content">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h3 class="h5">Big Five Personality Test</h3>
+                                <p>Take this scientifically validated test to understand your personality across five major dimensions.</p>
+                                <a href="{{ url_for('personality_test') }}" class="btn btn-primary text-white">Start Test</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h3 class="h5">Emotional Intelligence Test</h3>
+                                <p>Assess your ability to recognize, understand, and manage emotions.</p>
+                                <a href="{{ url_for('eq_test') }}" class="btn btn-primary">Start Assessment</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Games Section -->
+        <div class="games-section">
+            <div class="section-header mb-4">
+                <h2>Mindfulness Games</h2>
+                <p>Engage in fun activities designed to reduce stress and improve focus.</p>
+            </div>
+            
+            <div class="games-scroll-container">
+                <div class="games-scroll d-flex flex-nowrap pb-4">
+
+                    <!-- Breathing Exercise -->
+                    <div class="game-card-wrapper me-4" style="min-width: 300px;">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="game-icon mb-3">
+                                    <i class="bi bi-activity fs-1"></i>
+                                </div>
+                                <h3 class="h5">Breathing Exercise</h3>
+                                <p>Practice deep breathing to reduce stress and increase focus.</p>
+                                <a href="{{ url_for('breathing_exercise') }}" class="btn btn-primary">Start Exercise</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gratitude Journal -->
+                    <div class="game-card-wrapper me-4" style="min-width: 300px;">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="game-icon mb-3">
+                                    <i class="bi bi-journal-text fs-1"></i>
+                                </div>
+                                <h3 class="h5">Gratitude Journal</h3>
+                                <p>Reflect on the positive aspects of your day with our gratitude journal.</p>
+                                <a href="{{ url_for('gratitude_journal') }}" class="btn btn-primary">Start Journaling</a>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- Memory Match -->
+                    <div class="game-card-wrapper me-4" style="min-width: 300px;">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="game-icon mb-3">
+                                    <i class="bi bi-card-checklist fs-1"></i>
+                                </div>
+                                <h3 class="h5">Memory Match</h3>
+                                <p>Match pairs of cards with positive affirmations and mindfulness tips.</p>
+                                <a href="{{ url_for('memory_match') }}" class="btn btn-primary">Play Now</a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+            <!-- Fidget Games Section -->
+            <div class="section-header text-center mb-5 mt-5">
+                <h2 class="mb-3">Fidget Games</h2>
+                <p class="text-muted mx-auto" style="max-width: 600px;">Interactive tools to help with focus, stress relief, and anxiety management.</p>
+            </div>
+            
+            <div class="games-scroll-container">
+                <div class="games-scroll d-flex justify-content-center flex-wrap gap-4 pb-4">
+                    <!-- Fidget Spinner -->
+                    <div class="game-card-wrapper me-4" style="min-width: 280px;">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="game-icon mb-3">
+                                    <i class="bi bi-arrow-repeat fs-1"></i>
+                                </div>
+                                <h3 class="h5">Fidget Spinner</h3>
+                                <p>Interactive spinner to help with focus and stress relief.</p>
+                                <a href="{{ url_for('fidget_spinner') }}" class="btn btn-primary w-100">Start Spinning</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bubble Wrap Popper -->
+                    <div class="game-card-wrapper me-4" style="min-width: 280px;">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="game-icon mb-3">
+                                    <i class="bi bi-circle-fill fs-1" style="color: #4a6cf7;"></i>
+                                </div>
+                                <h3 class="h5">Bubble Wrap Popper</h3>
+                                <p>Pop virtual bubble wrap for instant stress relief.</p>
+                                <a href="{{ url_for('bubble_wrap') }}" class="btn btn-primary w-100">Start Popping</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Satisfying Clicker -->
+                    <div class="game-card-wrapper me-4" style="min-width: 280px;">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="game-icon mb-3">
+                                    <i class="bi bi-mouse-fill fs-1"></i>
+                                </div>
+                                <h3 class="h5">Satisfying Clicker</h3>
+                                <p>Click with satisfying sounds and animations.</p>
+                                <a href="{{ url_for('clicker') }}" class="btn btn-primary w-100">Start Clicking</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+</section>
+
+</main>
+
+{% endblock %}
+
+{% block extra_js %}
+{% if is_guest %}
+<style>
+    /* Full-screen overlay that blocks interaction */
+    #guest-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+        padding: 2rem;
+    }
+    
+    /* Modal styling */
+    .guest-modal {
+        background: white;
+        border-radius: 12px;
+        max-width: 500px;
+        width: 100%;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        animation: modalFadeIn 0.3s ease-out forwards;
+        overflow: hidden;
+    }
+    
+    .guest-modal .modal-header {
+        padding: 1.25rem 2rem;
+        background: linear-gradient(135deg, #4a6cf7 0%, #1e3a8a 100%);
+        border-bottom: none;
+        color: white;
+    }
+    
+    .guest-modal .modal-body {
+        padding: 2rem;
+    }
+    
+    .guest-modal .modal-footer {
+        padding: 1.25rem 2rem;
+        background-color: #f8f9fa;
+        border-top: 1px solid #eee;
+    }
+    
+    @keyframes modalFadeIn {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Disable body scroll when modal is open */
+    body.modal-open {
+        overflow: hidden;
+        padding-right: 15px; /* Prevent content shift from scrollbar */
+    }
+    
+    /* Make links more visible */
+    .alert-link {
+        font-weight: 600;
+        text-decoration: underline;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get the modal content
+        const modalContent = document.getElementById('guestInfoModal');
+        
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'guest-overlay';
+        
+        // Create modal container
+        const modal = document.createElement('div');
+        modal.className = 'guest-modal';
+        
+        // Add modal content to the container
+        modal.innerHTML = document.querySelector('#guestInfoModal .modal-dialog').innerHTML;
+        
+        // Add modal to overlay
+        overlay.appendChild(modal);
+        
+        // Add overlay to body
+        document.body.appendChild(overlay);
+        document.body.classList.add('modal-open');
+        
+        // Handle close button
+        const gotItBtn = overlay.querySelector('#gotItBtn');
+        
+        function closeModal() {
+            // Fade out animation
+            overlay.style.opacity = '0';
+            modal.style.transform = 'translateY(-20px)';
+            
+            // Remove elements after animation
+            setTimeout(() => {
+                if (document.body.contains(overlay)) {
+                    document.body.removeChild(overlay);
+                }
+                document.body.classList.remove('modal-open');
+            }, 300);
+        }
+        
+        // Close when clicking outside the modal
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                closeModal();
+            }
+        });
+        
+        // Close when clicking the Got it button
+        if (gotItBtn) {
+            gotItBtn.addEventListener('click', closeModal);
+        }
+        
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

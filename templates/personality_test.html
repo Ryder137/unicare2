@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="personality-test-container py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div id="test-intro" class="text-center py-4">
+                            <h2>Welcome to the Personality Assessment</h2>
+                            <p class="lead">This test will help you understand your personality across five major dimensions.</p>
+                            <div class="alert alert-info mb-4">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Note on Accuracy:</strong> This is a simplified version of the Big Five personality test. 
+                                For a more accurate assessment, consider consulting with a mental health professional or 
+                                taking a comprehensive, scientifically validated personality assessment.
+                            </div>
+                            <p>You'll be presented with a series of statements. Please indicate how much you agree or disagree with each statement.</p>
+                            {% if is_guest %}
+                            <div class="alert alert-info mb-4">
+                                <i class="bi bi-info-circle me-2"></i>You're taking this test as a guest. <a href="{{ url_for('login') }}" class="alert-link">Sign in</a> to save your results and track your progress.
+                            </div>
+                            {% endif %}
+                            <button id="start-test" class="btn btn-primary btn-lg mt-3 text-white">Begin Test</button>
+                        </div>
+
+                        <form id="personality-test-form" class="d-none" action="{{ url_for('submit_personality_test') }}" method="POST">
+                            <div id="question-container">
+                                <!-- Questions will be loaded here by JavaScript -->
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" id="prev-btn" class="btn btn-outline-secondary text-secondary" disabled>Previous</button>
+                                <div>
+                                    <span id="question-counter">Question 1 of 50</span>
+                                </div>
+                                <button type="button" id="next-btn" class="btn btn-primary text-white">Next</button>
+                                <button type="submit" id="submit-btn" class="btn btn-success text-white d-none">Submit Test</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get CSRF token from meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        // Questions for each trait (6 questions per trait for better reliability)
+        const questions = [
+            // Openness (6 questions)
+            { text: "I have a rich vocabulary.", trait: "openness", reversed: false },
+            { text: "I have difficulty understanding abstract ideas.", trait: "openness", reversed: true },
+            { text: "I have a vivid imagination.", trait: "openness", reversed: false },
+            { text: "I am not interested in abstract ideas.", trait: "openness", reversed: true },
+            { text: "I have excellent ideas.", trait: "openness", reversed: false },
+            { text: "I do not have a good imagination.", trait: "openness", reversed: true },
+            
+            // Conscientiousness (6 questions)
+            { text: "I am always prepared.", trait: "conscientiousness", reversed: false },
+            { text: "I leave my belongings around.", trait: "conscientiousness", reversed: true },
+            { text: "I pay attention to details.", trait: "conscientiousness", reversed: false },
+            { text: "I make a mess of things.", trait: "conscientiousness", reversed: true },
+            { text: "I get chores done right away.", trait: "conscientiousness", reversed: false },
+            { text: "I often forget to put things back in their proper place.", trait: "conscientiousness", reversed: true },
+            
+            // Extraversion (6 questions)
+            { text: "I am the life of the party.", trait: "extraversion", reversed: false },
+            { text: "I don't talk a lot.", trait: "extraversion", reversed: true },
+            { text: "I feel comfortable around people.", trait: "extraversion", reversed: false },
+            { text: "I keep in the background.", trait: "extraversion", reversed: true },
+            { text: "I start conversations.", trait: "extraversion", reversed: false },
+            { text: "I have little to say.", trait: "extraversion", reversed: true },
+            
+            // Agreeableness (6 questions)
+            { text: "I am interested in people.", trait: "agreeableness", reversed: false },
+            { text: "I feel little concern for others.", trait: "agreeableness", reversed: true },
+            { text: "I have a soft heart.", trait: "agreeableness", reversed: false },
+            { text: "I am not interested in other people's problems.", trait: "agreeableness", reversed: true },
+            { text: "I sympathize with others' feelings.", trait: "agreeableness", reversed: false },
+            { text: "I am not really interested in others.", trait: "agreeableness", reversed: true },
+            
+            // Neuroticism (6 questions)
+            { text: "I am relaxed most of the time.", trait: "neuroticism", reversed: true },
+            { text: "I get upset easily.", trait: "neuroticism", reversed: false },
+            { text: "I have frequent mood swings.", trait: "neuroticism", reversed: false },
+            { text: "I seldom feel blue.", trait: "neuroticism", reversed: true },
+            { text: "I am easily disturbed.", trait: "neuroticism", reversed: false },
+            { text: "I get stressed out easily.", trait: "neuroticism", reversed: false }
+        ];
+        
+        // Shuffle questions to randomize order
+        questions.sort(() => Math.random() - 0.5);
+
+        const testForm = document.getElementById('personality-test-form');
+        const questionContainer = document.getElementById('question-container');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const questionCounter = document.getElementById('question-counter');
+        const startTestBtn = document.getElementById('start-test');
+        const testIntro = document.getElementById('test-intro');
+
+        let currentQuestion = 0;
+        const answers = [];
+
+        // Initialize the test
+        function startTest() {
+            testIntro.classList.add('d-none');
+            testForm.classList.remove('d-none');
+            showQuestion();
+        }
+
+        // Display the current question
+        function showQuestion() {
+            if (currentQuestion >= questions.length) {
+                showResults();
+                return;
+            }
+
+            const question = questions[currentQuestion];
+            questionContainer.innerHTML = `
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h3 class="h5 mb-4">${question.text}</h3>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_1" value="1">
+                            <label class="form-check-label" for="q${currentQuestion}_1">Strongly Disagree</label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_2" value="2">
+                            <label class="form-check-label" for="q${currentQuestion}_2">Disagree</label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_3" value="3" checked>
+                            <label class="form-check-label" for="q${currentQuestion}_3">Neutral</label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_4" value="4">
+                            <label class="form-check-label" for="q${currentQuestion}_4">Agree</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_5" value="5">
+                            <label class="form-check-label" for="q${currentQuestion}_5">Strongly Agree</label>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            updateNavigation();
+        }
+
+        // Update navigation buttons and counter
+        function updateNavigation() {
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${questions.length}`;
+            
+            prevBtn.disabled = currentQuestion === 0;
+            nextBtn.classList.toggle('d-none', currentQuestion === questions.length - 1);
+            submitBtn.classList.toggle('d-none', currentQuestion !== questions.length - 1);
+        }
+
+        // Calculate personality trait scores from answers with improved accuracy
+        function calculateResults() {
+            // Initialize trait scores and counts
+            const traits = {
+                'openness': 0,
+                'conscientiousness': 0,
+                'extraversion': 0,
+                'agreeableness': 0,
+                'neuroticism': 0
+            };
+            
+            const traitCounts = {
+                'openness': 0,
+                'conscientiousness': 0,
+                'extraversion': 0,
+                'agreeableness': 0,
+                'neuroticism': 0
+            };
+            
+            // Sum scores for each trait with validation
+            answers.forEach(answer => {
+                if (answer && answer.trait && answer.answer) {
+                    // Ensure answer is within valid range (1-5)
+                    const answerValue = Math.max(1, Math.min(5, answer.answer));
+                    const score = answer.reversed ? (6 - answerValue) : answerValue;
+                    traits[answer.trait] += score;
+                    traitCounts[answer.trait]++;
+                }
+            });
+            
+            // Calculate average score for each trait (1-5 scale)
+            const results = {};
+            const descriptions = {
+                'openness': {
+                    low: 'You tend to be practical, conventional, and focused on the concrete.',
+                    high: 'You tend to be creative, curious, and open to new experiences.'
+                },
+                'conscientiousness': {
+                    low: 'You tend to be more flexible, spontaneous, and less organized.',
+                    high: 'You tend to be organized, reliable, and self-disciplined.'
+                },
+                'extraversion': {
+                    low: 'You tend to be more reserved, quiet, and enjoy solitude.',
+                    high: 'You tend to be outgoing, energetic, and enjoy social interactions.'
+                },
+                'agreeableness': {
+                    low: 'You tend to be more competitive, skeptical, and less trusting.',
+                    high: 'You tend to be kind, cooperative, and trusting of others.'
+                },
+                'neuroticism': {
+                    low: 'You tend to be emotionally stable, calm, and secure.',
+                    high: 'You may experience mood swings, anxiety, and emotional instability.'
+                }
+            };
+            
+            // Calculate final scores with normalization
+            Object.keys(traits).forEach(trait => {
+                if (traitCounts[trait] > 0) {
+                    // Calculate raw average (1-5 scale)
+                    const rawScore = traits[trait] / traitCounts[trait];
+                    // Normalize to 0-100 scale for display
+                    const normalizedScore = Math.round(((rawScore - 1) / 4) * 100);
+                    
+                    // Determine interpretation
+                    let interpretation = '';
+                    if (trait === 'neuroticism') {
+                        // For neuroticism, lower is better
+                        interpretation = normalizedScore < 40 ? 'Low' : 
+                                       (normalizedScore < 70 ? 'Moderate' : 'High');
+                    } else {
+                        // For other traits, higher is generally better
+                        interpretation = normalizedScore > 60 ? 'High' : 
+                                      (normalizedScore > 30 ? 'Moderate' : 'Low');
+                    }
+                    
+                    // Get description based on score
+                    const description = normalizedScore > 50 ? 
+                        descriptions[trait].high : descriptions[trait].low;
+                    
+                    results[trait] = {
+                        score: normalizedScore,
+                        interpretation: interpretation,
+                        description: description
+                    };
+                }
+            });
+            
+            return results;
+        }
+        
+        // Show results page
+        function showResults() {
+            // Calculate results
+            const results = calculateResults();
+            
+            // Display results with detailed interpretation
+            questionContainer.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#4a6cf7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+                    <h2>Test Completed!</h2>
+                    <p class="lead">Thank you for completing the personality assessment.</p>
+                    <div class="alert alert-info mb-4">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Note:</strong> These results are based on your self-reported answers and should be 
+                        interpreted as a general guide rather than a definitive assessment of your personality.
+                    </div>
+                    
+                    <div id="results-container" class="mt-4">
+                        <h3 class="h4 mb-4">Your Personality Profile</h3>
+                        <div class="row justify-content-center">
+                            <div class="col-lg-10">
+                                ${Object.entries(results).map(([trait, data]) => {
+                                    const traitName = trait.charAt(0).toUpperCase() + trait.slice(1);
+                                    const isNeuroticism = trait === 'neuroticism';
+                                    const progressClass = isNeuroticism ? 
+                                        (data.score < 40 ? 'bg-success' : (data.score < 70 ? 'bg-warning' : 'bg-danger')) :
+                                        (data.score > 60 ? 'bg-success' : (data.score > 30 ? 'bg-warning' : 'bg-danger'));
+                                    
+                                    return `
+                                    <div class="card mb-4 border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <h5 class="card-title mb-0 text-capitalize">${traitName} 
+                                                    <span class="badge ${isNeuroticism ? 
+                                                        (data.interpretation === 'Low' ? 'bg-success' : 
+                                                        (data.interpretation === 'Moderate' ? 'bg-warning' : 'bg-danger')) : 
+                                                        (data.interpretation === 'High' ? 'bg-success' : 
+                                                        (data.interpretation === 'Moderate' ? 'bg-warning' : 'bg-danger'))
+                                                    } ms-2">
+                                                        ${data.interpretation}
+                                                    </span>
+                                                </h5>
+                                                <span class="fw-bold">${data.score}%</span>
+                                            </div>
+                                            <div class="progress mb-3" style="height: 10px;">
+                                                <div class="progress-bar ${progressClass}" role="progressbar" 
+                                                    style="width: ${data.score}%" 
+                                                    aria-valuenow="${data.score}" 
+                                                    aria-valuemin="0" 
+                                                    aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <p class="card-text mb-0">${data.description}</p>
+                                        </div>
+                                    </div>
+                                    `;
+                                }).join('')}
+                                
+                                <div class="card border-0 shadow-sm mt-4">
+                                    <div class="card-body">
+                                        <h5 class="card-title">About Your Results</h5>
+                                        <p class="card-text">
+                                            This assessment measures five broad dimensions of personality:
+                                            <ul>
+                                                <li><strong>Openness</strong> - Imagination, creativity, and preference for novelty</li>
+                                                <li><strong>Conscientiousness</strong> - Organization, responsibility, and self-discipline</li>
+                                                <li><strong>Extraversion</strong> - Sociability, talkativeness, and assertiveness</li>
+                                                <li><strong>Agreeableness</strong> - Compassion, cooperativeness, and trust in others</li>
+                                                <li><strong>Neuroticism</strong> - Tendency toward emotional instability and negative emotions</li>
+                                            </ul>
+                                            Remember that personality traits exist on a spectrum, and there are no "good" or "bad" scores. 
+                                            These results are just one way to understand your personality.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-primary me-2">Back to Dashboard</a>
+                        <button onclick="window.print()" class="btn btn-outline-primary">
+                            <i class="bi bi-printer me-1"></i> Print Results
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Create a form to submit the results
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = "{{ url_for('submit_personality_test') }}";
+            
+            // Add CSRF token
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+            
+            // Add answers and results as hidden inputs
+            const answersInput = document.createElement('input');
+            answersInput.type = 'hidden';
+            answersInput.name = 'answers';
+            answersInput.value = JSON.stringify(answers);
+            form.appendChild(answersInput);
+            
+            const resultsInput = document.createElement('input');
+            resultsInput.type = 'hidden';
+            resultsInput.name = 'results';
+            resultsInput.value = JSON.stringify(results);
+            form.appendChild(resultsInput);
+            
+            // Submit the form
+            document.body.appendChild(form);
+            form.submit();
+            
+            prevBtn.classList.add('d-none');
+            nextBtn.classList.add('d-none');
+            submitBtn.classList.add('d-none');
+        }
+
+        // Event Listeners
+        startTestBtn.addEventListener('click', startTest);
+
+        prevBtn.addEventListener('click', () => {
+            if (currentQuestion > 0) {
+                saveAnswer();
+                currentQuestion--;
+                showQuestion();
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentQuestion < questions.length - 1) {
+                saveAnswer();
+                currentQuestion++;
+                showQuestion();
+            }
+        });
+
+        submitBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            saveAnswer();
+            showResults();
+        });
+
+        // Save the current answer
+        function saveAnswer() {
+            const selectedOption = document.querySelector(`input[name="q${currentQuestion}"]:checked`);
+            if (selectedOption) {
+                answers[currentQuestion] = {
+                    questionId: currentQuestion,
+                    answer: parseInt(selectedOption.value),
+                    trait: questions[currentQuestion].trait,
+                    reversed: questions[currentQuestion].reversed
+                };
+            }
+        }
+    });
+</script>
+{% endblock %}

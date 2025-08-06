@@ -1,0 +1,514 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h1 class="h3 mb-0">Fidget Spinner</h1>
+                        <a href="{{ url_for('games') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i> Back to Games
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <p class="lead">Click and drag to spin. Try to keep it spinning as long as possible!</p>
+                        <div class="d-flex justify-content-center align-items-center mb-3">
+                            <div class="me-3">
+                                <span class="badge bg-primary">Speed: <span id="speed">0</span> RPM</span>
+                            </div>
+                            <div>
+                                <span class="badge bg-success">Time: <span id="time">0</span>s</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-center align-items-center" style="min-height: 350px;">
+                        <div id="spinner-container" class="position-relative" style="width: 300px; height: 300px; touch-action: none;">
+                            <svg id="spinner-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
+                                <!-- Spinner body -->
+                                <circle cx="100" cy="100" r="90" fill="#f8f9fa" stroke="#4a6cf7" stroke-width="2"/>
+                                
+                                <!-- Spinner arms -->
+                                <g id="spinner-arms" transform-origin="100 100">
+                                    <path d="M100,10 L100,50" stroke="#4a6cf7" stroke-width="8" stroke-linecap="round"/>
+                                    <path d="M100,150 L100,190" stroke="#4a6cf7" stroke-width="8" stroke-linecap="round"/>
+                                    <path d="M10,100 L50,100" stroke="#4a6cf7" stroke-width="8" stroke-linecap="round"/>
+                                    <path d="M150,100 L190,100" stroke="#4a6cf7" stroke-width="8" stroke-linecap="round"/>
+                                    <path d="M35.4,35.4 L65.4,65.4" stroke="#4a6cf7" stroke-width="8" stroke-linecap="round"/>
+                                    <path d="M134.6,134.6 L164.6,164.6" stroke="#4a6cf7" stroke-width="8" stroke-linecap="round"/>
+                                    <path d="M35.4,164.6 L65.4,134.6" stroke="#4a6cf7" stroke-width="8" stroke-linecap="round"/>
+                                    <path d="M134.6,65.4 L164.6,35.4" stroke="#4a6cf7" stroke-width="8" stroke-linecap="round"/>
+                                </g>
+                                
+                                <!-- Center circle -->
+                                <circle cx="100" cy="100" r="90" fill="transparent" id="touch-area" style="cursor: grab;"/>
+                                <circle cx="100" cy="100" r="15" fill="#4a6cf7"/>
+                                <circle cx="100" cy="100" r="8" fill="#fff"/>
+                            </div>
+                            
+                            <!-- Click instruction -->
+                            <div id="click-instruction" class="position-absolute top-50 start-50 translate-middle text-center" style="z-index: 10;">
+                                <div class="p-3 bg-white rounded shadow-sm">
+                                    <i class="bi bi-mouse-fill d-block fs-1 mb-2"></i>
+                                    <p class="mb-0">Click and drag to spin</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5">
+                        <h5 class="mb-3">About Fidget Spinners</h5>
+                        <p>Fidget spinners can help with focus, stress relief, and anxiety management. The repetitive motion can be soothing and help calm the mind.</p>
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb-fill me-2"></i>
+                            <strong>Tip:</strong> Try using the spinner when you need to concentrate or feel anxious.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const spinnerSvg = document.getElementById('spinner-svg');
+    const spinnerArms = document.getElementById('spinner-arms');
+    const touchArea = document.getElementById('touch-area');
+    const speedDisplay = document.getElementById('speed');
+    const timeDisplay = document.getElementById('time');
+    const clickInstruction = document.getElementById('click-instruction');
+    const container = document.getElementById('spinner-container');
+    
+    // Set cursor style for touch area
+touchArea.style.cursor = 'grab';
+    
+    let rotation = 0;
+    let velocity = 0;
+    let lastTime = 0;
+    let isSpinning = false;
+    let spinTime = 0;
+    let spinInterval;
+    let speedInterval;
+    
+    // Audio context and nodes for roulette click sounds
+    let audioContext = null;
+    let clickBuffer = null;
+    let clickGain = null;
+    let lastClickAngle = 0;
+    const CLICK_ANGLE = 30; // Degrees between clicks (12 clicks per rotation)
+    let audioInitialized = false;
+    let lastClickTime = 0;
+    
+    // Initialize audio with roulette wheel click sounds
+    function initAudio() {
+        if (audioInitialized) return;
+        
+        try {
+            // Create audio context
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) {
+                console.warn('Web Audio API not supported in this browser');
+                return;
+            }
+            
+            audioContext = new AudioContext();
+            
+            // Create click gain node with higher volume
+            clickGain = audioContext.createGain();
+            clickGain.gain.value = 0.5; // Increased volume for roulette feel
+            clickGain.connect(audioContext.destination);
+            
+            // Create a clean, metallic click sound for the roulette wheel
+            const sampleRate = audioContext.sampleRate;
+            const duration = 0.02; // 20ms for a clean, short click
+            const bufferSize = Math.ceil(sampleRate * duration);
+            clickBuffer = audioContext.createBuffer(1, bufferSize, sampleRate);
+            const output = clickBuffer.getChannelData(0);
+            
+            // Generate a clean, metallic click with minimal noise
+            for (let i = 0; i < bufferSize; i++) {
+                const t = i / sampleRate;
+                // Quick attack, smooth decay
+                const envelope = Math.exp(-t * 0.1) * (1 - t/duration);
+                // Lower base frequency for deeper pitch with subtle modulation
+                const baseFreq = 800; // Lowered from 1800 for deeper sound
+                const modFreq = Math.sin(t * 60) * 80; // Slower, more subtle modulation
+                const freq = baseFreq + modFreq;
+                // Generate a clean sine wave
+                output[i] = Math.sin(2 * Math.PI * freq * t) * envelope * 0.6;
+            }
+            
+            audioInitialized = true;
+            console.log('Audio initialized with roulette wheel sounds');
+            
+        } catch (e) {
+            console.error('Error initializing audio:', e);
+            audioInitialized = true; // Prevent repeated errors
+        }
+    }
+    
+    // Play roulette wheel click sound
+    function playClick(angle) {
+        // Don't play sounds if audio isn't initialized or is suspended
+        if (!audioInitialized || !audioContext || !clickBuffer) return;
+        
+        // Throttle clicks to prevent audio overlap
+        const now = Date.now();
+        if (now - lastClickTime < 10) return; // 10ms minimum between clicks
+        lastClickTime = now;
+        
+        // Only play click if we've moved past the click angle threshold
+        const angleDiff = Math.abs(angle - lastClickAngle);
+        if (angleDiff >= CLICK_ANGLE / 2) { // More responsive triggering
+            lastClickAngle = angle;
+            
+            // Resume audio context if it's suspended (required by some browsers)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().catch(e => console.warn('Audio resume failed:', e));
+            }
+            
+            try {
+                // Create a new buffer source for the click
+                const clickSource = audioContext.createBufferSource();
+                clickSource.buffer = clickBuffer;
+                
+                // Create a high-pass filter to remove low-end rumble
+                const highPass = audioContext.createBiquadFilter();
+                highPass.type = 'highpass';
+                highPass.frequency.value = 800;
+                highPass.Q.value = 1.0;
+                
+                // Add a peak filter for the metallic resonance (adjusted for lower pitch)
+                const peakFilter = audioContext.createBiquadFilter();
+                peakFilter.type = 'peaking';
+                peakFilter.frequency.value = 1200; // Lower frequency to match deeper pitch
+                peakFilter.gain.value = 5.0; // Slightly less gain for cleaner sound
+                peakFilter.Q.value = 1.8; // Slightly wider Q for smoother resonance
+                
+                // Add a gentle compressor to smooth out the sound
+                const compressor = audioContext.createDynamicsCompressor();
+                compressor.threshold.value = -24; // Lower threshold for more consistent level
+                compressor.ratio.value = 6;      // Higher ratio for more control
+                compressor.knee.value = 6;       // Softer knee for smoother compression
+                compressor.attack.value = 0.002;  // Faster attack
+                compressor.release.value = 0.1;   // Slightly longer release for smoother decay
+                
+                // Connect nodes in series for clean signal flow
+                clickSource.connect(highPass);
+                highPass.connect(peakFilter);
+                peakFilter.connect(compressor);
+                compressor.connect(clickGain);
+                
+                // Slight pitch variation in lower range
+                const pitchVariation = 0.85 + Math.random() * 0.1; // 0.85 to 0.95 for deeper sound
+                clickSource.playbackRate.setValueAtTime(pitchVariation, audioContext.currentTime);
+                
+                // Play the sound
+                clickSource.start();
+                
+                // Clean up
+                clickSource.onended = () => {
+                    clickSource.disconnect();
+                    clickFilter.disconnect();
+                    compressor.disconnect();
+                };
+            } catch (e) {
+                console.warn('Error playing click sound:', e);
+            }
+        }
+    }
+    
+    // Update sound based on spinner speed
+    function updateSound(speed) {
+        // No-op since we're only using click sounds now
+        // This function is kept for compatibility
+    }
+    
+    let isDragging = false;
+    let lastX = 0;
+    let lastY = 0;
+    
+    // Start spinning timer
+    function startTimer() {
+        if (!spinInterval) {
+            spinInterval = setInterval(() => {
+                spinTime++;
+                timeDisplay.textContent = spinTime;
+            }, 1000);
+        }
+    }
+    
+    // Stop spinning timer
+    function stopTimer() {
+        clearInterval(spinInterval);
+        spinInterval = null;
+    }
+    
+    // Update speed display
+    function startSpeedMeter() {
+        if (!speedInterval) {
+            let lastRotation = rotation;
+            speedInterval = setInterval(() => {
+                const currentSpeed = Math.abs(velocity) * 10; // Convert to RPM
+                speedDisplay.textContent = Math.round(currentSpeed);
+                
+                // Hide instruction when spinning
+                if (currentSpeed > 1) {
+                    clickInstruction.style.opacity = '0';
+                    setTimeout(() => {
+                        clickInstruction.style.display = 'none';
+                    }, 300);
+                }
+                
+                // Show instruction when stopped
+                if (currentSpeed < 0.1 && !isDragging) {
+                    clickInstruction.style.display = 'block';
+                    clickInstruction.style.opacity = '1';
+                    stopTimer();
+                } else if (currentSpeed > 0.1) {
+                    startTimer();
+                }
+                
+                lastRotation = rotation;
+            }, 100);
+        }
+    }
+    
+    // Mouse/touch down
+    function onPointerDown(e) {
+        e.preventDefault();
+        isDragging = true;
+        isSpinning = true;
+        const rect = container.getBoundingClientRect();
+        lastX = (e.clientX || e.touches[0].clientX) - rect.left;
+        lastY = (e.clientY || e.touches[0].clientY) - rect.top;
+        
+        // Initialize audio on first interaction
+        initAudio();
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                console.log('AudioContext resumed');
+            }).catch(e => console.error('AudioContext resume failed:', e));
+        }
+        
+        // Hide click instruction
+        clickInstruction.style.opacity = '0';
+        
+        // Start speed meter if not already running
+        startSpeedMeter();
+    }
+    
+    // Mouse/touch move - Roulette-style spinning
+    function onPointerMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        
+        const rect = container.getBoundingClientRect();
+        const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+        const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+        
+        // Calculate angle difference (in radians)
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        
+        const lastAngle = Math.atan2(lastY - centerY, lastX - centerX);
+        const currentAngle = Math.atan2(y - centerY, x - centerX);
+        
+        // Calculate angular velocity with direction
+        let angleDiff = currentAngle - lastAngle;
+        
+        // Handle crossing the -π/π boundary
+        if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+        if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+        
+        // Convert to degrees and scale for roulette feel
+        const speedMultiplier = 4.5; // Increased for more pronounced spinning
+        const newVelocity = angleDiff * (180 / Math.PI) * speedMultiplier;
+        
+        // Apply momentum with more weight to new velocity for better control
+        velocity = velocity * 0.6 + newVelocity * 0.4;
+        
+        // Cap maximum velocity for roulette feel
+        const maxVelocity = 120;
+        velocity = Math.max(-maxVelocity, Math.min(velocity, maxVelocity));
+        
+        // Update rotation with slight resistance for roulette feel
+        rotation += velocity * 0.6;
+        spinnerArms.style.transform = `rotate(${rotation}deg)`;
+        
+        // Update last position
+        lastX = x;
+        lastY = y;
+        
+        // Start the animation if not already running
+        if (!isSpinning) {
+            isSpinning = true;
+            startTimer();
+            lastTime = null;
+            requestAnimationFrame(animate);
+        }
+    }
+    
+    // Mouse/touch up
+    function onPointerUp() {
+        if (!isDragging) return;
+        isDragging = false;
+        spinnerArms.style.transition = 'transform 0.1s ease-out'; // Add smooth transition after drag
+    }
+    
+    // Animation loop
+    function animate(currentTime) {
+        if (!lastTime) lastTime = currentTime;
+        const deltaTime = (currentTime - lastTime) / 16; // Normalize to ~60fps
+        lastTime = currentTime;
+        
+        // Store previous rotation for click detection
+        const prevRotation = rotation;
+        
+        if (!isDragging) {
+            // Roulette-style deceleration - starts fast, then slows down gradually
+            const deceleration = 0.996; // Slightly faster deceleration
+            const minVelocity = 0.5; // Lower threshold before stopping
+            
+            // Apply deceleration with some randomness for more natural feel
+            velocity *= (deceleration + (Math.random() * 0.002 - 0.001));
+            
+            // Stop if velocity is very small
+            if (Math.abs(velocity) < minVelocity) {
+                velocity = 0;
+                if (isSpinning) {
+                    isSpinning = false;
+                    stopTimer();
+                }
+            }
+            
+            // Update rotation based on velocity
+            rotation += velocity * deltaTime * 0.8; // Increased multiplier for more spin
+        }
+        
+        // Play click sound when passing certain angles
+        if (Math.abs(velocity) > 2) { // Lowered threshold for more responsive sound
+            const clickAngle = 30; // Degrees between clicks (12 clicks per rotation)
+            // Use modulo to handle wrapping around 360 degrees
+            const prevClick = Math.floor((prevRotation % 360 + 360) % 360 / clickAngle);
+            const currentClick = Math.floor((rotation % 360 + 360) % 360 / clickAngle);
+            
+            // Play click when crossing a click boundary
+            if (prevClick !== currentClick) {
+                // Calculate volume based on velocity with smoother curve
+                const baseVolume = 0.4; // Base volume level
+                const velocityFactor = Math.min(1, Math.abs(velocity) / 30); // Slower ramp
+                const volume = baseVolume + (0.6 * velocityFactor); // 0.4 to 1.0 range
+                
+                if (clickGain && audioContext) {
+                    // Smooth volume transitions
+                    clickGain.gain.cancelScheduledValues(audioContext.currentTime);
+                    clickGain.gain.setValueAtTime(clickGain.gain.value, audioContext.currentTime);
+                    clickGain.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.05);
+                }
+                playClick(rotation);
+            }
+        }
+        
+        // Apply rotation
+        spinnerArms.style.transform = `rotate(${rotation}deg)`;
+        
+        // Continue animation
+        requestAnimationFrame(animate);
+    }
+    
+    // Event listeners for both touch and mouse
+    const events = {
+        down: ['mousedown', 'touchstart'],
+        move: ['mousemove', 'touchmove'],
+        up: ['mouseup', 'touchend', 'touchcancel']
+    };
+    
+    // Add event listeners
+    events.down.forEach(event => touchArea.addEventListener(event, onPointerDown));
+    events.move.forEach(event => document.addEventListener(event, onPointerMove));
+    events.up.forEach(event => document.addEventListener(event, onPointerUp));
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        // Recalculate center position
+        const rect = spinnerSvg.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+    });
+    
+    // Initialize audio on first interaction
+    const initAudioOnInteraction = () => {
+        initAudio();
+        document.removeEventListener('mousedown', initAudioOnInteraction);
+        document.removeEventListener('touchstart', initAudioOnInteraction);
+    };
+    
+    document.addEventListener('mousedown', initAudioOnInteraction);
+    document.addEventListener('touchstart', initAudioOnInteraction);
+    
+    // Start animation loop
+    requestAnimationFrame(animate);
+    
+    // Start speed meter
+    startSpeedMeter();
+    
+    // Hide click instruction after first interaction
+    function hideInstruction() {
+        if (clickInstruction) {
+            clickInstruction.style.opacity = '0';
+            setTimeout(() => {
+                clickInstruction.style.display = 'none';
+            }, 300);
+        }
+    }
+    
+    container.addEventListener('mousedown', hideInstruction);
+    container.addEventListener('touchstart', hideInstruction);
+    
+    // Cleanup
+    return () => {
+        clearInterval(spinInterval);
+        clearInterval(speedInterval);
+        container.removeEventListener('mousedown', hideInstruction);
+        container.removeEventListener('touchstart', hideInstruction);
+    };
+});
+</script>
+
+<style>
+#spinner-container {
+    cursor: grab;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#spinner-container:active {
+    cursor: grabbing;
+}
+
+#spinner {
+    transition: transform 0.1s ease-out;
+}
+
+#click-instruction {
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+/* Improve touch targets */
+@media (max-width: 768px) {
+    #spinner-container {
+        width: 250px !important;
+        height: 250px !important;
+    }
+}
+</style>
+{% endblock %}

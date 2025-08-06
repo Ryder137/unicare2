@@ -1,0 +1,537 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h1 class="h3 mb-0">Satisfying Clicker</h1>
+                        <a href="{{ url_for('games') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i> Back to Games
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <p class="lead">Click the buttons for satisfying feedback!</p>
+                        <div class="d-flex justify-content-center align-items-center mb-3">
+                            <div class="me-3">
+                                <span class="badge bg-primary">Total Clicks: <span id="total-clicks">0</span></span>
+                            </div>
+                            <div>
+                                <button id="reset-btn" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-arrow-clockwise"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="clicker-container text-center">
+                        <div class="clicker-button" id="main-clicker">
+                            <div class="clicker-inner">
+                                <i class="bi bi-mouse-fill"></i>
+                                <span>Click Me!</span>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex flex-wrap justify-content-center gap-3 mt-4 p-3 bg-light rounded">
+                            <button class="btn btn-primary clicker-btn active" data-sound="click1">
+                                <i class="bi bi-mouse"></i> Mouse
+                            </button>
+                            <button class="btn btn-outline-primary clicker-btn" data-sound="click2">
+                                <i class="bi bi-keyboard"></i> Keyboard
+                            </button>
+                            <button class="btn btn-outline-primary clicker-btn" data-sound="click3">
+                                <i class="bi bi-joystick"></i> Gamepad
+                            </button>
+                            <button class="btn btn-outline-primary clicker-btn" data-sound="click4">
+                                <i class="bi bi-toggle-on"></i> Switch
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5">
+                        <h5 class="mb-3">About This Game</h5>
+                        <p>This clicker game is designed to provide satisfying auditory and visual feedback. Try different click sounds and enjoy the responsive animations!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audio context will be created in JavaScript -->
+
+<style>
+.clicker-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Button styles */
+.clicker-btn {
+    width: 120px;
+    transition: all 0.2s ease;
+}
+
+.clicker-btn.btn-outline-primary {
+    color: #0d6efd !important;
+    background-color: white !important;
+}
+
+.clicker-btn.btn-outline-primary:hover {
+    color: white !important;
+    background-color: #0d6efd !important;
+}
+
+.clicker-btn.btn-primary {
+    color: white !important;
+    background-color: #0d6efd !important;
+}
+
+.clicker-button {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #4a6cf7, #3e5bd4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(74, 108, 247, 0.3);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    border: none;
+}
+
+.clicker-button:active {
+    transform: scale(0.95);
+    box-shadow: 0 5px 10px rgba(74, 108, 247, 0.3);
+}
+
+.clicker-inner {
+    width: 80%;
+    height: 80%;
+    background: linear-gradient(145deg, #5a7cff, #4a6cf7);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.clicker-button:active .clicker-inner {
+    transform: scale(0.9);
+}
+
+.clicker-button i {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+}
+
+.clicker-btn {
+    min-width: 120px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.clicker-btn:active {
+    transform: translateY(2px);
+}
+
+.clicker-btn i {
+    transition: transform 0.1s ease;
+}
+
+.clicker-btn:active i {
+    transform: scale(1.5);
+}
+
+@keyframes clickEffect {
+    0% { box-shadow: 0 0 0 0 rgba(74, 108, 247, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(74, 108, 247, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(74, 108, 247, 0); }
+}
+
+.click-effect {
+    animation: clickEffect 0.8s ease-out;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Global variables for audio
+let audioContext;
+let gainNode;
+
+// Initialize audio context on first interaction
+async function initAudio() {
+    if (!audioContext) {
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            gainNode = audioContext.createGain();
+            gainNode.gain.value = 0.5; // Set volume
+            gainNode.connect(audioContext.destination);
+            
+            // Resume the audio context if it's suspended
+            if (audioContext.state === 'suspended') {
+                try {
+                    await audioContext.resume();
+                    console.log('AudioContext resumed successfully');
+                } catch (e) {
+                    console.warn('Failed to resume AudioContext:', e);
+                    return null;
+                }
+            }
+            return audioContext;
+        } catch (e) {
+            console.error('Error initializing audio:', e);
+            return null;
+        }
+    }
+    return audioContext;
+}
+    
+    // Generate high-quality, realistic click sounds using a two-layer approach
+    function playSound(type) {
+        if (!audioContext) initAudio();
+        const now = audioContext.currentTime;
+        
+        // Create main merger for final output
+        const merger = audioContext.createChannelMerger(2);
+        
+        // Create layers
+        const click = createClickLayer(now, type);
+        const clack = createClackLayer(now, type);
+        
+        // Connect layers to output
+        click.connect(merger, 0, 0);
+        click.connect(merger, 0, 1);
+        clack.connect(merger, 0, 0);
+        clack.connect(merger, 0, 1);
+        merger.connect(gainNode);
+        
+        // Clean up
+        const cleanupTime = 500; // ms
+        setTimeout(() => {
+            merger.disconnect();
+            click.disconnect();
+            clack.disconnect();
+        }, cleanupTime);
+    }
+    
+    function createClickLayer(now, type) {
+        const osc = audioContext.createOscillator();
+        const env = audioContext.createGain();
+        const noise = audioContext.createBufferSource();
+        const noiseFilter = audioContext.createBiquadFilter();
+        const noiseEnv = audioContext.createGain();
+        const merger = audioContext.createChannelMerger(2);
+        
+        // Configure based on sound type
+        let settings = getSoundSettings(type);
+        
+        // Setup oscillator
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(settings.clickFreq1, now);
+        osc.frequency.exponentialRampToValueAtTime(settings.clickFreq2, now + settings.clickDuration);
+        
+        // Setup envelope
+        env.gain.setValueAtTime(0.001, now);
+        env.gain.linearRampToValueAtTime(settings.clickVolume, now + settings.clickDuration * 0.2);
+        env.gain.exponentialRampToValueAtTime(0.001, now + settings.clickDuration + settings.clickRelease);
+        
+        // Setup noise
+        const noiseBuffer = createNoiseBuffer(settings.clickDuration * 2);
+        noise.buffer = noiseBuffer;
+        noiseFilter.frequency.value = settings.noiseFilterFreq * 1.5;
+        noiseFilter.Q.value = settings.noiseQ * 1.5;
+        noiseEnv.gain.setValueAtTime(0.001, now);
+        noiseEnv.gain.linearRampToValueAtTime(settings.noiseGain * 0.7, now + settings.clickDuration * 0.3);
+        noiseEnv.gain.exponentialRampToValueAtTime(0.001, now + settings.clickDuration * 1.5);
+        
+        // Connect nodes
+        osc.connect(env);
+        noise.connect(noiseFilter).connect(noiseEnv);
+        env.connect(merger, 0, 0);
+        noiseEnv.connect(merger, 0, 0);
+        
+        // Start/stop
+        osc.start(now);
+        noise.start(now);
+        osc.stop(now + settings.clickDuration * 2);
+        noise.stop(now + settings.clickDuration * 1.5);
+        
+        return merger;
+    }
+    
+    function createClackLayer(now, type) {
+        const osc = audioContext.createOscillator();
+        const env = audioContext.createGain();
+        const noise = audioContext.createBufferSource();
+        const noiseFilter = audioContext.createBiquadFilter();
+        const noiseEnv = audioContext.createGain();
+        const merger = audioContext.createChannelMerger(2);
+        
+        // Configure based on sound type
+        let settings = getSoundSettings(type);
+        
+        // Setup oscillator
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(settings.clackFreq1, now);
+        osc.frequency.exponentialRampToValueAtTime(settings.clackFreq2, now + settings.clackDuration);
+        
+        // Setup envelope
+        env.gain.setValueAtTime(0.001, now);
+        env.gain.linearRampToValueAtTime(settings.clackVolume, now + settings.clackDuration * 0.3);
+        env.gain.exponentialRampToValueAtTime(0.001, now + settings.clackDuration + settings.clackRelease);
+        
+        // Setup noise
+        const noiseBuffer = createNoiseBuffer(settings.clackDuration * 1.5);
+        noise.buffer = noiseBuffer;
+        noiseFilter.frequency.value = settings.noiseFilterFreq * 0.7;
+        noiseFilter.Q.value = settings.noiseQ * 0.7;
+        noiseEnv.gain.setValueAtTime(0.001, now);
+        noiseEnv.gain.linearRampToValueAtTime(settings.noiseGain * 0.5, now + settings.clackDuration * 0.4);
+        noiseEnv.gain.exponentialRampToValueAtTime(0.001, now + settings.clackDuration * 1.2);
+        
+        // Connect nodes
+        osc.connect(env);
+        noise.connect(noiseFilter).connect(noiseEnv);
+        env.connect(merger, 0, 0);
+        noiseEnv.connect(merger, 0, 0);
+        
+        // Start/stop with small delay for clack
+        const clackDelay = settings.clickDuration * 0.7;
+        osc.start(now + clackDelay);
+        noise.start(now + clackDelay);
+        osc.stop(now + clackDelay + settings.clackDuration * 1.5);
+        noise.stop(now + clackDelay + settings.clackDuration * 1.2);
+        
+        return merger;
+    }
+    
+    function createNoiseBuffer(duration) {
+        const buffer = audioContext.createBuffer(1, audioContext.sampleRate * duration, audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        return buffer;
+    }
+    
+    function getSoundSettings(type) {
+        const settings = {
+            // Default values
+            clickFreq1: 4000, clickFreq2: 2000, clickDuration: 0.003, clickRelease: 0.005, clickVolume: 0.3,
+            clackFreq1: 200, clackFreq2: 100, clackDuration: 0.01, clackRelease: 0.02, clackVolume: 0.2,
+            noiseFilterFreq: 5000, noiseQ: 10.0, noiseGain: 0.1
+        };
+        
+        switch(type) {
+            case 'click1': // Mouse click
+                Object.assign(settings, {
+                    clickFreq1: 4000, clickFreq2: 2000, clickDuration: 0.002, clickRelease: 0.004, clickVolume: 0.4,
+                    clackFreq1: 120, clackFreq2: 80, clackDuration: 0.008, clackRelease: 0.015, clackVolume: 0.25,
+                    noiseFilterFreq: 5000, noiseQ: 12.0, noiseGain: 0.15
+                });
+                break;
+                
+            case 'click2': // Keyboard
+                Object.assign(settings, {
+                    clickFreq1: 6000, clickFreq2: 4000, clickDuration: 0.001, clickRelease: 0.003, clickVolume: 0.3,
+                    clackFreq1: 200, clackFreq2: 100, clackDuration: 0.008, clackRelease: 0.04, clackVolume: 0.2,
+                    noiseFilterFreq: 7000, noiseQ: 15.0, noiseGain: 0.08
+                });
+                break;
+                
+            case 'click3': // Gamepad
+                Object.assign(settings, {
+                    clickFreq1: 1000, clickFreq2: 600, clickDuration: 0.003, clickRelease: 0.01, clickVolume: 0.35,
+                    clackFreq1: 80, clackFreq2: 50, clackDuration: 0.02, clackRelease: 0.1, clackVolume: 0.3,
+                    noiseFilterFreq: 2500, noiseQ: 4.0, noiseGain: 0.15
+                });
+                break;
+                
+            case 'click4': // Toggle switch
+                Object.assign(settings, {
+                    clickFreq1: 1200, clickFreq2: 800, clickDuration: 0.005, clickRelease: 0.01, clickVolume: 0.35,
+                    clackFreq1: 200, clackFreq2: 100, clackDuration: 0.03, clackRelease: 0.15, clackVolume: 0.25,
+                    noiseFilterFreq: 3000, noiseQ: 3.0, noiseGain: 0.1
+                });
+                break;
+        }
+        
+        // Add some randomness
+        const rnd = (base, variance) => base * (1 + (Math.random() * 2 - 1) * variance);
+        
+        // Apply randomness to settings
+        return {
+            clickFreq1: rnd(settings.clickFreq1, 0.1),
+            clickFreq2: rnd(settings.clickFreq2, 0.1),
+            clickDuration: rnd(settings.clickDuration, 0.2),
+            clickRelease: rnd(settings.clickRelease, 0.2),
+            clickVolume: rnd(settings.clickVolume, 0.1),
+            clackFreq1: rnd(settings.clackFreq1, 0.15),
+            clackFreq2: rnd(settings.clackFreq2, 0.15),
+            clackDuration: rnd(settings.clackDuration, 0.2),
+            clackRelease: rnd(settings.clackRelease, 0.2),
+            clackVolume: rnd(settings.clackVolume, 0.1),
+            noiseFilterFreq: rnd(settings.noiseFilterFreq, 0.2),
+            noiseQ: rnd(settings.noiseQ, 0.1),
+            noiseGain: rnd(settings.noiseGain, 0.2)
+        };
+    }
+        
+
+    
+    let totalClicks = 0;
+    let currentSound = 'click1';
+    let totalClicksEl; // Will be initialized in DOMContentLoaded
+    
+    // Handle main button click
+    async function handleClick() {
+        // Ensure audio is initialized
+        if (!audioContext) {
+            await initAudio();
+        } else if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        
+        // Play the current sound
+        if (currentSound) {
+            playSound(currentSound);
+        } else {
+            // Default to first sound if none selected
+            currentSound = 'click1';
+            playSound(currentSound);
+        }
+        
+        // Update click counter
+        totalClicks++;
+        if (totalClicksEl) {
+            totalClicksEl.textContent = totalClicks;
+        }
+        
+        // Add click effect
+        this.classList.add('click-effect');
+        setTimeout(() => {
+            this.classList.remove('click-effect');
+        }, 200);
+    }
+    
+    // Handle sound button click
+    function handleSoundButtonClick(e) {
+        e.preventDefault();
+        const soundType = this.dataset.sound;
+        currentSound = soundType;
+        
+        // Update active state for all buttons
+        const allButtons = document.querySelectorAll('.clicker-btn');
+        allButtons.forEach(btn => {
+            btn.classList.remove('btn-primary', 'active');
+            btn.classList.add('btn-outline-primary');
+            
+            // Update aria-pressed for accessibility
+            btn.setAttribute('aria-pressed', 'false');
+        });
+        
+        // Set active state for clicked button
+        this.classList.remove('btn-outline-primary');
+        this.classList.add('btn-primary', 'active');
+        this.setAttribute('aria-pressed', 'true');
+        
+        // Play the selected sound
+        playSound(soundType);
+    }
+    
+    // Reset counter
+    function resetCounter() {
+        totalClicks = 0;
+        totalClicksEl.textContent = '0';
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        // Set up event listeners
+        const mainButton = document.getElementById('main-clicker');
+        const resetBtn = document.getElementById('reset-btn');
+        totalClicksEl = document.getElementById('total-clicks'); // Assign to the outer scope variable
+        
+        // Initialize main button
+        if (mainButton) {
+            mainButton.addEventListener('mousedown', handleClick);
+            mainButton.addEventListener('touchstart', handleClick, { passive: true });
+        }
+        
+        // Set up sound buttons
+        const clickButtons = document.querySelectorAll('.clicker-btn');
+        if (clickButtons.length > 0) {
+            clickButtons.forEach(button => {
+                // Add click handler
+                button.addEventListener('click', handleSoundButtonClick);
+                
+                // Initialize ARIA attributes
+                button.setAttribute('role', 'button');
+                button.setAttribute('aria-pressed', 'false');
+                
+                // Set tabindex for keyboard navigation
+                button.setAttribute('tabindex', '0');
+                
+                // Add keyboard support
+                button.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleSoundButtonClick.call(button, e);
+                    }
+                });
+            });
+            
+            // Initialize first button as active if none is active
+            const activeButton = document.querySelector('.clicker-btn.active');
+            if (!activeButton && clickButtons[0]) {
+                clickButtons[0].classList.add('active');
+                clickButtons[0].classList.add('btn-primary');
+                clickButtons[0].classList.remove('btn-outline-primary');
+                clickButtons[0].setAttribute('aria-pressed', 'true');
+                currentSound = clickButtons[0].dataset.sound || 'click1';
+            }
+        }
+        
+        // Set up reset button
+        if (resetBtn) {
+            resetBtn.addEventListener('click', resetCounter);
+        }
+        
+        // Set up audio context on first interaction
+        const initAudioOnInteraction = () => {
+            initAudio();
+            // Remove this event listener after first interaction
+            document.removeEventListener('click', initAudioOnInteraction);
+            document.removeEventListener('keydown', initAudioOnInteraction);
+            document.removeEventListener('touchstart', initAudioOnInteraction);
+        };
+        
+        // Add first interaction listeners
+        document.addEventListener('click', initAudioOnInteraction, { once: true });
+        document.addEventListener('keydown', initAudioOnInteraction, { once: true });
+        document.addEventListener('touchstart', initAudioOnInteraction, { once: true });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Add padding to account for fixed navbar -->
+<div style="padding-top: 80px;"></div>
+<!-- Hero Section -->
+<section class="pt-7 pt-lg-9 pb-5 pb-lg-7 position-relative overflow-hidden" style="background: radial-gradient(circle at center, #90caf9 0%, #bbdefb 50%, #e3f2fd 100%);">
+    <!-- Decorative elements -->
+    <div class="position-absolute top-0 end-0 w-100 h-100" style="opacity: 0.05;">
+        <div class="w-100 h-100" style="background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxkZWZzPjxwYXR0ZXJuIGlkPSJwYXR0ZXJuIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgcGF0dGVyblRyYW5zZm9ybT0icm90YXRlKDQ1KSI+PHJlY3Qgd2lkdGg9IjUwJSIgaGVpZ2h0PSI1MCUiIGZpbGw9IiNmZmYiIG9wYWNpdHk9IjAuMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNwYXR0ZXJuKSIvPjwvc3ZnPg==');"></div>
+    </div>
+    
+    <div class="container position-relative">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 text-center">
+                <h1 class="display-3 fw-bold mb-4" style=" color: #0d47a1;">About UNICARE</h1>
+                <p class="lead mb-4" style="font-size: 1.75rem; line-height: 1.4; color: #0d47a1;">
+                    Your Trusted Partner in Mental Health & Emotional Wellbeing
+                </p>
+                <p class="mb-4 mx-auto" style="font-size: 1.25rem; max-width: 800px; color: #1565c0;">
+                    Dedicated to supporting students through their mental health journey with compassionate care, evidence-based tools, and innovative technology. We're here to help you thrive, not just survive.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Wave divider -->
+    <div class="position-absolute bottom-0 start-0 w-100" style="transform: translateY(99%);">
+        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" class="w-100" style="height: 100px;">
+            <path d="M0 0H1440V60C1195 60 1050 0 720 0C390 0 245 60 0 60V0Z" fill="#f8f9fa"/>
+        </svg>
+    </div>
+</section>
+
+<!-- Mission Section -->
+<section class="py-5 py-lg-7" style="background: var(--primary-50);">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="text-center mb-5">
+                    <h2 class="h1 fw-bold mb-3" style="color: var(--primary-900);">Our Mission & Vision</h2>
+                    <div class="divider mx-auto" style="width: 50px; height: 2px; background: linear-gradient(90deg, var(--primary-500), var(--primary-700)); margin: 0.75rem auto 1rem;"></div>
+                    <p class="lead" style="color: var(--primary-800); max-width: 800px; margin: 0 auto 2rem;">
+                        UNICARE is dedicated to revolutionizing student mental health support through innovative technology and compassionate care. 
+                        Our mission is to make mental health resources accessible, engaging, and effective for every student, regardless of their background or circumstances.
+                    </p>
+                </div>
+                
+                <!-- Our Story -->
+                <div class="row align-items-center mb-6">
+                    <div class="col-lg-6 mb-4 mb-lg-0">
+                        <h3 class="h2 fw-bold mb-4" style="color: var(--primary-800);">Our Story</h3>
+                        <p style="color: var(--primary-700); margin-bottom: 1.5rem;">
+                            Founded in 2023, UNICARE was born from a simple yet powerful idea: every student deserves access to quality mental health support. 
+                            Our team of psychologists, developers, and designers came together to create a platform that bridges the gap between students and mental health resources.
+                        </p>
+                        <p style="color: var(--primary-700);">
+                            What started as a university project has grown into a comprehensive mental health ecosystem, helping thousands of students navigate their emotional well-being journey.
+                        </p>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="rounded-3 overflow-hidden shadow-sm">
+                            <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
+                                 alt="Team collaboration" class="img-fluid">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row g-4">
+                    <div class="col-md-6 col-lg-3">
+                        <div class="p-4 rounded-3 h-100" style="background: white; border: 1px solid var(--primary-100);">
+                            <div class="mb-3" style="width: 48px; height: 48px; background: var(--primary-100); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-chat-dots-fill" style="color: var(--primary-600); font-size: 1.5rem;"></i>
+                            </div>
+                            <h3 style="color: var(--primary-900); font-size: 1.25rem; margin-bottom: 1rem;">24/7 Support</h3>
+                            <p style="color: var(--primary-700); margin-bottom: 0;">Always available emotional support chatbot for when you need it most.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="p-4 rounded-3 h-100" style="background: white; border: 1px solid var(--primary-100);">
+                            <div class="mb-3" style="width: 48px; height: 48px; background: var(--primary-100); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-graph-up" style="color: var(--primary-600); font-size: 1.5rem;"></i>
+                            </div>
+                            <h3 style="color: var(--primary-900); font-size: 1.25rem; margin-bottom: 1rem;">Mood Tracking</h3>
+                            <p style="color: var(--primary-700); margin-bottom: 0;">Daily assessments to help you understand your emotional patterns.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="p-4 rounded-3 h-100" style="background: white; border: 1px solid var(--primary-100);">
+                            <div class="mb-3" style="width: 48px; height: 48px; background: var(--primary-100); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-lightbulb" style="color: var(--primary-600); font-size: 1.5rem;"></i>
+                            </div>
+                            <h3 style="color: var(--primary-900); font-size: 1.25rem; margin-bottom: 1rem;">Personalized Tips</h3>
+                            <p style="color: var(--primary-700); margin-bottom: 0;">Tailored recommendations based on your unique needs and goals.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="p-4 rounded-3 h-100" style="background: white; border: 1px solid var(--primary-100);">
+                            <div class="mb-3" style="width: 48px; height: 48px; background: var(--primary-100); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-trophy" style="color: var(--primary-600); font-size: 1.5rem;"></i>
+                            </div>
+                            <h3 style="color: var(--primary-900); font-size: 1.25rem; margin-bottom: 1rem;">Progress Tracking</h3>
+                            <p style="color: var(--primary-700); margin-bottom: 0;">Gamified elements to keep you motivated on your journey.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Core Values Section -->
+<section class="py-5 py-lg-7" style="background: #f8f9fa;">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="h1 fw-bold mb-3" style="color: var(--primary-900);">Our Core Values</h2>
+            <div class="divider mx-auto" style="width: 50px; height: 2px; background: linear-gradient(90deg, var(--primary-500), var(--primary-700)); margin: 0.75rem auto 2rem;"></div>
+            <p class="lead" style="color: var(--primary-800); max-width: 800px; margin: 0 auto 2rem;">
+                These principles guide everything we do at UNICARE and reflect our commitment to supporting student mental health.
+            </p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4">
+                <div class="p-4 h-100" style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <div class="mb-3" style="width: 48px; height: 48px; background: var(--primary-100); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;">
+                        <i class="bi bi-heart-fill" style="color: var(--primary-600); font-size: 1.5rem;"></i>
+                    </div>
+                    <h3 style="color: var(--primary-800); font-size: 1.25rem; margin-bottom: 1rem;">Compassion First</h3>
+                    <p style="color: var(--primary-700); margin-bottom: 0;">We approach every interaction with empathy, understanding, and kindness, recognizing that mental health is deeply personal.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="p-4 h-100" style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <div class="mb-3" style="width: 48px; height: 48px; background: var(--primary-100); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;">
+                        <i class="bi bi-shield-lock" style="color: var(--primary-600); font-size: 1.5rem;"></i>
+                    </div>
+                    <h3 style="color: var(--primary-800); font-size: 1.25rem; margin-bottom: 1rem;">Privacy & Trust</h3>
+                    <p style="color: var(--primary-700); margin-bottom: 0;">Your data is yours alone. We maintain the highest standards of confidentiality and security for all user information.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="p-4 h-100" style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <div class="mb-3" style="width: 48px; height: 48px; background: var(--primary-100); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;">
+                        <i class="bi bi-lightbulb" style="color: var(--primary-600); font-size: 1.5rem;"></i>
+                    </div>
+                    <h3 style="color: var(--primary-800); font-size: 1.25rem; margin-bottom: 1rem;">Innovation</h3>
+                    <p style="color: var(--primary-700); margin-bottom: 0;">We continuously evolve our platform with evidence-based approaches and cutting-edge technology to better serve you.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="p-4 h-100" style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <div class="mb-3" style="width: 48px; height: 48px; background: var(--primary-100); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;">
+                        <i class="bi bi-people" style="color: var(--primary-600); font-size: 1.5rem;"></i>
+                    </div>
+                    <h3 style="color: var(--primary-800); font-size: 1.25rem; margin-bottom: 1rem;">Inclusivity</h3>
+                    <p style="color: var(--primary-700); margin-bottom: 0;">We celebrate diversity and are committed to creating a supportive space for students of all backgrounds.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="p-4 h-100" style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <div class="mb-3" style="width: 48px; height: 48px; background: var(--primary-100); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;">
+                        <i class="bi bi-graph-up" style="color: var(--primary-600); font-size: 1.5rem;"></i>
+                    </div>
+                    <h3 style="color: var(--primary-800); font-size: 1.25rem; margin-bottom: 1rem;">Evidence-Based</h3>
+                    <p style="color: var(--primary-700); margin-bottom: 0;">Our tools and resources are grounded in psychological research and clinical best practices.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="p-4 h-100" style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <div class="mb-3" style="width: 48px; height: 48px; background: var(--primary-100); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;">
+                        <i class="bi bi-heart-pulse" style="color: var(--primary-600); font-size: 1.5rem;"></i>
+                    </div>
+                    <h3 style="color: var(--primary-800); font-size: 1.25rem; margin-bottom: 1rem;">Holistic Care</h3>
+                    <p style="color: var(--primary-700); margin-bottom: 0;">We address the whole person, recognizing that mental health is interconnected with all aspects of life.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="py-5 py-lg-7">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="h1 fw-bold mb-3" style="color: var(--primary-900);">How It Works</h2>
+            <div class="divider mx-auto" style="width: 50px; height: 2px; background: linear-gradient(90deg, var(--primary-500), var(--primary-700)); margin: 0.75rem auto 2rem;"></div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="p-4 text-center h-100">
+                    <div class="mb-4 mx-auto" style="width: 80px; height: 80px; background: var(--primary-100); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <span style="font-size: 1.75rem; font-weight: 700; color: var(--primary-700);">1</span>
+                    </div>
+                    <h3 style="color: var(--primary-800); font-size: 1.25rem; margin-bottom: 1rem;">Register</h3>
+                    <p style="color: var(--primary-700);">Create your account and start your journey with UNICARE.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="p-4 text-center h-100">
+                    <div class="mb-4 mx-auto" style="width: 80px; height: 80px; background: var(--primary-100); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <span style="font-size: 1.75rem; font-weight: 700; color: var(--primary-700);">2</span>
+                    </div>
+                    <h3 style="color: var(--primary-800); font-size: 1.25rem; margin-bottom: 1rem;">Assess</h3>
+                    <p style="color: var(--primary-700);">Complete daily mood assessments to track your emotional wellbeing.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="p-4 text-center h-100">
+                    <div class="mb-4 mx-auto" style="width: 80px; height: 80px; background: var(--primary-100); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <span style="font-size: 1.75rem; font-weight: 700; color: var(--primary-700);">3</span>
+                    </div>
+                    <h3 style="color: var(--primary-800); font-size: 1.25rem; margin-bottom: 1rem;">Connect</h3>
+                    <p style="color: var(--primary-700);">Chat with our supportive AI bot whenever you need someone to talk to.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="p-4 text-center h-100">
+                    <div class="mb-4 mx-auto" style="width: 80px; height: 80px; background: var(--primary-100); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <span style="font-size: 1.75rem; font-weight: 700; color: var(--primary-700);">4</span>
+                    </div>
+                    <h3 style="color: var(--primary-800); font-size: 1.25rem; margin-bottom: 1rem;">Grow</h3>
+                    <p style="color: var(--primary-700);">Track your progress, earn badges, and see your improvement over time.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-5 pt-3">
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-5">
+                Get Started Now <i class="bi bi-arrow-right ms-2"></i>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

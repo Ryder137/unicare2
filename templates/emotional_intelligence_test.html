@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-5">
+                <h1>Emotional Intelligence Test</h1>
+                <p class="lead">Assess your ability to recognize, understand, and manage emotions.</p>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div id="test-container">
+                        <div id="intro" class="text-center py-4">
+                            <h2 class="h4 mb-4">About This Test</h2>
+                            <p>This assessment measures your emotional intelligence across key areas:</p>
+                            <ul class="list-unstyled mb-4">
+                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Self-awareness</li>
+                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Self-management</li>
+                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Social awareness</li>
+                            </ul>
+                            <button id="start-test" class="btn btn-primary btn-lg">Begin Test</button>
+                        </div>
+
+                        <div id="question-container" class="d-none">
+                            <div class="progress mb-4">
+                                <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <h3 class="h5 mb-4" id="question-text">Question goes here</h3>
+                            <div id="options-container" class="mb-4">
+                                <!-- Options will be added by JavaScript -->
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button id="prev-btn" class="btn btn-outline-secondary" disabled>Previous</button>
+                                <button id="next-btn" class="btn btn-primary">Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

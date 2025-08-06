@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Avatar Picker Modal -->
+{% include 'components/avatar_modal.html' %}
+
+<!-- Profile Section -->
+<div class="card mb-4">
+    <div class="card-body text-center">
+        <div class="position-relative d-inline-block mb-3">
+            <img src="{{ user.profile_image or url_for('static', filename='img/avatars/default.png') }}" 
+                 class="rounded-circle profile-avatar" 
+                 id="currentAvatar"
+                 alt="Profile">
+            <button class="avatar-edit-btn position-absolute bottom-0 end-0"
+                    data-bs-toggle="modal" 
+                    data-bs-target="#avatarModal">
+                <i class="bi bi-pencil"></i>
+            </button>
+        </div>
+        <h4 class="mb-1">{{ user.first_name or user.username }}</h4>
+        <p class="text-muted mb-0">{{ user.email }}</p>
+    </div>
+</div>
+<div class="stats-grid">
+    <div class="stat-card">
+        <h3>Today's Mood</h3>
+        <div id="todayMood" class="mood-indicator"></div>
+    </div>
+    <div class="stat-card">
+        <h3>Streak</h3>
+        <p id="streakCount">0</p>
+        <small>Days in a row</small>
+    </div>
+    <div class="stat-card">
+        <h3>Badges</h3>
+        <p id="badgeCount">0</p>
+        <small>Collected</small>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Today's Assessment</h2>
+    <form id="assessmentForm">
+        <div class="form-group">
+            <label for="mood">How are you feeling today?</label>
+            <select id="mood" name="mood" required>
+                <option value="">Select your mood</option>
+                <option value="happy">Happy</option>
+                <option value="okay">Okay</option>
+                <option value="sad">Sad</option>
+                <option value="stressed">Stressed</option>
+                <option value="anxious">Anxious</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="stressLevel">Stress Level</label>
+            <input type="range" id="stressLevel" name="stressLevel" min="0" max="10" value="0">
+            <span id="stressLevelValue">0</span>/10
+        </div>
+        <button type="submit" class="btn btn-primary">Submit Assessment</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Today's Recommendations</h2>
+    <div id="recommendations"></div>
+</div>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Contact Us</h1>
+        <p class="lead">Get in touch with our support team</p>
+    </div>
+
+    <div class="contact-container">
+        <div class="contact-info">
+            <h2>Support Information</h2>
+            <div class="contact-item">
+                <h3>Email</h3>
+                <p><a href="mailto:support@unicare.com">support@unicare.com</a></p>
+            </div>
+            <div class="contact-item">
+                <h3>Emergency Support</h3>
+                <p>For urgent mental health concerns, please contact your local emergency services</p>
+            </div>
+            <div class="contact-item">
+                <h3>Feedback</h3>
+                <p>We welcome your feedback to improve our service</p>
+            </div>
+        </div>
+
+        <div class="contact-form">
+            <h2>Send Us a Message</h2>
+            <form method="POST" class="contact-form">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" rows="5" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Send Message</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
