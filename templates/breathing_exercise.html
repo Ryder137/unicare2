@@ -18,82 +18,44 @@
                         </div>
                     </div>
                     
-                    <!-- Exercise Info -->
+                    <!-- Controls -->
                     <div class="col-md-6">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">About This Exercise</h5>
-                                <p class="card-text">This guided breathing exercise helps reduce stress, improve focus, and promote relaxation.</p>
-                                
-                                <h6 class="mt-4">Available Patterns:</h6>
-                                <div class="row">
-                                    <div class="col-12 mb-3">
-                                        <div class="card bg-light">
-                                            <div class="card-body p-3">
-                                                <h6 class="card-subtitle mb-2 text-muted">4-4-4-4 (Box Breathing)</h6>
-                                                <p class="card-text small mb-1">• Inhale for 4s</p>
-                                                <p class="card-text small mb-1">• Hold for 4s</p>
-                                                <p class="card-text small mb-1">• Exhale for 4s</p>
-                                                <p class="card-text small">• Hold for 4s</p>
-                                                <p class="card-text small text-muted"><em>Best for focus and stress relief</em></p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12">
-                                        <div class="card bg-light">
-                                            <div class="card-body p-3">
-                                                <h6 class="card-subtitle mb-2 text-muted">4-7-8 (Relaxing Breath)</h6>
-                                                <p class="card-text small mb-1">• Inhale for 4s</p>
-                                                <p class="card-text small mb-1">• Hold for 7s</p>
-                                                <p class="card-text small">• Exhale for 8s</p>
-                                                <p class="card-text small text-muted"><em>Best for relaxation and sleep</em></p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="mt-3 text-center">
-                                    <button class="btn btn-sm btn-outline-info" data-bs-toggle="collapse" data-bs-target="#breathingTips">
-                                        <i class="bi bi-info-circle"></i> Quick Tips
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                            <div class="controls text-center">
+                                <div class="d-grid gap-3">
+                                    <button id="start-btn" class="btn btn-primary btn-lg">
+                                        <i class="bi bi-play-fill me-2"></i>Start
                                     </button>
-                                    <div id="breathingTips" class="collapse mt-2 small text-muted">
-                                        Find a quiet space, sit comfortably, and follow the animation. Breathe through your nose and out through your mouth.
+                                    <button id="pause-btn" class="btn btn-outline-secondary btn-lg d-none">
+                                        <i class="bi bi-pause-fill me-2"></i>Pause
+                                    </button>
+                                    <button id="reset-btn" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
+                                    </button>
+                                </div>
+                                <div class="mt-4 w-100">
+                                    <div class="mb-3">
+                                        <label for="duration" class="form-label text-muted small mb-2">Duration:</label>
+                                        <select id="duration" class="form-select form-select-sm">
+                                            <option value="1">1 minute</option>
+                                            <option value="3" selected>3 minutes</option>
+                                            <option value="5">5 minutes</option>
+                                            <option value="10">10 minutes</option>
+                                        </select>
+                                    </div>
+                                    <div class="mt-3">
+                                        <p class="text-muted small mb-2">Breathing pattern:</p>
+                                        <div class="btn-group w-100" role="group">
+                                            <button type="button" class="btn btn-outline-info btn-sm pattern-btn active" data-pattern="4-4-4-4">4-4-4-4</button>
+                                            <button type="button" class="btn btn-outline-info btn-sm pattern-btn" data-pattern="4-7-8">4-7-8</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
                     
-                    <div class="controls mt-5">
-                        <button id="start-btn" class="btn btn-primary btn-lg">Start</button>
-                        <button id="pause-btn" class="btn btn-outline-secondary btn-lg d-none">Pause</button>
-                        <button id="reset-btn" class="btn btn-link">Reset</button>
-                    </div>
-                    
-                    <div class="settings mt-4">
-                        <div class="form-group">
-                            <label for="duration">Duration (minutes):</label>
-                            <select id="duration" class="form-select d-inline-block w-auto mx-2">
-                                <option value="1">1 minute</option>
-                                <option value="3" selected>3 minutes</option>
-                                <option value="5">5 minutes</option>
-                                <option value="10">10 minutes</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group mt-3">
-                            <label>Breathing Pattern:</label>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="pattern" id="pattern1" value="4-4-4-4" checked>
-                                <label class="form-check-label" for="pattern1">4-4-4-4 (Box)</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="pattern" id="pattern2" value="4-7-8">
-                                <label class="form-check-label" for="pattern2">4-7-8 (Relaxing)</label>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Removed duplicate duration selector -->
                     
                     <div class="timer mt-4">
                         <div class="time">03:00</div>
@@ -101,6 +63,52 @@
                     </div>
                 </div>
                 
+                 <!-- Exercise Info -->
+                 <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">About This Exercise</h5>
+                            <p class="card-text">This guided breathing exercise helps reduce stress, improve focus, and promote relaxation.</p>
+                            
+                            <h6 class="mt-4">Available Patterns:</h6>
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <div class="card bg-light">
+                                        <div class="card-body p-3">
+                                            <h6 class="card-subtitle mb-2 text-muted">4-4-4-4 (Box Breathing)</h6>
+                                            <p class="card-text small mb-1">• Inhale for 4s</p>
+                                            <p class="card-text small mb-1">• Hold for 4s</p>
+                                            <p class="card-text small mb-1">• Exhale for 4s</p>
+                                            <p class="card-text small">• Hold for 4s</p>
+                                            <p class="card-text small text-muted"><em>Best for focus and stress relief</em></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="card bg-light">
+                                        <div class="card-body p-3">
+                                            <h6 class="card-subtitle mb-2 text-muted">4-7-8 (Relaxing Breath)</h6>
+                                            <p class="card-text small mb-1">• Inhale for 4s</p>
+                                            <p class="card-text small mb-1">• Hold for 7s</p>
+                                            <p class="card-text small">• Exhale for 8s</p>
+                                            <p class="card-text small text-muted"><em>Best for relaxation and sleep</em></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3 text-center">
+                                <button class="btn btn-sm btn-outline-info" data-bs-toggle="collapse" data-bs-target="#breathingTips">
+                                    <i class="bi bi-info-circle"></i> Quick Tips
+                                </button>
+                                <div id="breathingTips" class="collapse mt-2 small text-muted">
+                                    Find a quiet space, sit comfortably, and follow the animation. Breathe through your nose and out through your mouth.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
                 <div class="instructions mt-5">
                     <h3>How to use this exercise:</h3>
                     <ol class="text-start">
@@ -310,29 +318,43 @@ const startBtn = document.getElementById('start-btn');
 const pauseBtn = document.getElementById('pause-btn');
 const resetBtn = document.getElementById('reset-btn');
 const durationSelect = document.getElementById('duration');
-const patternRadios = document.querySelectorAll('input[name="pattern"]');
 const patternInfo = document.getElementById('pattern-info');
 const cycleCounter = document.getElementById('cycle-counter');
 const progressBar = document.querySelector('.progress');
 
 // Initialize the exercise
 function initExercise() {
-    resetExercise();
-    updatePatternInfo();
+    // Set up pattern buttons
+    const patternButtons = document.querySelectorAll('.pattern-btn');
     
-    // Set up pattern radio buttons
-    patternRadios.forEach(radio => {
-        if (radio.value === breathingState.currentPattern) {
-            radio.checked = true;
-        }
+    // Initialize pattern selection
+    function selectPattern(pattern) {
+        // Update active button
+        patternButtons.forEach(btn => {
+            if (btn.dataset.pattern === pattern) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
         
-        radio.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                breathingState.currentPattern = e.target.value;
-                updatePatternInfo();
-                if (!breathingState.isRunning) {
-                    resetExercise();
-                }
+        // Update state and UI
+        breathingState.currentPattern = pattern;
+        updatePatternInfo();
+        if (!breathingState.isRunning) {
+            resetExercise();
+        }
+    }
+    
+    // Set initial pattern
+    selectPattern(breathingState.currentPattern);
+    
+    // Add click handlers
+    patternButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            const newPattern = e.currentTarget.dataset.pattern;
+            if (newPattern !== breathingState.currentPattern) {
+                selectPattern(newPattern);
             }
         });
     });
@@ -425,30 +447,56 @@ function pauseExercise() {
 
 // Reset the exercise
 function resetExercise() {
-    // Clear any running intervals
+    // Stop any running timers
     clearInterval(breathingState.timerInterval);
     clearInterval(breathingState.animationInterval);
     
     // Reset state
     breathingState.isRunning = false;
     breathingState.isPaused = false;
-    breathingState.timeLeft = parseInt(durationSelect.value) * 60;
     breathingState.currentPhase = 0;
+    breathingState.phaseStartTime = 0;
+    breathingState.timeLeft = parseInt(durationSelect.value) * 60; // Convert minutes to seconds
     breathingState.currentCycle = 0;
     
     // Reset UI
-    circle.style.transform = 'scale(0.6)';
-    circle.style.backgroundColor = '#4CAF50';
-    circle.style.transition = 'all 0.5s ease-in-out';
-    
-    phaseText.textContent = 'Ready';
-    phaseDisplay.textContent = 'Press Start to begin';
-    cycleCounter.textContent = '';
-    progressBar.style.width = '0%';
-    
-    // Update button states
     updateButtonStates();
     updateTimerDisplay();
+    
+    // Make sure timer is visible
+    if (timeDisplay) {
+        timeDisplay.textContent = formatTime(breathingState.timeLeft);
+    }
+    if (phaseDisplay) {
+        phaseDisplay.textContent = 'Ready';
+    }
+    
+    // Reset circle animation
+    if (circle) {
+        circle.style.transform = 'scale(0.6)';
+        circle.style.transition = 'none';
+        setTimeout(() => {
+            circle.style.transition = 'transform 8s ease-in-out';
+        }, 10);
+    }
+    
+    // Update phase text
+    const pattern = breathingState.patterns[breathingState.currentPattern];
+    if (phaseText && pattern && pattern.phases && pattern.phases[0]) {
+        phaseText.textContent = pattern.phases[0].name;
+    }
+    
+    // Reset progress bar
+    if (progressBar) {
+        progressBar.style.width = '0%';
+    }
+}
+
+// Format seconds to MM:SS
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 // Start a breathing phase

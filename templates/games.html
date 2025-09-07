@@ -21,7 +21,7 @@
                         <i class="bi bi-lightbulb-fill me-2" style="color: #4a6cf7;"></i>
                         <div>
                             <span style="color: #1f2937; display: inline-block; padding: 0.25rem 0;">To save your progress and access all features, please 
-                                <a href="{{ url_for('login') }}" class="text-primary fw-bold">sign in</a> or 
+                                <a href="{{ url_for('user_login') }}" class="text-primary fw-bold">sign in</a> or 
                                 <a href="{{ url_for('register') }}" class="text-primary fw-bold">create an account</a>.
                             </span>
                         </div>
@@ -37,11 +37,45 @@
     </div>
 </div>
 
-<div class="py-5 bg-light" style="margin-top: 76px;">
+<!-- Gamification Header -->
+<div class="py-5 bg-light position-relative">
     <div class="container">
-        <div class="text-center">
+        <div class="text-center position-relative">
+            <!-- User Progress Bar -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-lg-8">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Level 1</span>
+                        <span class="text-muted">100 XP to next level</span>
+                    </div>
+                    <div class="progress" style="height: 20px; border-radius: 10px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                             style="width: 45%; background: linear-gradient(90deg, #4a6cf7, #8a2be2);" 
+                             aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">
+                            <span class="position-absolute" style="right: 10px; color: #fff; font-weight: bold;">45/100 XP</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <h1 class="mb-3">Games & Assessments</h1>
-            <p class="lead text-muted">Engage with our interactive tools to learn more about yourself and improve your mental well-being.</p>
+            <p class="lead text-muted">Earn points, unlock achievements, and track your mental wellness journey!</p>
+            
+            <!-- Quick Stats -->
+            <div class="d-flex justify-content-center gap-4 mt-4">
+                <div class="text-center">
+                    <div class="display-6 fw-bold text-primary">45</div>
+                    <div class="text-muted small">XP Points</div>
+                </div>
+                <div class="text-center">
+                    <div class="display-6 fw-bold text-success">3/10</div>
+                    <div class="text-muted small">Achievements</div>
+                </div>
+                <div class="text-center">
+                    <div class="display-6 fw-bold text-info">7</div>
+                    <div class="text-muted small">Day Streak</div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -58,20 +92,48 @@
             <div class="assessment-content">
                 <div class="row g-4">
                     <div class="col-md-6">
-                        <div class="card h-100">
-                            <div class="card-body">
+                        <div class="card h-100 game-card">
+                            <div class="card-body position-relative">
+                                <div class="position-absolute top-0 end-0 m-3">
+                                    <span class="badge bg-warning text-dark">+20 XP</span>
+                                </div>
                                 <h3 class="h5">Big Five Personality Test</h3>
                                 <p>Take this scientifically validated test to understand your personality across five major dimensions.</p>
-                                <a href="{{ url_for('personality_test') }}" class="btn btn-primary text-white">Start Test</a>
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <a href="{{ url_for('personality_test') }}" class="btn btn-primary text-white">Start Test</a>
+                                    <small class="text-muted">15 min</small>
+                                </div>
+                                <div class="progress mt-2" style="height: 4px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <small class="text-muted">75% complete</small>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h3 class="h5">Emotional Intelligence Test</h3>
-                                <p>Assess your ability to recognize, understand, and manage emotions.</p>
-                                <a href="{{ url_for('eq_test') }}" class="btn btn-primary">Start Assessment</a>
+                        <div class="card h-100 game-card">
+                            <div class="card-body position-relative">
+                                <div class="position-absolute top-0 end-0 m-3">
+                                    <span class="badge bg-warning text-dark">+15 XP</span>
+                                </div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <h3 class="h5 mb-0">Emotional Intelligence Test</h3>
+                                    <span class="ms-2 badge bg-success">New!</span>
+                                </div>
+                                <p class="mb-3">Assess your ability to recognize, understand, and manage emotions.</p>
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <a href="{{ url_for('eq_test') }}" class="btn btn-primary">Start Assessment</a>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-star-fill text-warning me-1"></i>
+                                        <span class="small">4.8</span>
+                                    </div>
+                                </div>
+                                <div class="mt-2 d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">10 min</small>
+                                    <small class="text-success">
+                                        <i class="bi bi-check-circle-fill"></i> 87% completion
+                                    </small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -91,13 +153,22 @@
 
                     <!-- Breathing Exercise -->
                     <div class="game-card-wrapper me-4" style="min-width: 300px;">
-                        <div class="card h-100">
-                            <div class="card-body text-center">
-                                <div class="game-icon mb-3">
+                        <div class="card h-100 game-card">
+                            <div class="card-body text-center position-relative">
+                                <div class="position-absolute top-0 end-0 m-3">
+                                    <span class="badge bg-warning text-dark">+10 XP</span>
+                                </div>
+                                <div class="game-icon mb-3 position-relative">
                                     <i class="bi bi-activity fs-1"></i>
+                                    <div class="position-absolute top-0 start-100 translate-middle">
+                                        <span class="badge rounded-pill bg-danger">Popular</span>
+                                    </div>
                                 </div>
                                 <h3 class="h5">Breathing Exercise</h3>
-                                <p>Practice deep breathing to reduce stress and increase focus.</p>
+                                <p class="mb-3">Practice deep breathing to reduce stress and increase focus.</p>
+                                <div class="d-flex justify-content-center gap-2 mb-3">
+                                    <span class="badge bg-light text-dark"><i class="bi bi-arrow-repeat text-success"></i> 3 min</span>
+                                </div>
                                 <a href="{{ url_for('breathing_exercise') }}" class="btn btn-primary">Start Exercise</a>
                             </div>
                         </div>

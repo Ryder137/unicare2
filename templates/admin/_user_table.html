@@ -1,0 +1,134 @@
+{% if active_tab == 'admins' %}
+    {% set user_list = admins %}
+    {% set user_type = 'admin' %}
+    {% set empty_message = 'No admin accounts found' %}
+    {% set icon = 'bi-shield-lock' %}
+    {% set bg_class = 'bg-primary-light' %}
+{% elif active_tab == 'psychologists' %}
+    {% set user_list = psychologists %}
+    {% set user_type = 'psychologist' %}
+    {% set empty_message = 'No psychologist accounts found' %}
+    {% set icon = 'bi-people' %}
+    {% set bg_class = 'bg-info-light' %}
+{% else %}
+    {% set user_list = users %}
+    {% set user_type = 'user' %}
+    {% set empty_message = 'No user accounts found' %}
+    {% set icon = 'bi-person' %}
+    {% set bg_class = 'bg-secondary-light' %}
+{% endif %}
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                {% if user_type == 'psychologist' %}
+                <th>License</th>
+                <th>Specialization</th>
+                {% endif %}
+                <th>Status</th>
+                <th>Infections</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if user_list %}
+                {% for user in user_list %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar me-3">
+                                <span class="avatar-initial rounded-circle {{ bg_class }} text-white">
+                                    <i class="bi {{ icon }}"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">{{ user.first_name }} {{ user.last_name }}</h6>
+                                <small class="text-muted">ID: {{ user.id }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex flex-column">
+                            <span>{{ user.email }}</span>
+                            <small class="text-muted">{{ user.phone if user.phone else 'No phone' }}</small>
+                        </div>
+                    </td>
+                    {% if user_type == 'psychologist' %}
+                    <td>{{ user.license_number }}</td>
+                    <td>{{ user.specialization }}</td>
+                    {% endif %}
+                    <td>
+                        {% if user.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                        
+                        {% if user_type == 'admin' %}
+                            <span class="badge bg-primary">Admin</span>
+                        {% elif user_type == 'psychologist' %}
+                            <span class="badge bg-info">Psychologist</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set infection_count = user.infections|length if user.infections is defined else 0 %}
+                        {% set active_infections = user.active_infections|length if user.active_infections is defined else 0 %}
+                        <div class="d-flex flex-column">
+                            <span class="fw-bold">{{ infection_count }} total</span>
+                            <small class="text-{{ 'danger' if active_infections > 0 else 'success' }}">
+                                {{ active_infections }} active
+                            </small>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                                    id="dropdownMenuButton{{ user_type }}{{ user.id }}" 
+                                    data-bs-toggle="dropdown" 
+                                    aria-expanded="false">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ user_type }}{{ user.id }}">
+                                <li>
+                                    <a class="dropdown-item view-user-details" 
+                                       href="#" 
+                                       data-user-id="{{ user.id }}" 
+                                       data-user-type="{{ user_type }}">
+                                        <i class="bi bi-eye me-2"></i>View Details
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="bi bi-pencil-square me-2"></i>Edit
+                                    </a>
+                                </li>
+                                {% if user_type == 'admin' and user.id != current_user.id or user_type != 'admin' %}
+                                <li>
+                                    <form action="{{ url_for('admin.delete_user', user_type=user_type, user_id=user.id) }}" 
+                                          method="POST" 
+                                          class="d-inline"
+                                          onsubmit="return confirm('Are you sure you want to delete this {{ user_type }}? This action cannot be undone.');">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="bi bi-trash me-2"></i>Delete
+                                        </button>
+                                    </form>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="{{ '6' if user_type == 'psychologist' else '4' }}" class="text-center py-4">
+                        <div class="text-muted">{{ empty_message }}</div>
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>

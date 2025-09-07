@@ -1,0 +1,27 @@
+"""Forms package for the application."""
+
+# Import all form classes
+from .base_forms import (
+    AdminRegisterForm,
+    AdminLoginForm,
+    CreateAdminForm,
+    LoginForm,
+    RegisterForm,
+    ForgotPasswordForm,
+    ResetPasswordForm
+)
+
+from .guidance_counselor_form import CreateGuidanceCounselorForm
+from .psychologist_form import PsychologistForm
+
+__all__ = [
+    'AdminRegisterForm',
+    'AdminLoginForm',
+    'CreateAdminForm',
+    'LoginForm',
+    'RegisterForm',
+    'ForgotPasswordForm',
+    'ResetPasswordForm',
+    'CreateGuidanceCounselorForm',
+    'PsychologistForm'
+]

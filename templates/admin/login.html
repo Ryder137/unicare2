@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white text-center">
+                    <h4 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Admin Login</h4>
+                </div>
+                <div class="card-body p-4">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <!-- Development Test Account -->
+                    {% if config.get('FLASK_ENV') == 'development' %}
+                    <div class="alert alert-info mb-4">
+                        <h5 class="alert-heading"><i class="bi bi-info-circle"></i> Development Account</h5>
+                        <p class="mb-1">Use these test credentials to log in:</p>
+                        <div class="mb-2">
+                            <strong>Email:</strong> enjhaym1@gmail.com<br>
+                            <strong>Password:</strong> admin123
+                        </div>
+                        <p class="mb-0 small text-muted">Note: This message is only visible in development mode.</p>
+                    </div>
+                    
+                    <!-- Rate Limit Information -->
+                    <div id="rate-limit-info" 
+                         class="alert alert-warning mb-4"
+                         data-first-attempt="{{ session.first_attempt|default('0') }}"
+                         data-max-attempts="10"
+                         data-time-window="300">
+                        <h5 class="alert-heading"><i class="bi bi-shield-exclamation"></i> Rate Limit Status</h5>
+                        <p class="mb-2">
+                            {% if 'login_attempts' in session %}
+                                Login attempts: {{ session.login_attempts }}/10
+                                {% if 'first_attempt' in session %}
+                                    <br>Time remaining: 
+                                    <span id="time-remaining">Calculating...</span>
+                                {% endif %}
+                            {% else %}
+                                No active rate limiting
+                            {% endif %}
+                        </p>
+                        <a href="{{ url_for('clear_rate_limit') }}" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-arrow-clockwise"></i> Reset Rate Limit
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" action="{{ url_for('admin.admin_login') }}" class="needs-validation" novalidate>
+                        {{ form.hidden_tag() }}
+                        <input type="hidden" name="next" value="{{ next or '' }}">
+                        
+                        <div class="mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                {{ form.email(class="form-control" + (' is-invalid' if form.email.errors else ''), placeholder="admin@example.com") }}
+                            </div>
+                            {% if form.email.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.email.errors[0] }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                {{ form.password(id="admin-password", class="form-control form-control-lg form-password" + (' is-invalid' if form.password.errors else '')) }}
+                                <button class="btn btn-outline-secondary toggle-password" type="button" data-target="admin-password">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                {% if form.password.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.password.errors[0] }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            {{ form.remember_me(class="form-check-input") }}
+                            {{ form.remember_me.label(class="form-check-label") }}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-dark">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Log in
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('user_login') }}" class="text-decoration-none">
+                            <i class="bi bi-arrow-left-circle me-1"></i> Back to User Login
+                        </a>
+                        <span class="text-muted mx-2">|</span>
+                        <a href="{{ url_for('admin.register') }}" class="text-decoration-none">
+                            <i class="bi bi-person-plus me-1"></i> Register as Admin
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Update the remaining time for rate limiting
+function updateRemainingTime() {
+    const timeRemainingEl = document.getElementById('time-remaining');
+    if (!timeRemainingEl) return;
+    
+    // Get the first attempt time from a data attribute
+    const rateLimitInfo = document.getElementById('rate-limit-info');
+    if (!rateLimitInfo) return;
+    
+    const firstAttempt = parseInt(rateLimitInfo.dataset.firstAttempt || '0');
+    const maxAttempts = parseInt(rateLimitInfo.dataset.maxAttempts || '10');
+    const timeWindow = parseInt(rateLimitInfo.dataset.timeWindow || '300');
+    
+    if (!firstAttempt) {
+        timeRemainingEl.textContent = 'Not limited';
+        return;
+    }
+    
+    const now = Math.floor(Date.now() / 1000);
+    const timePassed = now - firstAttempt;
+    const timeLeft = Math.max(0, timeWindow - timePassed);
+    
+    if (timeLeft <= 0) {
+        timeRemainingEl.textContent = 'Rate limit expired';
+        window.location.reload(); // Reload to update the UI
+        return;
+    }
+    
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    timeRemainingEl.textContent = `${minutes}m ${seconds}s`;
+}
+
+// Initialize when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('time-remaining')) {
+        updateRemainingTime();
+        setInterval(updateRemainingTime, 1000);
+    }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle password visibility
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const input = targetId ? document.getElementById(targetId) : this.previousElementSibling;
+            
+            if (input) {
+                const icon = this.querySelector('i');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            }
+        });
+    });
+
+    // Enable Bootstrap form validation
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+});
+</script>
+{% endblock %}

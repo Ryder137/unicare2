@@ -1,21 +1,26 @@
 // Available avatar options (add more as needed)
 const AVATARS = [
-    { id: 'cat', name: 'Cat', path: '/static/img/avatars/cat.png' },
-    { id: 'dog', name: 'Dog', path: '/static/img/avatars/dog.png' },
-    { id: 'panda', name: 'Panda', path: '/static/img/avatars/panda.png' },
-    { id: 'fox', name: 'Fox', path: '/static/img/avatars/fox.png' },
-    { id: 'rabbit', name: 'Rabbit', path: '/static/img/avatars/rabbit.png' },
-    { id: 'sunflower', name: 'Sunflower', path: '/static/img/avatars/sunflower.png' },
-    { id: 'rose', name: 'Rose', path: '/static/img/avatars/rose.png' },
-    { id: 'tulip', name: 'Tulip', path: '/static/img/avatars/tulip.png' },
-    { id: 'daisy', name: 'Daisy', path: '/static/img/avatars/daisy.png' },
+    { id: 'default', name: 'Default', path: '/static/img/avatars/default.png' }
 ];
+
+// Function to handle image loading errors
+function handleImageError(img) {
+    // Set a fallback image or hide the broken image
+    img.onerror = null; // Prevent infinite loop if fallback also fails
+    img.src = '/static/img/avatars/default.png';
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('avatarModal');
     const avatarGrid = document.getElementById('avatarGrid');
     const currentAvatar = document.getElementById('currentAvatar');
     const saveBtn = document.getElementById('saveAvatarBtn');
+    
+    // Check if required elements exist
+    if (!avatarGrid) {
+        console.warn('Avatar grid element not found');
+        return;
+    }
     
     let selectedAvatar = null;
 
@@ -24,26 +29,44 @@ document.addEventListener('DOMContentLoaded', function() {
         const col = document.createElement('div');
         col.className = 'col-4 col-md-3 text-center mb-3';
         
-        const avatarEl = document.createElement('img');
-        avatarEl.src = avatar.path;
-        avatarEl.className = 'img-thumbnail rounded-circle avatar-option';
+        const avatarEl = document.createElement('div');
+        avatarEl.className = 'avatar-option d-inline-flex align-items-center justify-content-center';
         avatarEl.style.width = '80px';
         avatarEl.style.height = '80px';
         avatarEl.style.cursor = 'pointer';
-        avatarEl.style.objectFit = 'cover';
-        avatarEl.alt = avatar.name;
+        avatarEl.style.borderRadius = '50%';
+        avatarEl.style.border = '1px solid #dee2e6';
+        avatarEl.style.overflow = 'hidden';
         avatarEl.title = avatar.name;
+        
+        const img = document.createElement('img');
+        img.src = avatar.path;
+        img.alt = avatar.name;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        img.onerror = function() {
+            // If image fails to load, show initials
+            this.style.display = 'none';
+            const initials = document.createElement('div');
+            initials.textContent = avatar.name.charAt(0).toUpperCase() || 'U';
+            initials.style.fontSize = '24px';
+            initials.style.color = '#6c757d';
+            avatarEl.appendChild(initials);
+        };
+        
+        avatarEl.appendChild(img);
         
         avatarEl.addEventListener('click', () => {
             // Remove selected class from all options
             document.querySelectorAll('.avatar-option').forEach(el => {
-                el.classList.remove('border-primary');
-                el.style.borderWidth = '1px';
+                el.style.border = '1px solid #dee2e6';
+                el.style.boxShadow = 'none';
             });
             
-            // Add selected class to clicked option
-            avatarEl.classList.add('border-primary');
-            avatarEl.style.borderWidth = '3px';
+            // Add selected style to clicked option
+            avatarEl.style.border = '3px solid #0d6efd';
+            avatarEl.style.boxShadow = '0 0 0 0.25rem rgba(13, 110, 253, 0.25)';
             selectedAvatar = avatar.path;
         });
         

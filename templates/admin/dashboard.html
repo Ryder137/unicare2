@@ -1,0 +1,181 @@
+{% extends "admin/new_base.html" %}
+
+{% block title %}Admin Dashboard - UNICARE{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Dashboard</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
+                <i class="bi bi-calendar"></i> This week
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Stats Cards -->
+        <div class="col-md-4 mb-4">
+            <div class="stat-card">
+                <div class="stat-value">{{ total_users }}</div>
+                <div class="stat-label">Total Users</div>
+                <div class="mt-2 text-muted small">
+                    <i class="bi bi-arrow-up text-success"></i> {{ new_users }} new this week
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="stat-card">
+                <div class="stat-value">{{ total_active_users }}</div>
+                <div class="stat-label">Active Users</div>
+                <div class="mt-2 text-muted small">
+                    <i class="bi bi-people-fill"></i> Active in last 24h
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="stat-card">
+                <div class="stat-value">{{ (new_users / total_users * 100) | round(1) if total_users > 0 else 0 }}%</div>
+                <div class="stat-label">Growth Rate</div>
+                <div class="mt-2 text-muted small">
+                    <i class="bi bi-graph-up"></i> Weekly growth
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <!-- Recent Activity -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-white border-bottom-0">
+                    <h5 class="mb-0">Recent Activity</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="recent-activity">
+                        {% if recent_activity %}
+                            {% for activity in recent_activity %}
+                            <div class="activity-item px-3 py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ activity.user_name }}</strong> {{ activity.action }}
+                                        <div class="text-muted small">{{ activity.timestamp|time_ago }}</div>
+                                    </div>
+                                    <span class="badge bg-light text-dark">{{ activity.type }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-4 text-muted">
+                                No recent activity
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- User Activity Summary -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-white border-bottom-0">
+                    <h5 class="mb-0">User Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-4">
+                        <i class="bi bi-people fs-1 text-primary mb-3"></i>
+                        <p class="text-muted">User activity metrics coming soon</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <!-- Mood Distribution -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-white border-bottom-0">
+                    <h5 class="mb-0">Mood Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="moodChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mood Distribution Chart
+    const moodCtx = document.getElementById('moodChart');
+    if (moodCtx) {
+        try {
+            // Use default mood data values
+            let moodData = {
+                labels: ['Happy', 'Neutral', 'Sad', 'Anxious', 'Stressed'],
+                values: [25, 25, 25, 15, 10]
+            };
+            
+            new Chart(moodCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: moodData.labels,
+                    datasets: [{
+                        data: moodData.values,
+                        backgroundColor: [
+                            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'
+                        ],
+                        hoverBackgroundColor: [
+                            '#2e59d9', '#17a673', '#2c9faf', '#dda20a', '#be2617'
+                        ],
+                        hoverBorderColor: "rgba(234, 236, 244, 1)",
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    },
+                    cutout: '70%',
+                }
+            });
+        } catch (e) {
+            console.error('Error initializing mood chart:', e);
+            moodCtx.parentElement.innerHTML = '<p class="text-muted text-center py-4">Unable to load mood data</p>';
+        }
+    }
+    
+    // Format timestamps in the recent activity table
+    document.querySelectorAll('.activity-time').forEach(element => {
+        try {
+            const timestamp = element.getAttribute('data-timestamp');
+            if (timestamp) {
+                const date = new Date(timestamp);
+                if (!isNaN(date.getTime())) {
+                    element.textContent = date.toLocaleString();
+                }
+            }
+        } catch (e) {
+            console.error('Error formatting timestamp:', e);
+        }
+    });
+    
+    console.log('Admin dashboard initialized');
+});
+</script>
+{% endblock %}

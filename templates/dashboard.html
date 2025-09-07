@@ -1,71 +1,399 @@
 {% extends "base.html" %}
 
+{% block extra_css %}
+<style>
+    /* Dashboard Layout */
+    .dashboard-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+    
+    @media (min-width: 992px) {
+        .dashboard-grid {
+            flex-direction: row;
+            align-items: flex-start;
+        }
+        
+        .dashboard-sidebar {
+            position: sticky;
+            top: 1rem;
+            width: 250px;
+            flex-shrink: 0;
+        }
+        
+        .dashboard-content {
+            flex: 1;
+            min-width: 0; /* Prevents flex item from overflowing */
+        }
+    }
+    
+    /* Sidebar */
+    .dashboard-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        position: sticky;
+        top: 1rem;
+        height: fit-content;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+        padding-right: 1rem;
+    }
+    
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .dashboard-sidebar::-webkit-scrollbar {
+        display: none;
+    }
+    
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .dashboard-sidebar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+    
+    /* Main Content */
+    .dashboard-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    /* Encouragement Card */
+    .encouragement-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: none;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .encouragement-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        text-align: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e40af;
+        margin: 0.5rem 0;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Assessment Card */
+    .assessment-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-header {
+        background: #f8f9fa;
+        padding: 1rem 1rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .card-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2d3748;
+    }
+    
+    .card-body {
+        padding: 10x;
+    }
+    
+    .card-body p:last-child {
+        margin-bottom: 0;
+    }
+    
+    /* Mood Chart */
+    .mood-chart-container {
+        background: white;
+        border-radius: 12px;
+        padding: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+    
+    /* Custom Radio Buttons */
+    .form-check-input[type="radio"] {
+        width: 1.2em;
+        height: 1.2em;
+        margin-top: 0.25em;
+    }
+    
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .form-check-input:focus {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    /* Activity Feed */
+    .activity-feed {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+    
+    .activity-item {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #f0f7ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #3b82f6;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    
+    .activity-content {
+        flex: 1;
+    }
+    
+    .activity-title {
+        font-weight: 500;
+        margin: 0 0 0.25rem 0;
+        color: #2d3748;
+    }
+    
+    .activity-time {
+        font-size: 0.85rem;
+        color: #718096;
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+        
+        .stat-card {
+            padding: 1rem;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
+<div class="dashboard-grid">
+    <!-- Sidebar -->
+    <div class="dashboard-sidebar">
+        <!-- Profile Card -->
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="position-relative d-inline-block mb-3">
+                    <img src="{{ user.profile_image or url_for('static', filename='img/avatars/default.png') }}" 
+                         class="rounded-circle profile-avatar" 
+                         id="currentAvatar"
+                         alt="Profile"
+                         style="width: 100px; height: 100px; object-fit: cover;">
+                    <button class="avatar-edit-btn position-absolute bottom-0 end-0"
+                            data-bs-toggle="modal" 
+                            data-bs-target="#avatarModal">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </div>
+                <h4 class="mb-1">{{ user.first_name or user.username }}</h4>
+                <p class="text-muted mb-3">{{ user.email }}</p>
+                
+                <!-- Profile button removed - profile route not implemented yet -->
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">Quick Actions</h3>
+            </div>
+            <div class="card-body p-2">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('gratitude_journal') }}" class="btn btn-primary text-start d-flex align-items-center py-2 px-4 rounded-3 shadow-sm w-100">
+                        <i class="bi bi-journal-text fs-5 me-2"></i>
+                        <span>Journal</span>
+                    </a>
+                    <a href="{{ url_for('mindfulness_bell') }}" class="btn btn-success text-start d-flex align-items-center py-2 px-3 rounded-3 shadow-sm">
+                        <i class="bi bi-brightness-high fs-5 me-2"></i>
+                        <span>Mindfulness</span>
+                    </a>
+                    <a href="{{ url_for('resources') }}" class="btn btn-info text-start d-flex align-items-center py-2 px-3 rounded-3 shadow-sm">
+                        <i class="bi bi-book fs-5 me-2"></i>
+                        <span>Resources</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="dashboard-content">
+        <!-- Daily Encouragement -->
+        <div class="encouragement-card card mb-4">
+            <div class="card-body text-center py-3">
+                <i class="bi bi-quote fs-4 text-muted mb-2 d-block"></i>
+                <p id="dailyQuote" class="fs-5 fst-italic mb-2">Loading your daily encouragement...</p>
+                <p id="quoteAuthor" class="text-muted mb-0"></p>
+            </div>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="streakCount">0</div>
+                <div class="stat-label">Day Streak</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="completionRate">0%</div>
+                <div class="stat-label">Weekly Goal</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value" id="activityCount">0</div>
+                <div class="stat-label">Activities</div>
+            </div>
+        </div>
+        
+        <!-- Today's Assessment -->
+        <div class="assessment-card card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0">Today's Mental Health Check-in</h3>
+            </div>
+            <div class="card-body" style="padding: 0px;">
+                <form id="dassAssessmentForm">
+                    <div id="dassAssessment">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading assessment...</span>
+                            </div>
+                            <p class="mt-2">Loading assessment questions...</p>
+                        </div>
+                    </div>
+                </form>
+                
+                <div id="assessmentResults" class="mt-4">
+                    <!-- Results will be displayed here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity -->
+        <div class="activity-feed card">
+            <div class="card-header">
+                <h3 class="mb-0">Recent Activity</h3>
+            </div>
+            <div class="card-body">
+                <div id="activityFeed">
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="bi bi-clipboard2-check"></i>
+                        </div>
+                        <div class="activity-content">
+                            <h4 class="activity-title">Daily Check-in</h4>
+                            <p class="activity-time">Just now</p>
+                        </div>
+                    </div>
+                    
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: #f0fff4; color: #38a169;">
+                            <i class="bi bi-journal-text"></i>
+                        </div>
+                        <div class="activity-content">
+                            <h4 class="activity-title">Journal Entry</h4>
+                            <p class="activity-time">2 hours ago</p>
+                        </div>
+                    </div>
+                    
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: #fff5f5; color: #e53e3e;">
+                            <i class="bi bi-heart-pulse"></i>
+                        </div>
+                        <div class="activity-content">
+                            <h4 class="activity-title">Mindfulness Session</h4>
+                            <p class="activity-time">1 day ago</p>
+                        </div>
+                    </div>
+                    
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: #f0f9ff; color: #3182ce;">
+                            <i class="bi bi-lightning"></i>
+                        </div>
+                        <div class="activity-content">
+                            <h4 class="activity-title">Quick Exercise</h4>
+                            <p class="activity-time">2 days ago</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Avatar Picker Modal -->
 {% include 'components/avatar_modal.html' %}
 
-<!-- Profile Section -->
-<div class="card mb-4">
-    <div class="card-body text-center">
-        <div class="position-relative d-inline-block mb-3">
-            <img src="{{ user.profile_image or url_for('static', filename='img/avatars/default.png') }}" 
-                 class="rounded-circle profile-avatar" 
-                 id="currentAvatar"
-                 alt="Profile">
-            <button class="avatar-edit-btn position-absolute bottom-0 end-0"
-                    data-bs-toggle="modal" 
-                    data-bs-target="#avatarModal">
-                <i class="bi bi-pencil"></i>
-            </button>
-        </div>
-        <h4 class="mb-1">{{ user.first_name or user.username }}</h4>
-        <p class="text-muted mb-0">{{ user.email }}</p>
-    </div>
-</div>
-<div class="stats-grid">
-    <div class="stat-card">
-        <h3>Today's Mood</h3>
-        <div id="todayMood" class="mood-indicator"></div>
-    </div>
-    <div class="stat-card">
-        <h3>Streak</h3>
-        <p id="streakCount">0</p>
-        <small>Days in a row</small>
-    </div>
-    <div class="stat-card">
-        <h3>Badges</h3>
-        <p id="badgeCount">0</p>
-        <small>Collected</small>
-    </div>
-</div>
+{% endblock %}
 
-<div class="card">
-    <h2>Today's Assessment</h2>
-    <form id="assessmentForm">
-        <div class="form-group">
-            <label for="mood">How are you feeling today?</label>
-            <select id="mood" name="mood" required>
-                <option value="">Select your mood</option>
-                <option value="happy">Happy</option>
-                <option value="okay">Okay</option>
-                <option value="sad">Sad</option>
-                <option value="stressed">Stressed</option>
-                <option value="anxious">Anxious</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="stressLevel">Stress Level</label>
-            <input type="range" id="stressLevel" name="stressLevel" min="0" max="10" value="0">
-            <span id="stressLevelValue">0</span>/10
-        </div>
-        <button type="submit" class="btn btn-primary">Submit Assessment</button>
-    </form>
-</div>
-
-<div class="card">
-    <h2>Today's Recommendations</h2>
-    <div id="recommendations"></div>
-</div>
-
+{% block extra_js %}
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

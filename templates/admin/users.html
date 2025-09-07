@@ -1,0 +1,819 @@
+{% extends "admin/new_base.html" %}
+
+{% block admin_title %}User Management{% endblock %}
+
+{% block admin_content %}
+<!-- Add User Button -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 text-gray-800">User Management</h1>
+    <div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <i class="fas fa-plus-circle me-1"></i> Add New User
+        </button>
+    </div>
+</div>
+
+<!-- User Stats -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Total Users</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_counts.total }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-users fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Clients</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_counts.clients }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-user fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    Psychologists</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_counts.psychologists }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-brain fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    Guidance Counselors</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_counts.guidance_counselors }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-hands-helping fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Table -->
+<div class="card shadow">
+    <div class="card-header py-3">
+        <ul class="nav nav-tabs card-header-tabs" id="userTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab" aria-controls="all" aria-selected="true">
+                    All Users
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="clients-tab" data-bs-toggle="tab" data-bs-target="#clients" type="button" role="tab" aria-controls="clients" aria-selected="false">
+                    Clients
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="psychologists-tab" data-bs-toggle="tab" data-bs-target="#psychologists" type="button" role="tab" aria-controls="psychologists" aria-selected="false">
+                    Psychologists
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="guidance-counselors-tab" data-bs-toggle="tab" data-bs-target="#guidance-counselors" type="button" role="tab" aria-controls="guidance-counselors" aria-selected="false">
+                    <i class="fas fa-hands-helping me-1"></i> Guidance Counselors
+                    <span class="badge bg-warning rounded-pill ms-1">{{ user_counts.guidance_counselors }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="admins-tab" data-bs-toggle="tab" data-bs-target="#admins" type="button" role="tab" aria-controls="admins" aria-selected="false">
+                    <i class="fas fa-user-shield me-1"></i> Admins
+                    <span class="badge bg-danger rounded-pill ms-1">{{ user_counts.admins }}</span>
+                    Admins
+                </button>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="card-body">
+        <div class="tab-content" id="userTabsContent">
+            <!-- All Users Tab -->
+            <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
+                <div class="table-responsive">
+                    <table class="table table-bordered user-table" id="allUsersTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in all_users %}
+                            <tr>
+                                <td>{{ user.first_name }} {{ user.last_name }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    <span class="badge {{ 'bg-warning' if user.user_type == 'admin' else 'bg-info' if user.user_type == 'psychologist' else 'bg-secondary' }}">
+                                        {{ user.user_type|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if user.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.user_type == 'client' %}
+                                        <div class="d-flex flex-column">
+                                            <span class="fw-bold">{{ user.infection_count }} total</span>
+                                            {% if user.active_infection_count > 0 %}
+                                                <span class="badge bg-danger">{{ user.active_infection_count }} active</span>
+                                            {% else %}
+                                                <span class="badge bg-success">No active infections</span>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewUserModal" 
+                                            data-user-id="{{ user.id }}" data-user-type="{{ user.user_type }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editUserModal" 
+                                            data-user-id="{{ user.id }}" data-user-type="{{ user.user_type }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal" 
+                                            data-user-id="{{ user.id }}" data-user-type="{{ user.user_type }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Clients Tab -->
+            <div class="tab-pane fade" id="clients" role="tabpanel" aria-labelledby="clients-tab">
+                <div class="table-responsive">
+                    <table class="table table-bordered user-table" id="clientsTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Infections</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in all_users if user.user_type == 'client' %}
+                            <tr>
+                                <td>{{ user.first_name }} {{ user.last_name }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    {% if user.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-bold">{{ user.infection_count }} total</span>
+                                        {% if user.active_infection_count > 0 %}
+                                            <span class="badge bg-danger">{{ user.active_infection_count }} active</span>
+                                        {% else %}
+                                            <span class="badge bg-success">No active infections</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewUserModal" 
+                                            data-user-id="{{ user.id }}" data-user-type="{{ user.user_type }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editUserModal" 
+                                            data-user-id="{{ user.id }}" data-user-type="{{ user.user_type }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal" 
+                                            data-user-id="{{ user.id }}" data-user-type="{{ user.user_type }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center">No clients found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Psychologists Tab -->
+            <div class="tab-pane fade" id="psychologists" role="tabpanel" aria-labelledby="psychologists-tab">
+                <div class="table-responsive">
+                    <table class="table table-bordered user-table" id="psychologistsTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Specialization</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in all_users if user.user_type == 'psychologist' %}
+                            <tr>
+                                <td>{{ user.first_name }} {{ user.last_name }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.specialization or 'N/A' }}</td>
+                                <td>
+                                    {% if user.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewUserModal" 
+                                            data-user-id="{{ user.id }}" data-user-type="{{ user.user_type }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editUserModal" 
+                                            data-user-id="{{ user.id }}" data-user-type="{{ user.user_type }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal" 
+                                            data-user-id="{{ user.id }}" data-user-type="{{ user.user_type }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center">No psychologists found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Guidance Counselors Tab -->
+            <div class="tab-pane fade" id="guidance-counselors" role="tabpanel" aria-labelledby="guidance-counselors-tab">
+                <div class="table-responsive">
+                    <table class="table table-bordered user-table" id="guidanceCounselorsTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Specialization</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in all_users if user.user_type == 'guidance_counselor' %}
+                            <tr>
+                                <td>{{ user.full_name or 'N/A' }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.specialization or 'N/A' }}</td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if user.is_active else 'bg-danger' }}">
+                                        {{ 'Available' if user.is_active else 'Unavailable' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewUserModal" 
+                                            data-user-id="{{ user.id }}" data-user-type="{{ user.user_type }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if current_user.is_super_admin %}
+                                    <button class="btn btn-sm btn-danger delete-user" 
+                                            data-user-id="{{ user.id }}" 
+                                            data-user-type="{{ user.user_type }}"
+                                            title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center">No guidance counselors found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Admins Tab -->
+            <div class="tab-pane fade" id="admins" role="tabpanel" aria-labelledby="admins-tab">
+                <div class="table-responsive">
+                    <table class="table table-bordered user-table" id="adminsTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Last Login</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in all_users if user.user_type == 'admin' %}
+                            <tr>
+                                <td>{{ user.full_name or 'N/A' }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.last_login_at.strftime('%Y-%m-%d %H:%M') if user.last_login_at else 'Never' }}</td>
+                                <td>
+                                    {% if current_user.is_super_admin and current_user.id != user.id %}
+                                    <select class="form-select form-select-sm role-select" 
+                                            data-user-id="{{ user.id }}" 
+                                            style="width: auto; display: inline-block;">
+                                        <option value="admin" {{ 'selected' if not user.is_super_admin }}>Admin</option>
+                                        <option value="super_admin" {{ 'selected' if user.is_super_admin }}>Super Admin</option>
+                                    </select>
+                                    {% else %}
+                                    <span class="badge {{ 'bg-warning' if user.is_super_admin else 'bg-info' }}">
+                                        {{ 'Super Admin' if user.is_super_admin else 'Admin' }}
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if user.is_active else 'bg-danger' }}">
+                                        {{ 'Active' if user.is_active else 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if current_user.is_super_admin and current_user.id != user.id %}
+                                    <button class="btn btn-sm btn-danger delete-admin" 
+                                            data-user-id="{{ user.id }}"
+                                            title="Delete Admin">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center">No admin users found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View User Modal -->
+<div class="modal fade" id="viewUserModal" tabindex="-1" aria-labelledby="viewUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewUserModalLabel">User Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Content will be loaded dynamically via JavaScript -->
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete User Confirmation Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteUserModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this user? This action cannot be undone.</p>
+                <form id="deleteUserForm" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Delete User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm" method="POST" action="{{ url_for('admin.add_user') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="user_type" class="form-label">User Type</label>
+                        <select class="form-select" id="user_type" name="user_type" required>
+                            <option value="">Select user type...</option>
+                            <option value="client">Client</option>
+                            <option value="psychologist">Psychologist</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="specializationField" style="display: none;">
+                        <label for="specialization" class="form-label">Specialization</label>
+                        <input type="text" class="form-control" id="specialization" name="specialization" placeholder="e.g., Clinical Psychology">
+                    </div>
+                    <div class="mb-3">
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    // Show/hide specialization field based on user type
+    const userTypeSelect = document.getElementById('user_type');
+    if (userTypeSelect) {
+        userTypeSelect.addEventListener('change', function() {
+            const specializationField = document.getElementById('specializationField');
+            if (this.value === 'psychologist') {
+                specializationField.style.display = 'block';
+            } else {
+                specializationField.style.display = 'none';
+            }
+        });
+    }
+
+    // Initialize DataTables for each tab
+    const allUsersTable = $('#allUsersTable').DataTable({
+        "pageLength": 10,
+        "order": [[4, "desc"]], // Sort by join date descending
+        "responsive": true,
+        "language": {
+            "search": "_INPUT_",
+            "searchPlaceholder": "Search users...",
+            "lengthMenu": "Show _MENU_ users per page",
+            "zeroRecords": "No users found",
+            "info": "Showing _START_ to _END_ of _TOTAL_ users",
+            "infoEmpty": "No users available",
+            "infoFiltered": "(filtered from _MAX_ total users)"
+        },
+        "columnDefs": [
+            { "orderable": false, "targets": [5] } // Disable sorting on Actions column
+        ]
+    });
+    
+    // Initialize DataTable for Clients
+    const clientsTable = $('#clientsTable').DataTable({
+        "pageLength": 10,
+        "order": [[3, "desc"]], // Sort by join date descending
+        "columnDefs": [
+            { "orderable": false, "targets": [4] } // Disable sorting on Actions column
+        ]
+    });
+    
+    // Initialize DataTable for Psychologists
+    const psychologistsTable = $('#psychologistsTable').DataTable({
+        "pageLength": 10,
+        "order": [[3, "desc"]], // Sort by join date descending
+        "responsive": true,
+        "language": {
+            "search": "_INPUT_",
+            "searchPlaceholder": "Search psychologists...",
+            "lengthMenu": "Show _MENU_ psychologists per page",
+            "zeroRecords": "No psychologists found",
+            "info": "Showing _START_ to _END_ of _TOTAL_ psychologists",
+            "infoEmpty": "No psychologists available",
+            "infoFiltered": "(filtered from _MAX_ total psychologists)"
+        },
+        "columnDefs": [
+            { "orderable": false, "targets": [4] } // Disable sorting on Actions column
+        ]
+    });
+    
+    // Initialize DataTable for Admins
+    const adminsTable = $('#adminsTable').DataTable({
+        "pageLength": 10,
+        "order": [[2, "desc"], [0, "asc"]], // Sort by role (super admin first) then name
+        "columnDefs": [
+            { "orderable": false, "targets": [4] } // Disable sorting on Actions column
+        ]
+    });
+    
+    // Search functionality for each table
+    $('.dataTables_filter input').unbind().keyup(function() {
+        const table = $(this).closest('.tab-pane').find('.user-table').DataTable();
+        table.search(this.value).draw();
+    });
+    
+    // Refresh DataTables when switching tabs
+    $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+        $.fn.dataTable.tables({visible: true, api: true}).columns.adjust();
+    });
+    
+    // Handle view user modal
+    $('#viewUserModal').on('show.bs.modal', function(event) {
+        const button = $(event.relatedTarget);
+        const userId = button.data('user-id');
+        const userType = button.data('user-type');
+        const modal = $(this);
+        const modalBody = modal.find('.modal-body');
+        
+        // Show loading state
+        modalBody.html(`
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `);
+        
+        // Fetch user data
+        $.get(`/admin/users/${userType}/${userId}`, function(data) {
+            // Format the user data for display
+            let html = `
+                <div class="row mb-4">
+                    <div class="col-md-3 text-center">
+                        <div class="avatar-circle bg-primary bg-opacity-10 mb-3" style="width: 80px; height: 80px; margin: 0 auto;">
+                            <i class="bi bi-person-fill text-primary" style="font-size: 2.5rem; line-height: 80px;"></i>
+                        </div>
+                        <h5 class="mb-1">${data.first_name} ${data.last_name}</h5>
+                        <span class="badge ${data.user_type === 'admin' ? 'bg-warning' : data.user_type === 'psychologist' ? 'bg-info' : 'bg-secondary'}">
+                            ${data.user_type.charAt(0).toUpperCase() + data.user_type.slice(1)}
+                        </span>
+                        <div class="mt-2">
+                            <span class="badge ${data.is_active ? 'bg-success' : 'bg-danger'}">
+                                ${data.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <h6 class="text-muted mb-1">Email</h6>
+                                <p class="mb-0">${data.email}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <h6 class="text-muted mb-1">Member Since</h6>
+                                <p class="mb-0">${new Date(data.created_at).toLocaleDateString()}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <h6 class="text-muted mb-1">Last Login</h6>
+                                <p class="mb-0">${data.last_login ? new Date(data.last_login).toLocaleString() : 'Never'}</p>
+                            </div>`;
+
+            // Add additional fields for psychologists
+            if (data.user_type === 'psychologist' && data.specialization) {
+                html += `
+                    <div class="col-12">
+                        <hr>
+                        <h5 class="mb-3">Professional Information</h5>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6 class="text-muted mb-1">Specialization</h6>
+                        <p class="mb-0">${data.specialization || 'N/A'}</p>
+                    </div>`;
+                
+                if (data.license_number) {
+                    html += `
+                    <div class="col-md-6 mb-3">
+                        <h6 class="text-muted mb-1">License Number</h6>
+                        <p class="mb-0">${data.license_number}</p>
+                    </div>`;
+                }
+                
+                if (data.bio) {
+                    html += `
+                    <div class="col-12 mb-3">
+                        <h6 class="text-muted mb-1">Bio</h6>
+                        <p class="mb-0">${data.bio}</p>
+                    </div>`;
+                }
+            }
+            
+            // Add additional fields for admins
+            if (data.user_type === 'admin') {
+                html += `
+                    <div class="col-12">
+                        <hr>
+                        <h5 class="mb-3">Admin Information</h5>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6 class="text-muted mb-1">Role</h6>
+                        <p class="mb-0">
+                            <span class="badge ${data.is_super_admin ? 'bg-warning' : 'bg-info'}">
+                                ${data.is_super_admin ? 'Super Admin' : 'Admin'}
+                            </span>
+                        </p>
+                    </div>`;
+            }
+            
+            html += `
+                        </div>
+                    </div>
+                </div>`;
+            
+            modalBody.html(html);
+        }).fail(function() {
+            modalBody.html(`
+                <div class="alert alert-danger">
+                    Failed to load user data. Please try again.
+                </div>
+            `);
+        });
+    });
+    
+    // Handle delete modal
+    $('#deleteUserModal').on('show.bs.modal', function(event) {
+        const button = $(event.relatedTarget);
+        const userId = button.data('user-id');
+        const userType = button.data('user-type');
+        const form = $('#deleteUserForm');
+        form.attr('action', `/admin/users/${userType}/${userId}/delete`);
+        
+        // Update the modal title with the user type
+        const modal = $(this);
+        modal.find('.modal-title').text(`Delete ${userType.charAt(0).toUpperCase() + userType.slice(1)} Account`);
+    });
+
+    // Handle role changes
+    $(document).on('change', '.role-select', async function() {
+        const userId = $(this).data('user-id');
+        const newRole = $(this).val();
+        const isSuperAdmin = newRole === 'super_admin';
+        const $select = $(this);
+        
+        try {
+            const response = await fetch('/admin/update-role', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    is_super_admin: isSuperAdmin
+                })
+            });
+
+            const result = await response.json();
+            
+            if (response.ok) {
+                // Show success message
+                toastr.success('Role updated successfully');
+                
+                // Update the badge next to the select
+                const $badge = $select.siblings('.badge');
+                if (isSuperAdmin) {
+                    $badge.removeClass('bg-info').addClass('bg-warning').text('Super Admin');
+                } else {
+                    $badge.removeClass('bg-warning').addClass('bg-info').text('Admin');
+                }
+                
+                // Toggle between select and badge
+                $select.hide();
+                $badge.show();
+            } else {
+                toastr.error(result.message || 'Failed to update role');
+                // Revert the select
+                this.value = this.value === 'super_admin' ? 'admin' : 'super_admin';
+            }
+        } catch (error) {
+            console.error('Error updating role:', error);
+            toastr.error('An error occurred while updating the role');
+            // Revert the select
+            this.value = this.value === 'super_admin' ? 'admin' : 'super_admin';
+        }
+    });
+
+    // Handle admin deletion
+    $(document).on('click', '.delete-admin', async function(e) {
+        e.preventDefault();
+        const userId = $(this).data('user-id');
+        const $row = $(this).closest('tr');
+        
+        if (!confirm('Are you sure you want to delete this admin user? This action cannot be undone.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/admin/delete-admin/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                // Remove the row from the table
+                $row.fadeOut(300, function() {
+                    $(this).remove();
+                    // If no more rows, show empty message
+                    if ($('#adminsTable tbody tr').length === 0) {
+                        $('#adminsTable tbody').html(`
+                            <tr>
+                                <td colspan="6" class="text-center">No admin users found</td>
+                            </tr>
+                        `);
+                    }
+                });
+                toastr.success('Admin user deleted successfully');
+            } else {
+                toastr.error(result.message || 'Failed to delete admin user');
+            }
+        } catch (error) {
+            console.error('Error deleting admin:', error);
+            toastr.error('An error occurred while deleting the admin user');
+        }
+    });
+});
+</script>
+{% endblock %}

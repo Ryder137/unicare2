@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Admin User</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="password"] { 
+            width: 100%; 
+            padding: 8px; 
+            margin-bottom: 10px; 
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button { 
+            background: #4CAF50; 
+            color: white; 
+            padding: 10px 15px; 
+            border: none; 
+            border-radius: 4px;
+            cursor: pointer; 
+            font-size: 16px;
+        }
+        button:hover { background: #45a049; }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        #result { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border-radius: 4px; 
+            display: none;
+        }
+        .success { 
+            background-color: #dff0d8; 
+            color: #3c763d; 
+            border: 1px solid #d6e9c6;
+        }
+        .error { 
+            background-color: #f2dede; 
+            color: #a94442; 
+            border: 1px solid #ebccd1;
+        }
+        .info {
+            background-color: #d9edf7;
+            color: #31708f;
+            border: 1px solid #bce8f1;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create Admin User</h1>
+    <div class="form-group">
+        <label for="supabaseUrl">Supabase URL:</label>
+        <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co" required>
+    </div>
+    <div class="form-group">
+        <label for="supabaseKey">Supabase Anon/Public Key:</label>
+        <input type="password" id="supabaseKey" placeholder="your-anon-key" required>
+    </div>
+    <div class="form-group">
+        <label for="email">Admin Email:</label>
+        <input type="email" id="email" placeholder="admin@example.com" required>
+    </div>
+    <div class="form-group">
+        <label for="password">Password (min 6 characters):</label>
+        <input type="password" id="password" placeholder="secure-password" minlength="6" required>
+    </div>
+    <div class="form-group">
+        <label for="fullName">Full Name:</label>
+        <input type="text" id="fullName" placeholder="Admin User" required>
+    </div>
+    <button id="createBtn" onclick="createAdmin()">Create Admin User</button>
+    <div id="result"></div>
+
+    <script>
+        async function createAdmin() {
+            const supabaseUrl = document.getElementById('supabaseUrl').value.trim();
+            const supabaseKey = document.getElementById('supabaseKey').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const fullName = document.getElementById('fullName').value.trim();
+            const resultDiv = document.getElementById('result');
+            const createBtn = document.getElementById('createBtn');
+            
+            // Reset result display
+            resultDiv.style.display = 'none';
+            resultDiv.className = '';
+            resultDiv.textContent = '';
+            
+            // Validate inputs
+            if (!supabaseUrl || !supabaseKey || !email || !password || !fullName) {
+                showResult('Please fill in all fields', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showResult('Password must be at least 6 characters long', 'error');
+                return;
+            }
+            
+            try {
+                // Disable button to prevent multiple clicks
+                createBtn.disabled = true;
+                createBtn.textContent = 'Creating Admin...';
+                
+                // Initialize Supabase
+                const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+                
+                // Step 1: Check if user already exists
+                const { data: existingUser, error: checkError } = await supabase
+                    .from('admin_users')
+                    .select('id')
+                    .eq('email', email)
+                    .single();
+                
+                if (existingUser) {
+                    throw new Error('An admin with this email already exists');
+                }
+                
+                // Step 2: Create auth user
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            full_name: fullName,
+                            is_admin: true
+                        }
+                    }
+                });
+                
+                if (authError) throw authError;
+                
+                // Step 3: Create admin user in admin_users table
+                const { data: adminData, error: adminError } = await supabase
+                    .from('admin_users')
+                    .insert([
+                        {
+                            id: authData.user.id,
+                            email,
+                            full_name: fullName,
+                            is_active: true,
+                            is_super_admin: true,
+                            failed_login_attempts: 0
+                        }
+                    ])
+                    .select();
+                    
+                if (adminError) throw adminError;
+                
+                showResult('✅ Admin user created successfully! You can now log in.', 'success');
+                
+            } catch (error) {
+                console.error('Error creating admin user:', error);
+                showResult(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                createBtn.disabled = false;
+                createBtn.textContent = 'Create Admin User';
+            }
+        }
+        
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = type;
+            resultDiv.style.display = 'block';
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

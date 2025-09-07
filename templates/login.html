@@ -5,7 +5,7 @@
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
             <div class="card shadow-sm">
-                <div class="card-header bg-white border-0 pt-4">
+                <div class="card-header bg-white border-0 pt-2">
                     <h2 class="text-center mb-0">Welcome Back</h2>
                     <p class="text-muted text-center mb-0">Sign in to your account</p>
                 </div>
@@ -13,15 +13,15 @@
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
-                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                    {{ message }}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show text-center" role="alert">
+                                    {{ message | safe }}
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             {% endfor %}
                         {% endif %}
                     {% endwith %}
                     
-                    <form method="POST" action="{{ url_for('login') }}" class="needs-validation" novalidate>
+                    <form method="POST" action="{{ url_for('user_login') }}" class="needs-validation" novalidate>
                         {{ form.hidden_tag() }}
                         
                         <div class="mb-4">
@@ -30,11 +30,13 @@
                                 <span class="input-group-text">
                                     <i class="bi bi-envelope"></i>
                                 </span>
-                                {{ form.email(class="form-control form-control-lg" + (" is-invalid" if form.email.errors else ""), 
-                                    placeholder="Enter your email", autocomplete="email", required, autofocus) }}
-                                <div class="invalid-feedback">
-                                    Please enter a valid email address
-                                </div>
+                                {{ form.email(class="form-control form-control-lg" + (' is-invalid' if form.email.errors else ''), 
+                                    placeholder="Enter your email", autocomplete="email", required=True, autofocus=True) }}
+                                {% if form.email.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.email.errors[0] }}
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                         
@@ -49,20 +51,17 @@
                                 <span class="input-group-text">
                                     <i class="bi bi-lock"></i>
                                 </span>
-                                {{ form.password(class="form-control form-control-lg" + (" is-invalid" if form.password.errors else ""), 
-                                    placeholder="Enter your password", autocomplete="current-password", required) }}
+                                {{ form.password(class="form-control form-control-lg" + (' is-invalid' if form.password.errors else ''), 
+                                    placeholder="Enter your password", autocomplete="current-password", required=True) }}
                                 <button class="btn btn-outline-secondary toggle-password" type="button">
                                     <i class="bi bi-eye"></i>
                                 </button>
-                                <div class="invalid-feedback">
-                                    Please enter your password
-                                </div>
+                                {% if form.password.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.password.errors[0] }}
+                                    </div>
+                                {% endif %}
                             </div>
-                        </div>
-                        
-                        <div class="mb-4 form-check">
-                            {{ form.remember_me(class="form-check-input") }}
-                            {{ form.remember_me.label(class="form-check-label") }}
                         </div>
                         
                         <div class="d-grid gap-2">
@@ -70,18 +69,6 @@
                                 Sign In
                             </button>
                             
-                            <div class="text-center my-3">
-                                <span class="text-muted">or sign in with</span>
-                            </div>
-                            
-                            <div class="d-grid gap-2">
-                                <a href="#" class="btn btn-outline-primary">
-                                    <i class="bi bi-google me-2"></i> Continue with Google
-                                </a>
-                                <a href="#" class="btn btn-outline-dark">
-                                    <i class="bi bi-github me-2"></i> Continue with GitHub
-                                </a>
-                            </div>
                             
                             <div class="text-center mt-4">
                                 <p class="mb-0">Don't have an account? 
@@ -95,7 +82,7 @@
                 </div>
             </div>
             
-            <div class="text-center mt-4">
+            <div class="text-center mt-2">
                 <p class="text-muted small">
                     By signing in, you agree to our 
                     <a href="#" class="text-decoration-none">Terms of Service</a> and 

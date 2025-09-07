@@ -19,7 +19,7 @@
                             <p>You'll be presented with a series of statements. Please indicate how much you agree or disagree with each statement.</p>
                             {% if is_guest %}
                             <div class="alert alert-info mb-4">
-                                <i class="bi bi-info-circle me-2"></i>You're taking this test as a guest. <a href="{{ url_for('login') }}" class="alert-link">Sign in</a> to save your results and track your progress.
+                                <i class="bi bi-info-circle me-2"></i>You're taking this test as a guest. <a href="{{ url_for('user_login') }}" class="alert-link">Sign in</a> to save your results and track your progress.
                             </div>
                             {% endif %}
                             <button id="start-test" class="btn btn-primary btn-lg mt-3 text-white">Begin Test</button>
@@ -52,47 +52,29 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Get CSRF token from meta tag
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-        // Questions for each trait (6 questions per trait for better reliability)
+        // DASS-21 Assessment Questions (Depression, Anxiety, Stress Scale)
         const questions = [
-            // Openness (6 questions)
-            { text: "I have a rich vocabulary.", trait: "openness", reversed: false },
-            { text: "I have difficulty understanding abstract ideas.", trait: "openness", reversed: true },
-            { text: "I have a vivid imagination.", trait: "openness", reversed: false },
-            { text: "I am not interested in abstract ideas.", trait: "openness", reversed: true },
-            { text: "I have excellent ideas.", trait: "openness", reversed: false },
-            { text: "I do not have a good imagination.", trait: "openness", reversed: true },
-            
-            // Conscientiousness (6 questions)
-            { text: "I am always prepared.", trait: "conscientiousness", reversed: false },
-            { text: "I leave my belongings around.", trait: "conscientiousness", reversed: true },
-            { text: "I pay attention to details.", trait: "conscientiousness", reversed: false },
-            { text: "I make a mess of things.", trait: "conscientiousness", reversed: true },
-            { text: "I get chores done right away.", trait: "conscientiousness", reversed: false },
-            { text: "I often forget to put things back in their proper place.", trait: "conscientiousness", reversed: true },
-            
-            // Extraversion (6 questions)
-            { text: "I am the life of the party.", trait: "extraversion", reversed: false },
-            { text: "I don't talk a lot.", trait: "extraversion", reversed: true },
-            { text: "I feel comfortable around people.", trait: "extraversion", reversed: false },
-            { text: "I keep in the background.", trait: "extraversion", reversed: true },
-            { text: "I start conversations.", trait: "extraversion", reversed: false },
-            { text: "I have little to say.", trait: "extraversion", reversed: true },
-            
-            // Agreeableness (6 questions)
-            { text: "I am interested in people.", trait: "agreeableness", reversed: false },
-            { text: "I feel little concern for others.", trait: "agreeableness", reversed: true },
-            { text: "I have a soft heart.", trait: "agreeableness", reversed: false },
-            { text: "I am not interested in other people's problems.", trait: "agreeableness", reversed: true },
-            { text: "I sympathize with others' feelings.", trait: "agreeableness", reversed: false },
-            { text: "I am not really interested in others.", trait: "agreeableness", reversed: true },
-            
-            // Neuroticism (6 questions)
-            { text: "I am relaxed most of the time.", trait: "neuroticism", reversed: true },
-            { text: "I get upset easily.", trait: "neuroticism", reversed: false },
-            { text: "I have frequent mood swings.", trait: "neuroticism", reversed: false },
-            { text: "I seldom feel blue.", trait: "neuroticism", reversed: true },
-            { text: "I am easily disturbed.", trait: "neuroticism", reversed: false },
-            { text: "I get stressed out easily.", trait: "neuroticism", reversed: false }
+            { text: "I found it hard to wind down", trait: "stress", reversed: false },
+            { text: "I was aware of dryness of my mouth", trait: "anxiety", reversed: false },
+            { text: "I couldn't seem to experience any positive feeling at all", trait: "depression", reversed: false },
+            { text: "I experienced breathing difficulty (e.g., excessively rapid breathing, breathlessness in the absence of physical exertion)", trait: "anxiety", reversed: false },
+            { text: "I found it difficult to work up the initiative to do things", trait: "depression", reversed: false },
+            { text: "I tended to over-react to situations", trait: "stress", reversed: false },
+            { text: "I experienced trembling (e.g., in the hands)", trait: "anxiety", reversed: false },
+            { text: "I felt that I was using a lot of nervous energy", trait: "stress", reversed: false },
+            { text: "I was worried about situations in which I might panic and make a fool of myself", trait: "anxiety", reversed: false },
+            { text: "I felt that I had nothing to look forward to", trait: "depression", reversed: false },
+            { text: "I found myself getting agitated", trait: "stress", reversed: false },
+            { text: "I found it difficult to relax", trait: "stress", reversed: false },
+            { text: "I felt down-hearted and blue", trait: "depression", reversed: false },
+            { text: "I was intolerant of anything that kept me from getting on with what I was doing", trait: "stress", reversed: false },
+            { text: "I felt I was close to panic", trait: "anxiety", reversed: false },
+            { text: "I was unable to become enthusiastic about anything", trait: "depression", reversed: false },
+            { text: "I felt I wasn't worth much as a person", trait: "depression", reversed: false },
+            { text: "I felt that I was rather touchy", trait: "stress", reversed: false },
+            { text: "I was aware of the action of my heart in the absence of physical exertion (e.g., sense of heart rate increase, heart missing a beat)", trait: "anxiety", reversed: false },
+            { text: "I felt scared without any good reason", trait: "anxiety", reversed: false },
+            { text: "I felt that life was meaningless", trait: "depression", reversed: false }
         ];
         
         // Shuffle questions to randomize order
@@ -129,26 +111,22 @@
                 <div class="card mb-4">
                     <div class="card-body">
                         <h3 class="h5 mb-4">${question.text}</h3>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_1" value="1">
-                            <label class="form-check-label" for="q${currentQuestion}_1">Strongly Disagree</label>
-                        </div>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_2" value="2">
-                            <label class="form-check-label" for="q${currentQuestion}_2">Disagree</label>
-                        </div>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_3" value="3" checked>
-                            <label class="form-check-label" for="q${currentQuestion}_3">Neutral</label>
-                        </div>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_4" value="4">
-                            <label class="form-check-label" for="q${currentQuestion}_4">Agree</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_5" value="5">
-                            <label class="form-check-label" for="q${currentQuestion}_5">Strongly Agree</label>
-                        </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_0" value="0" checked>
+                                <label class="form-check-label" for="q${currentQuestion}_0">Did not apply to me at all</label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_1" value="1">
+                                <label class="form-check-label" for="q${currentQuestion}_1">Applied to me to some degree, or some of the time</label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_2" value="2">
+                                <label class="form-check-label" for="q${currentQuestion}_2">Applied to me to a considerable degree or a good part of time</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="q${currentQuestion}" id="q${currentQuestion}_3" value="3">
+                                <label class="form-check-label" for="q${currentQuestion}_3">Applied to me very much or most of the time</label>
+                            </div>
                     </div>
                 </div>
             `;
@@ -165,94 +143,100 @@
             submitBtn.classList.toggle('d-none', currentQuestion !== questions.length - 1);
         }
 
-        // Calculate personality trait scores from answers with improved accuracy
+        // Calculate DASS-21 scores (Depression, Anxiety, Stress)
         function calculateResults() {
-            // Initialize trait scores and counts
-            const traits = {
-                'openness': 0,
-                'conscientiousness': 0,
-                'extraversion': 0,
-                'agreeableness': 0,
-                'neuroticism': 0
+            // Initialize DASS-21 scores
+            const scores = {
+                'depression': 0,
+                'anxiety': 0,
+                'stress': 0
             };
             
-            const traitCounts = {
-                'openness': 0,
-                'conscientiousness': 0,
-                'extraversion': 0,
-                'agreeableness': 0,
-                'neuroticism': 0
+            const itemCounts = {
+                'depression': 0,
+                'anxiety': 0,
+                'stress': 0
             };
             
-            // Sum scores for each trait with validation
+            // Calculate raw scores for each subscale
             answers.forEach(answer => {
-                if (answer && answer.trait && answer.answer) {
-                    // Ensure answer is within valid range (1-5)
-                    const answerValue = Math.max(1, Math.min(5, answer.answer));
-                    const score = answer.reversed ? (6 - answerValue) : answerValue;
-                    traits[answer.trait] += score;
-                    traitCounts[answer.trait]++;
+                if (answer && answer.trait && (answer.answer === 0 || answer.answer)) {
+                    const answerValue = Math.max(0, Math.min(3, parseInt(answer.answer) || 0));
+                    scores[answer.trait] += answerValue;
+                    itemCounts[answer.trait]++;
                 }
             });
             
-            // Calculate average score for each trait (1-5 scale)
-            const results = {};
-            const descriptions = {
-                'openness': {
-                    low: 'You tend to be practical, conventional, and focused on the concrete.',
-                    high: 'You tend to be creative, curious, and open to new experiences.'
-                },
-                'conscientiousness': {
-                    low: 'You tend to be more flexible, spontaneous, and less organized.',
-                    high: 'You tend to be organized, reliable, and self-disciplined.'
-                },
-                'extraversion': {
-                    low: 'You tend to be more reserved, quiet, and enjoy solitude.',
-                    high: 'You tend to be outgoing, energetic, and enjoy social interactions.'
-                },
-                'agreeableness': {
-                    low: 'You tend to be more competitive, skeptical, and less trusting.',
-                    high: 'You tend to be kind, cooperative, and trusting of others.'
-                },
-                'neuroticism': {
-                    low: 'You tend to be emotionally stable, calm, and secure.',
-                    high: 'You may experience mood swings, anxiety, and emotional instability.'
-                }
+            // Convert to DASS-21 scores (multiply by 2 for full DASS-42 equivalent)
+            const results = {
+                'depression': scores['depression'] * 2,
+                'anxiety': scores['anxiety'] * 2,
+                'stress': scores['stress'] * 2
             };
             
-            // Calculate final scores with normalization
-            Object.keys(traits).forEach(trait => {
-                if (traitCounts[trait] > 0) {
-                    // Calculate raw average (1-5 scale)
-                    const rawScore = traits[trait] / traitCounts[trait];
-                    // Normalize to 0-100 scale for display
-                    const normalizedScore = Math.round(((rawScore - 1) / 4) * 100);
-                    
-                    // Determine interpretation
-                    let interpretation = '';
-                    if (trait === 'neuroticism') {
-                        // For neuroticism, lower is better
-                        interpretation = normalizedScore < 40 ? 'Low' : 
-                                       (normalizedScore < 70 ? 'Moderate' : 'High');
-                    } else {
-                        // For other traits, higher is generally better
-                        interpretation = normalizedScore > 60 ? 'High' : 
-                                      (normalizedScore > 30 ? 'Moderate' : 'Low');
-                    }
-                    
-                    // Get description based on score
-                    const description = normalizedScore > 50 ? 
-                        descriptions[trait].high : descriptions[trait].low;
-                    
-                    results[trait] = {
-                        score: normalizedScore,
-                        interpretation: interpretation,
-                        description: description
-                    };
+            // DASS-21 severity ratings
+            const descriptions = {
+                'depression': {
+                    'normal': 'Your responses indicate normal levels of depressive symptoms.',
+                    'mild': 'Your responses suggest mild depressive symptoms.',
+                    'moderate': 'Your responses suggest moderate depressive symptoms.',
+                    'severe': 'Your responses suggest severe depressive symptoms.',
+                    'extremely_severe': 'Your responses suggest extremely severe depressive symptoms.'
+                },
+                'anxiety': {
+                    'normal': 'Your responses indicate normal levels of anxiety.',
+                    'mild': 'Your responses suggest mild anxiety symptoms.',
+                    'moderate': 'Your responses suggest moderate anxiety symptoms.',
+                    'severe': 'Your responses suggest severe anxiety symptoms.',
+                    'extremely_severe': 'Your responses suggest extremely severe anxiety symptoms.'
+                },
+                'stress': {
+                    'normal': 'Your responses indicate normal levels of stress.',
+                    'mild': 'Your responses suggest mild stress symptoms.',
+                    'moderate': 'Your responses suggest moderate stress symptoms.',
+                    'severe': 'Your responses suggest severe stress symptoms.',
+                    'extremely_severe': 'Your responses suggest extremely severe stress symptoms.'
                 }
+            };
+
+            // Determine severity level for each DASS-21 subscale
+            const severityLevels = {
+                'depression': (score) => {
+                    if (score < 10) return 'normal';
+                    if (score < 14) return 'mild';
+                    if (score < 21) return 'moderate';
+                    if (score < 28) return 'severe';
+                    return 'extremely_severe';
+                },
+                'anxiety': (score) => {
+                    if (score < 8) return 'normal';
+                    if (score < 10) return 'mild';
+                    if (score < 15) return 'moderate';
+                    if (score < 20) return 'severe';
+                    return 'extremely_severe';
+                },
+                'stress': (score) => {
+                    if (score < 15) return 'normal';
+                    if (score < 19) return 'mild';
+                    if (score < 26) return 'moderate';
+                    if (score < 34) return 'severe';
+                    return 'extremely_severe';
+                }
+            };
+
+            // Prepare results with severity levels and descriptions
+            const formattedResults = {};
+            Object.keys(results).forEach(scale => {
+                const score = results[scale];
+                const level = severityLevels[scale](score);
+                formattedResults[scale] = {
+                    score: score,
+                    level: level,
+                    description: descriptions[scale][level]
+                };
             });
-            
-            return results;
+
+            return formattedResults;
         }
         
         // Show results page

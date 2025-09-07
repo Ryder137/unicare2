@@ -447,11 +447,7 @@ a:hover {
     cursor: not-allowed;
 }
 
-/* Better typography and spacing */
-body {
-    color: #1a1a1a;
-    line-height: 1.6;
-}
+/* Typography styles are now in base.html */
 
 h1, h2, h3, h4, h5, h6 {
     color: #1a1a1a;
