@@ -8,8 +8,8 @@ import traceback
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for
-from flask_login import current_user, login_required, login_url, login_user, logout_user
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, abort, login_user, logout_user
+from flask_login import current_user, login_required, login_url
 from werkzeug.security import check_password_hash, generate_password_hash
 from services import database_service as db_service
 
@@ -434,6 +434,52 @@ def generate_random_password(length=12):
     alphabet = string.ascii_letters + string.digits + '!@#$%^&*'
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
+@admin_bp.route('/debug/db')
+@login_required
+@admin_required
+def debug_db():
+    """Debug endpoint to check database connection and tables."""
+    try:
+        supabase = db_service.get_supabase_client()
+        
+        # Check if we can connect to the database
+        try:
+            result = supabase.table('clients').select('count', count='exact').execute()
+            client_count = result.count or 0
+        except Exception as e:
+            return f"Error querying clients table: {str(e)}"
+            
+        # Get table structure
+        tables = ['clients', 'admin_users', 'psychologists', 'guidance_counselors']
+        table_info = {}
+        
+        for table in tables:
+            try:
+                # Get sample data (first row) to check structure
+                result = supabase.table(table).select('*').limit(1).execute()
+                table_info[table] = {
+                    'exists': True,
+                    'columns': list(result.data[0].keys()) if result.data else [],
+                    'count': len(supabase.table(table).select('*').execute().data or [])
+                }
+            except Exception as e:
+                table_info[table] = {
+                    'exists': False,
+                    'error': str(e)
+                }
+        
+        return f"""
+        <h1>Database Debug Info</h1>
+        <h2>Connection Status</h2>
+        <p>Connected to Supabase: {'Yes' if supabase else 'No'}</p>
+        
+        <h2>Table Information</h2>
+        <pre>{json.dumps(table_info, indent=2)}</pre>
+        """
+        
+    except Exception as e:
+        return f"Error in debug endpoint: {str(e)}"
+
 @admin_bp.route('/manage-users')
 @login_required
 @admin_required
@@ -442,10 +488,24 @@ def manage_users():
     try:
         # Get all user types
         try:
-            clients = db_service.get_all_clients() or []
+            clients = db_service.get_all_users() or []
             print(f"[DEBUG] Found {len(clients)} clients")
+            for client in clients:
+                print(f"[DEBUG] Client: {client}")
+                if not isinstance(client, dict):
+                    print(f"[WARNING] Client is not a dictionary: {type(client)}")
+                    continue
+                # Ensure required fields exist
+                client.setdefault('first_name', 'Unknown')
+                client.setdefault('last_name', 'User')
+                client.setdefault('email', 'No email')
+                client.setdefault('user_type', 'client')
+                client.setdefault('is_active', True)
+                client.setdefault('created_at', datetime.utcnow())
         except Exception as e:
             print(f"[ERROR] Error fetching clients: {str(e)}")
+            import traceback
+            traceback.print_exc()
             clients = []
             
         try:
@@ -533,8 +593,14 @@ def manage_users():
                 print(f"[ERROR] Error processing guidance counselor {user_id}: {str(e)}")
                 continue
         
+        # Debug log guidance counselors data
+        print("\n[DEBUG] Guidance Counselors Data:")
+        for idx, gc in enumerate(guidance_counselors, 1):
+            print(f"  {idx}. ID: {gc.get('id')}, Name: {gc.get('first_name')} {gc.get('last_name')}, Email: {gc.get('email')}, Active: {gc.get('is_active')}")
+        
         # Combine all users
         all_users = clients + psychologists + admins + guidance_counselors
+        print(f"\n[DEBUG] Total users: {len(all_users)} (Clients: {len(clients)}, Psychologists: {len(psychologists)}, Admins: {len(admins)}, Counselors: {len(guidance_counselors)})")
         
         # Count users by type
         user_counts = {
@@ -547,7 +613,7 @@ def manage_users():
         
         print(f"[INFO] Loaded {len(all_users)} total users ({len(clients)} clients, {len(psychologists)} psychologists, {len(admins)} admins, {len(guidance_counselors)} guidance counselors)")
         
-        return render_template('admin/users.html',
+        return render_template('admin/users_clean.html',
                             users=all_users,
                             user=current_user,
                             user_counts=user_counts,

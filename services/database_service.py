@@ -58,18 +58,58 @@ class DatabaseService:
             return 0
             
     def get_all_users(self, exclude_id: str = None) -> List[dict]:
-        """Get all regular users (non-admin)."""
+        """Get all regular users (non-admin) from the clients table."""
         try:
+            print("[DEBUG] Fetching all users from 'clients' table...")
             supabase = self.get_supabase_client()
+            
+            # Select all fields from the clients table
             query = supabase.table('clients').select('*').order('created_at', desc=True)
             
             if exclude_id:
                 query.neq('id', exclude_id)
                 
             result = query.execute()
-            return result.data if result.data else []
+            
+            if not result.data:
+                print("[DEBUG] No users found in 'clients' table")
+                return []
+                
+            print(f"[DEBUG] Found {len(result.data)} users in 'clients' table")
+            
+            users = []
+            for user in result.data:
+                if not isinstance(user, dict):
+                    print(f"[WARNING] User is not a dictionary: {type(user)}")
+                    continue
+                    
+                # Map the client fields to the expected user format
+                user_data = {
+                    'id': user.get('id'),
+                    'first_name': user.get('first_name', ''),
+                    'last_name': user.get('last_name', ''),
+                    'email': user.get('email', ''),
+                    'username': user.get('username', ''),
+                    'user_type': 'client',  # Add user_type for consistency
+                    'is_active': not user.get('is_admin', False),  # Assuming non-admin clients are active
+                    'created_at': user.get('created_at'),
+                    'last_login': user.get('last_login'),
+                    'is_admin': user.get('is_admin', False)
+                }
+                
+                # Add any additional fields that might be needed
+                for field in ['gender', 'birthdate', 'points', 'streak']:
+                    if field in user:
+                        user_data[field] = user[field]
+                
+                users.append(user_data)
+                
+            return users
+            
         except Exception as e:
             print(f"[Database] Error getting all users: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return []
             
     def get_all_admins(self, exclude_id: str = None) -> List[dict]:

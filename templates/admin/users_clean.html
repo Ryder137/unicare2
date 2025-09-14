@@ -3,6 +3,19 @@
 {% block admin_title %}User Management{% endblock %}
 
 {% block admin_content %}
+<!-- Debug Info -->
+<div class="alert alert-info">
+    <h4>Debug Information</h4>
+    <p>Users count: {{ users|length }}</p>
+    {% if users and users|length > 0 %}
+        <p>First user keys: {{ users[0].keys()|list|tojson }}</p>
+        <p>First user data: {{ users[0]|tojson }}</p>
+    {% else %}
+        <p>No users found</p>
+    {% endif %}
+    <p>User counts: {{ user_counts|tojson }}</p>
+</div>
+
 <!-- Add User Button -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0 text-gray-800">User Management</h1>
@@ -109,6 +122,11 @@
                     Admins
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="counselors-tab" data-bs-toggle="tab" data-bs-target="#counselors" type="button" role="tab" aria-controls="counselors" aria-selected="false">
+                    Guidance Counselors
+                </button>
+            </li>
         </ul>
     </div>
     
@@ -129,20 +147,35 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for user in all_users %}
-                            <tr>
-                                <td>{{ user.first_name }} {{ user.last_name }}</td>
-                                <td>{{ user.email }}</td>
-                                <td>
-                                    <span class="badge {{ 'bg-warning' if user.user_type == 'admin' else 'bg-info' if user.user_type == 'psychologist' else 'bg-secondary' }}">
-                                        {{ user.user_type|title }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge {{ 'bg-success' if user.is_active else 'bg-danger' }}">
-                                        {{ 'Active' if user.is_active else 'Inactive' }}
-                                    </span>
-                                </td>
+                            <!-- Debug output -->
+                            <div class="alert alert-info">
+                                <h5>Debug Information</h5>
+                                <p>Total users: {{ users|length }}</p>
+                                <p>Users data type: {{ users|type }}</p>
+                                {% if users and users|length > 0 %}
+                                    <p>First user keys: {{ users[0].keys()|list }}</p>
+                                    <p>First user data: {{ users[0]|tojson }}</p>
+                                {% else %}
+                                    <p>No users found in the database</p>
+                                {% endif %}
+                            </div>
+                            {% if users and users|length > 0 %}
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.first_name or 'N/A' }} {{ user.last_name or '' }}</td>
+                                    <td>{{ user.email or 'N/A' }}</td>
+                                    <td>
+                                        {% if user.is_admin %}
+                                            <span class="badge bg-warning">Admin</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Client</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ 'bg-success' if not user.is_admin else 'bg-secondary' }}">
+                                            {{ 'Active' if not user.is_admin else 'Admin' }}
+                                        </span>
+                                    </td>
                                 <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</td>
                                 <td>
                                     <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewUserModal" 
@@ -383,6 +416,7 @@
                             <option value="">Select user type...</option>
                             <option value="client">Client</option>
                             <option value="psychologist">Psychologist</option>
+                            <option value="guidance_counselor">Guidance Counselor</option>
                             <option value="admin">Admin</option>
                         </select>
                     </div>
@@ -424,211 +458,346 @@
 {% block extra_js %}
 {{ super() }}
 <script>
+// Debug: Log table data and initialization
 $(document).ready(function() {
-    // Show/hide specialization field based on user type
-    const userTypeSelect = document.getElementById('user_type');
-    if (userTypeSelect) {
-        userTypeSelect.addEventListener('change', function() {
-            const specializationField = document.getElementById('specializationField');
-            if (this.value === 'psychologist') {
-                specializationField.style.display = 'block';
-            } else {
-                specializationField.style.display = 'none';
+    console.log('Document ready');
+    
+    // Log table data
+    $('.user-table').each(function() {
+        const $table = $(this);
+        const tableId = $table.attr('id') || 'unknown';
+        const $rows = $table.find('tbody tr');
+        console.log(`Table: ${tableId}, Rows: ${$rows.length}`);
+        
+        // Log first row data if exists
+        if ($rows.length > 0) {
+            const $firstRow = $rows.first();
+            const rowData = $firstRow.find('td').map(function() {
+                return $(this).text().trim();
+            }).get();
+            console.log(`First row data (${tableId}):`, rowData);
+        }
+    });
+    
+    // Initialize DataTables with error handling
+    try {
+        $('.user-table').DataTable({
+            responsive: true,
+            pageLength: 10,
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search..."
             }
         });
+        console.log('DataTables initialized successfully');
+    } catch (e) {
+        console.error('Error initializing DataTables:', e);
     }
-
-    // Initialize DataTables for each tab
-    const allUsersTable = $('#allUsersTable').DataTable({
-        "pageLength": 10,
-        "order": [[4, "desc"]], // Sort by join date descending
-        "responsive": true,
-        "language": {
-            "search": "_INPUT_",
-            "searchPlaceholder": "Search users...",
-            "lengthMenu": "Show _MENU_ users per page",
-            "zeroRecords": "No users found",
-            "info": "Showing _START_ to _END_ of _TOTAL_ users",
-            "infoEmpty": "No users available",
-            "infoFiltered": "(filtered from _MAX_ total users)"
-        },
-        "columnDefs": [
-            { "orderable": false, "targets": [5] } // Disable sorting on Actions column
-        ]
-    });
-    
-    // Initialize DataTable for Clients
-    const clientsTable = $('#clientsTable').DataTable({
-        "pageLength": 10,
-        "order": [[3, "desc"]], // Sort by join date descending
-        "columnDefs": [
-            { "orderable": false, "targets": [4] } // Disable sorting on Actions column
-        ]
-    });
-    
-    // Initialize DataTable for Psychologists
-    const psychologistsTable = $('#psychologistsTable').DataTable({
-        "pageLength": 10,
-        "order": [[3, "desc"]], // Sort by join date descending
-        "responsive": true,
-        "language": {
-            "search": "_INPUT_",
-            "searchPlaceholder": "Search psychologists...",
-            "lengthMenu": "Show _MENU_ psychologists per page",
-            "zeroRecords": "No psychologists found",
-            "info": "Showing _START_ to _END_ of _TOTAL_ psychologists",
-            "infoEmpty": "No psychologists available",
-            "infoFiltered": "(filtered from _MAX_ total psychologists)"
-        },
-        "columnDefs": [
-            { "orderable": false, "targets": [4] } // Disable sorting on Actions column
-        ]
-    });
-    
-    // Initialize DataTable for Admins
-    const adminsTable = $('#adminsTable').DataTable({
-        "pageLength": 10,
-        "order": [[2, "desc"], [0, "asc"]], // Sort by role (super admin first) then name
-        "columnDefs": [
-            { "orderable": false, "targets": [4] } // Disable sorting on Actions column
-        ]
-    });
-    
-    // Search functionality for each table
-    $('.dataTables_filter input').unbind().keyup(function() {
-        const table = $(this).closest('.tab-pane').find('.user-table').DataTable();
-        table.search(this.value).draw();
-    });
-    
-    // Refresh DataTables when switching tabs
-    $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-        $.fn.dataTable.tables({visible: true, api: true}).columns.adjust();
-    });
-    
-    // Handle view user modal
-    $('#viewUserModal').on('show.bs.modal', function(event) {
-        const button = $(event.relatedTarget);
-        const userId = button.data('user-id');
-        const userType = button.data('user-type');
-        const modal = $(this);
-        const modalBody = modal.find('.modal-body');
-        
-        // Show loading state
-        modalBody.html(`
-            <div class="text-center">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        `);
-        
-        // Fetch user data
-        $.get(`/admin/users/${userType}/${userId}`, function(data) {
-            // Format the user data for display
-            let html = `
-                <div class="row mb-4">
-                    <div class="col-md-3 text-center">
-                        <div class="avatar-circle bg-primary bg-opacity-10 mb-3" style="width: 80px; height: 80px; margin: 0 auto;">
-                            <i class="bi bi-person-fill text-primary" style="font-size: 2.5rem; line-height: 80px;"></i>
-                        </div>
-                        <h5 class="mb-1">${data.first_name} ${data.last_name}</h5>
-                        <span class="badge ${data.user_type === 'admin' ? 'bg-warning' : data.user_type === 'psychologist' ? 'bg-info' : 'bg-secondary'}">
-                            ${data.user_type.charAt(0).toUpperCase() + data.user_type.slice(1)}
-                        </span>
-                        <div class="mt-2">
-                            <span class="badge ${data.is_active ? 'bg-success' : 'bg-danger'}">
-                                ${data.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="col-md-9">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <h6 class="text-muted mb-1">Email</h6>
-                                <p class="mb-0">${data.email}</p>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <h6 class="text-muted mb-1">Member Since</h6>
-                                <p class="mb-0">${new Date(data.created_at).toLocaleDateString()}</p>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <h6 class="text-muted mb-1">Last Login</h6>
-                                <p class="mb-0">${data.last_login ? new Date(data.last_login).toLocaleString() : 'Never'}</p>
-                            </div>`;
-
-            // Add additional fields for psychologists
-            if (data.user_type === 'psychologist' && data.specialization) {
-                html += `
-                    <div class="col-12">
-                        <hr>
-                        <h5 class="mb-3">Professional Information</h5>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <h6 class="text-muted mb-1">Specialization</h6>
-                        <p class="mb-0">${data.specialization || 'N/A'}</p>
-                    </div>`;
-                
-                if (data.license_number) {
-                    html += `
-                    <div class="col-md-6 mb-3">
-                        <h6 class="text-muted mb-1">License Number</h6>
-                        <p class="mb-0">${data.license_number}</p>
-                    </div>`;
-                }
-                
-                if (data.bio) {
-                    html += `
-                    <div class="col-12 mb-3">
-                        <h6 class="text-muted mb-1">Bio</h6>
-                        <p class="mb-0">${data.bio}</p>
-                    </div>`;
-                }
-            }
-            
-            // Add additional fields for admins
-            if (data.user_type === 'admin') {
-                html += `
-                    <div class="col-12">
-                        <hr>
-                        <h5 class="mb-3">Admin Information</h5>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <h6 class="text-muted mb-1">Role</h6>
-                        <p class="mb-0">
-                            <span class="badge ${data.is_super_admin ? 'bg-warning' : 'bg-info'}">
-                                ${data.is_super_admin ? 'Super Admin' : 'Admin'}
-                            </span>
-                        </p>
-                    </div>`;
-            }
-            
-            html += `
-                        </div>
-                    </div>
-                </div>`;
-            
-            modalBody.html(html);
-        }).fail(function() {
-            modalBody.html(`
-                <div class="alert alert-danger">
-                    Failed to load user data. Please try again.
-                </div>
-            `);
-        });
-    });
-    
-    // Handle delete modal
-    $('#deleteUserModal').on('show.bs.modal', function(event) {
-        const button = $(event.relatedTarget);
-        const userId = button.data('user-id');
-        const userType = button.data('user-type');
-        const form = $('#deleteUserForm');
-        form.attr('action', `/admin/users/${userType}/${userId}/delete`);
-        
-        // Update the modal title with the user type
-        const modal = $(this);
-        modal.find('.modal-title').text(`Delete ${userType.charAt(0).toUpperCase() + userType.slice(1)} Account`);
-    });
 });
+</script>
+<script>
+// Make sure jQuery is loaded
+if (typeof jQuery == 'undefined') {
+    console.error('jQuery is not loaded!');
+} else {
+    console.log('jQuery version:', jQuery.fn.jquery);
+    
+    // Initialize when document is ready
+    $(document).ready(function() {
+        try {
+            // Common DataTable configuration
+            const commonDtConfig = {
+                "pageLength": 10,
+                "responsive": true,
+                "language": {
+                    "search": "_INPUT_",
+                    "searchPlaceholder": "Search...",
+                    "lengthMenu": "Show _MENU_ entries",
+                    "zeroRecords": "No matching records found",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+                    "infoEmpty": "No entries available",
+                    "infoFiltered": "(filtered from _MAX_ total entries)"
+                }
+            };
+
+            // Initialize DataTable for All Users
+            if ($('#allUsersTable').length) {
+                $('#allUsersTable').DataTable($.extend(true, {}, commonDtConfig, {
+                    "order": [[4, "desc"]],
+                    "columnDefs": [
+                        { "orderable": false, "targets": [5] }
+                    ]
+                }));
+            }
+
+            // Initialize DataTable for Clients
+            if ($('#clientsTable').length) {
+                $('#clientsTable').DataTable($.extend(true, {}, commonDtConfig, {
+                    "order": [[3, "desc"]],
+                    "columnDefs": [
+                        { "orderable": false, "targets": [4] }
+                    ]
+                }));
+            }
+
+            // Initialize DataTable for Psychologists
+            if ($('#psychologistsTable').length) {
+                $('#psychologistsTable').DataTable($.extend(true, {}, commonDtConfig, {
+                    "order": [[3, "desc"]],
+                    "columnDefs": [
+                        { "orderable": false, "targets": [4] }
+                    ]
+                }));
+            }
+
+            // Initialize DataTable for Admins
+            if ($('#adminsTable').length) {
+                $('#adminsTable').DataTable($.extend(true, {}, commonDtConfig, {
+                    "order": [[3, "desc"]],
+                    "columnDefs": [
+                        { "orderable": false, "targets": [4] }
+                    ]
+                }));
+            }
+
+            // Show/hide specialization field based on user type
+            const userTypeSelect = document.getElementById('user_type');
+            const specializationField = document.getElementById('specializationField');
+            
+            if (userTypeSelect && specializationField) {
+                // Update visibility based on current value
+                const updateSpecializationField = function() {
+                    specializationField.style.display = (userTypeSelect.value === 'psychologist') ? 'block' : 'none';
+                };
+                
+                // Add event listener
+                userTypeSelect.addEventListener('change', updateSpecializationField);
+                
+                // Set initial state
+                updateSpecializationField();
+            }
+            
+            // Debug: Log DataTables version and check if it's loaded
+            console.log('jQuery version:', $.fn.jquery);
+            console.log('DataTables version:', $.fn.DataTable ? $.fn.DataTable.version : 'Not loaded');
+            
+            // Check if DataTables is properly loaded
+            if (typeof $.fn.DataTable !== 'function') {
+                console.error('DataTables is not loaded!');
+                return;
+            }
+            
+            // Log table count before initialization
+            const tableCount = $('.user-table').length;
+            console.log(`Found ${tableCount} tables to initialize`);
+            
+            // Handle view user button click
+            $(document).on('click', '.view-user', function() {
+                const userId = $(this).data('user-id');
+                const isAdmin = $(this).data('is-admin') === 'true';
+                const userType = isAdmin ? 'admin' : 'client';
+                
+                console.log(`View user ${userId} (type: ${userType})`);
+                // Add your view user logic here
+                $('#viewUserModal').modal('show');
+            });
+            
+            // Handle edit user button click
+            $(document).on('click', '.edit-user', function() {
+                const userId = $(this).data('user-id');
+                const isAdmin = $(this).data('is-admin') === 'true';
+                const userType = isAdmin ? 'admin' : 'client';
+                
+                console.log(`Edit user ${userId} (type: ${userType})`);
+                // Add your edit user logic here
+                $('#editUserModal').modal('show');
+            });
+            
+            // Handle delete user button click
+            $(document).on('click', '.delete-user', function() {
+                const userId = $(this).data('user-id');
+                const isAdmin = $(this).data('is-admin') === 'true';
+                const userType = isAdmin ? 'admin' : 'client';
+                
+                console.log(`Delete user ${userId} (type: ${userType})`);
+                // Add your delete confirmation logic here
+                if (confirm(`Are you sure you want to delete this ${userType}?`)) {
+                    // Add your delete user logic here
+                    console.log(`Deleting user ${userId}`);
+                }
+            });
+            
+            // Initialize DataTables for all user tables
+            $('.user-table').each(function(index) {
+                const tableId = $(this).attr('id') || `table-${index}`;
+                console.log(`Initializing table: ${tableId}`);
+                
+                try {
+                    const dataTable = $(this).DataTable({
+                        "pageLength": 10,
+                        "responsive": true,
+                        "order": [[0, 'asc']],
+                        "language": {
+                            "search": "_INPUT_",
+                            "searchPlaceholder": "Search...",
+                            "lengthMenu": "Show _MENU_ entries",
+                            "zeroRecords": "No matching records found",
+                            "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+                            "infoEmpty": "No entries available",
+                            "infoFiltered": "(filtered from _MAX_ total entries)"
+                        },
+                        "columnDefs": [
+                            { "orderable": false, "targets": -1 } // Disable sorting on action column
+                        ]
+                    });
+                    
+                    // Log table data after initialization
+                    console.log(`Table ${tableId} initialized with ${dataTable.rows().count()} rows`);
+                } catch (e) {
+                    console.error(`Error initializing table ${tableId}:`, e);
+                }
+            });
+            
+            // Search functionality for each table
+            $('.dataTables_filter input').unbind().keyup(function() {
+                const table = $(this).closest('.tab-pane').find('.user-table').DataTable();
+                table.search(this.value).draw();
+            });
+            
+            // Refresh DataTables when switching tabs
+            $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                $.fn.dataTable.tables({visible: true, api: true}).columns.adjust();
+            });
+            
+            // Handle view user modal
+            $('#viewUserModal').on('show.bs.modal', function(event) {
+                const button = $(event.relatedTarget);
+                const userId = button.data('user-id');
+                const userType = button.data('user-type');
+                const modal = $(this);
+                const modalBody = modal.find('.modal-body');
+                
+                // Show loading state
+                modalBody.html(`
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                `);
+                
+                // Fetch user data
+                $.get(`/admin/users/${userType}/${userId}`, function(data) {
+                    // Format the user data for display
+                    let html = `
+                        <div class="row mb-4">
+                            <div class="col-md-3 text-center">
+                                <div class="avatar-circle bg-primary bg-opacity-10 mb-3" style="width: 80px; height: 80px; margin: 0 auto;">
+                                    <i class="bi bi-person-fill text-primary" style="font-size: 2.5rem; line-height: 80px;"></i>
+                                </div>
+                                <h5 class="mb-1">${data.first_name} ${data.last_name}</h5>
+                                <span class="badge ${data.user_type === 'admin' ? 'bg-warning' : data.user_type === 'psychologist' ? 'bg-info' : 'bg-secondary'}">
+                                    ${data.user_type.charAt(0).toUpperCase() + data.user_type.slice(1)}
+                                </span>
+                                <div class="mt-2">
+                                    <span class="badge ${data.is_active ? 'bg-success' : 'bg-danger'}">
+                                        ${data.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <h6 class="text-muted mb-1">Email</h6>
+                                        <p class="mb-0">${data.email}</p>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <h6 class="text-muted mb-1">Member Since</h6>
+                                        <p class="mb-0">${new Date(data.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <h6 class="text-muted mb-1">Last Login</h6>
+                                        <p class="mb-0">${data.last_login ? new Date(data.last_login).toLocaleString() : 'Never'}</p>
+                                    </div>`;
+
+                    // Add additional fields for psychologists
+                    if (data.user_type === 'psychologist' && data.specialization) {
+                        html += `
+                                    <div class="col-12">
+                                        <hr>
+                                        <h5 class="mb-3">Professional Information</h5>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <h6 class="text-muted mb-1">Specialization</h6>
+                                        <p class="mb-0">${data.specialization || 'N/A'}</p>
+                                    </div>`;
+                        
+                        if (data.license_number) {
+                            html += `
+                                    <div class="col-md-6 mb-3">
+                                        <h6 class="text-muted mb-1">License Number</h6>
+                                        <p class="mb-0">${data.license_number}</p>
+                                    </div>`;
+                        }
+                        
+                        if (data.bio) {
+                            html += `
+                                    <div class="col-12 mb-3">
+                                        <h6 class="text-muted mb-1">Bio</h6>
+                                        <p class="mb-0">${data.bio}</p>
+                                    </div>`;
+                        }
+                    }
+                    
+                    // Add additional fields for admins
+                    if (data.user_type === 'admin') {
+                        html += `
+                                    <div class="col-12">
+                                        <hr>
+                                        <h5 class="mb-3">Admin Information</h5>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <h6 class="text-muted mb-1">Role</h6>
+                                        <p class="mb-0">
+                                            <span class="badge ${data.is_super_admin ? 'bg-warning' : 'bg-info'}">
+                                                ${data.is_super_admin ? 'Super Admin' : 'Admin'}
+                                            </span>
+                                        </p>
+                                    </div>`;
+                    }
+                    
+                    html += `
+                                </div>
+                            </div>
+                        </div>`;
+                    
+                    modalBody.html(html);
+                }).fail(function() {
+                    modalBody.html(`
+                        <div class="alert alert-danger">
+                            Failed to load user data. Please try again.
+                        </div>
+                    `);
+                });
+            });
+    
+            // Handle delete modal
+            $('#deleteUserModal').on('show.bs.modal', function(event) {
+                const button = $(event.relatedTarget);
+                const userId = button.data('user-id');
+                const userType = button.data('user-type');
+                const form = $('#deleteUserForm');
+                form.attr('action', `/admin/users/${userType}/${userId}/delete`);
+                
+                // Update the modal title with the user type
+                const modal = $(this);
+                modal.find('.modal-title').text(`Delete ${userType.charAt(0).toUpperCase() + userType.slice(1)} Account`);
+            });
+            
+        } catch (error) {
+            console.error('Error in user management scripts:', error);
+        }
+    });
+}
 </script>
 {% endblock %}
