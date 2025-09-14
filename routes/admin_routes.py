@@ -461,6 +461,13 @@ def manage_users():
         except Exception as e:
             print(f"[ERROR] Error fetching admins: {str(e)}")
             admins = []
+            
+        try:
+            guidance_counselors = db_service.get_all_guidance_counselors() or []
+            print(f"[DEBUG] Found {len(guidance_counselors)} guidance counselors")
+        except Exception as e:
+            print(f"[ERROR] Error fetching guidance counselors: {str(e)}")
+            guidance_counselors = []
         
         # Process client users
         for user in clients:
@@ -519,22 +526,7 @@ def manage_users():
                     'is_admin': False,
                     'is_psychologist': False,
                     'is_super_admin': False,
-                    'is_active': counselor.get('is_available', True)
-                })
-            except Exception as e:
-                user_id = counselor.get('id', 'unknown')
-                print(f"[ERROR] Error processing guidance counselor {user_id}: {str(e)}")
-                continue
-        
-        # Process guidance counselors
-        for counselor in guidance_counselors:
-            try:
-                counselor.update({
-                    'user_type': 'guidance_counselor',
-                    'is_admin': False,
-                    'is_psychologist': False,
-                    'is_super_admin': False,
-                    'is_active': counselor.get('is_active', True)
+                    'is_active': counselor.get('is_active', counselor.get('is_available', True))
                 })
             except Exception as e:
                 user_id = counselor.get('id', 'unknown')
@@ -542,7 +534,7 @@ def manage_users():
                 continue
         
         # Combine all users
-        all_users = clients + psychologists + admins + guidance_counselors + guidance_counselors
+        all_users = clients + psychologists + admins + guidance_counselors
         
         # Count users by type
         user_counts = {
