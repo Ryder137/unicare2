@@ -106,6 +106,28 @@ class CreateAdminForm(FlaskForm):
         'placeholder': 'Enter last name'
     })
     
+    password = PasswordField('Password', validators=[
+        DataRequired(message='Password is required'),
+        Length(min=8, message='Password must be at least 8 characters long'),
+        Regexp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$',
+               message='Password must include at least one uppercase letter, one lowercase letter, and one number')
+    ], render_kw={
+        'class': 'form-control',
+        'placeholder': 'Create a strong password',
+        'autocomplete': 'new-password',
+        'data-bs-toggle': 'tooltip',
+        'title': 'Must be at least 8 characters with uppercase, lowercase, and number'
+    })
+    
+    confirm_password = PasswordField('Confirm Password', validators=[
+        DataRequired(message='Please confirm your password'),
+        EqualTo('password', message='Passwords must match')
+    ], render_kw={
+        'class': 'form-control',
+        'placeholder': 'Confirm your password',
+        'autocomplete': 'new-password'
+    })
+    
     is_super_admin = BooleanField('Super Admin', 
         false_values=(False, 'false', 0, '0'),
         render_kw={
@@ -121,9 +143,9 @@ class CreateAdminForm(FlaskForm):
     
     def validate_email(self, field):
         """Validate that the email is not already in use."""
-        from models import Admin
-        admin = Admin.query.filter_by(email=field.data).first()
-        if admin is not None:
+        from services.database_service import db_service
+        admin = db_service.get_admin_by_email(field.data)
+        if admin:
             raise ValidationError('This email is already registered. Please use a different email.')
 
 

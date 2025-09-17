@@ -57,7 +57,7 @@ class User(UserMixin):
                 # Handle both 'Z' and timezone offset formats
                 if dt_value.endswith('Z'):
                     dt_value = dt_value[:-1] + '+00:00'
-                return datetime.fromisoformat(dt_value).replace(tzinfo=timezone.utc)
+                return datetime.fromisoformat(dt_value).replace(tzinfo=timezone.utc) 
             except (ValueError, AttributeError) as e:
                 print(f"[WARNING] Could not parse datetime {dt_value}: {e}")
                 return datetime.now(timezone.utc)

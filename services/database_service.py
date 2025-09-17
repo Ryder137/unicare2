@@ -1,6 +1,6 @@
 import os
 from typing import List, Optional, Dict, Any, Union
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 from supabase import create_client, Client
 from config import init_supabase
 from models.user import User
@@ -52,69 +52,119 @@ class DatabaseService:
         try:
             supabase = self.get_supabase_client()
             result = supabase.table('clients').select('*', count='exact').execute()
+            print(f"[DEBUG] Found {result.count or 0} clients in the database")
             return result.count or 0
         except Exception as e:
             print(f"[Database] Error getting clients count: {str(e)}")
             return 0
             
-    def get_all_users(self, exclude_id: str = None) -> List[dict]:
-        """Get all regular users (non-admin) from the clients table."""
-        try:
-            print("[DEBUG] Fetching all users from 'clients' table...")
-            supabase = self.get_supabase_client()
-            
-            # Select all fields from the clients table
-            query = supabase.table('clients').select('*').order('created_at', desc=True)
-            
-            if exclude_id:
-                query.neq('id', exclude_id)
-                
-            result = query.execute()
-            
-            if not result.data:
-                print("[DEBUG] No users found in 'clients' table")
-                return []
-                
-            print(f"[DEBUG] Found {len(result.data)} users in 'clients' table")
-            
-            users = []
-            for user in result.data:
+    def _process_client_users(self, users_data: List[dict], from_users_table: bool = False) -> List[dict]:
+        """Process raw user data from the clients table into a consistent format."""
+        processed_users = []
+        
+        for user in users_data:
+            try:
                 if not isinstance(user, dict):
-                    print(f"[WARNING] User is not a dictionary: {type(user)}")
-                    continue
-                    
-                # Map the client fields to the expected user format
+                    user = dict(user) if hasattr(user, '__dict__') else {}
+                    if not user:
+                        continue
+                
+                print(f"[DEBUG] Processing user: {user.get('email', 'unknown')}")
+                
+                # Map client fields to the expected user format
                 user_data = {
-                    'id': user.get('id'),
-                    'first_name': user.get('first_name', ''),
-                    'last_name': user.get('last_name', ''),
-                    'email': user.get('email', ''),
-                    'username': user.get('username', ''),
-                    'user_type': 'client',  # Add user_type for consistency
-                    'is_active': not user.get('is_admin', False),  # Assuming non-admin clients are active
+                    'id': str(user.get('id', '')),
+                    'first_name': str(user.get('first_name', '')),
+                    'last_name': str(user.get('last_name', '')),
+                    'email': str(user.get('email', '')),
+                    'username': str(user.get('username', user.get('email', '').split('@')[0])),
+                    'user_type': 'client',
+                    'is_active': bool(user.get('is_active', True)),
+                    'is_admin': bool(user.get('is_admin', False)),
+                    'is_psychologist': False,
+                    'is_super_admin': False,
                     'created_at': user.get('created_at'),
                     'last_login': user.get('last_login'),
-                    'is_admin': user.get('is_admin', False)
+                    'specialization': None,
+                    'status': 'active' if bool(user.get('is_active', True)) else 'inactive',
+                    'gender': user.get('gender', ''),
+                    'birthdate': user.get('birthdate'),
+                    'points': int(user.get('points', 0)),
+                    'streak': int(user.get('streak', 0))
                 }
                 
-                # Add any additional fields that might be needed
-                for field in ['gender', 'birthdate', 'points', 'streak']:
-                    if field in user:
-                        user_data[field] = user[field]
+                # Ensure all values are JSON serializable
+                for key, value in user_data.items():
+                    if isinstance(value, (datetime, date)):
+                        user_data[key] = value.isoformat()
+                    elif value is None:
+                        user_data[key] = ''
                 
-                users.append(user_data)
+                processed_users.append(user_data)
+                print(f"[DEBUG] Successfully processed user: {user_data['email']}")
                 
-            return users
+            except Exception as e:
+                print(f"[ERROR] Error processing user: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                continue
+        
+        return processed_users
             
+    def get_all_users(self, exclude_id: str = None) -> List[dict]:
+        """Get all regular users from the 'clients' table."""
+        try:
+            print("\n[DEBUG] ====== Starting get_all_users ======")
+            users = []
+            
+            # Get Supabase client
+            supabase = self.get_supabase_client()
+            print("[DEBUG] Supabase client initialized")
+            
+            # Get users from 'clients' table
+            print("[DEBUG] Fetching users from 'clients' table...")
+            try:
+                # Build the query
+                query = supabase.table('clients').select('*').order('created_at', desc=True)
+                if exclude_id:
+                    query.neq('id', exclude_id)
+                
+                # Execute the query
+                result = query.execute()
+                
+                if result.data:
+                    print(f"[DEBUG] Found {len(result.data)} users in 'clients' table")
+                    if len(result.data) > 0:
+                        print(f"[DEBUG] Sample client data: {result.data[0]}")
+                    
+                    # Process the client users
+                    users = self._process_client_users(result.data)
+                    print(f"[DEBUG] Processed {len(users)} users")
+                else:
+                    print("[DEBUG] No users found in 'clients' table")
+                
+                print(f"\n[DEBUG] ====== get_all_users completed ======")
+                print(f"[DEBUG] Total users processed: {len(users)}")
+                print(f"[DEBUG] First user email: {users[0].get('email') if users else 'No users'}")
+                return users
+                
+            except Exception as e:
+                print(f"[ERROR] Error querying 'clients' table: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return []
+                
         except Exception as e:
-            print(f"[Database] Error getting all users: {str(e)}")
+            error_msg = f"[Database] Error getting all users: {str(e)}"
+            print(error_msg)
             import traceback
             traceback.print_exc()
             return []
             
     def get_all_admins(self, exclude_id: str = None) -> List[dict]:
-        """Get all admin users."""
+        """Get all admin users with consistent data structure."""
         try:
+            print("[DEBUG] Fetching all admins from 'admin_users' table...")
             supabase = self.get_supabase_client(use_service_role=True)
             query = supabase.table('admin_users').select('*').order('created_at', desc=True)
             
@@ -122,19 +172,112 @@ class DatabaseService:
                 query.neq('id', exclude_id)
                 
             result = query.execute()
-            return result.data if result.data else []
+            
+            if not result.data:
+                print("[DEBUG] No admins found in 'admin_users' table")
+                return []
+                
+            print(f"[DEBUG] Found {len(result.data)} admins in 'admin_users' table")
+            
+            admins = []
+            for admin in result.data:
+                if not isinstance(admin, dict):
+                    admin = dict(admin)
+                
+                admin_data = {
+                    'id': str(admin.get('id', '')),
+                    'first_name': str(admin.get('first_name', '')),
+                    'last_name': str(admin.get('last_name', '')),
+                    'email': str(admin.get('email', '')),
+                    'username': str(admin.get('username', '')),
+                    'user_type': 'admin',
+                    'is_active': bool(admin.get('is_active', True)),
+                    'is_admin': True,
+                    'is_super_admin': bool(admin.get('is_super_admin', False)),
+                    'created_at': admin.get('created_at'),
+                    'last_login': admin.get('last_login'),
+                    'specialization': None,
+                    'status': 'active' if admin.get('is_active', True) else 'inactive'
+                }
+                
+                # Ensure all values are JSON serializable
+                for key, value in admin_data.items():
+                    if isinstance(value, (datetime, date)):
+                        admin_data[key] = value.isoformat()
+                
+                admins.append(admin_data)
+                
+            print(f"[DEBUG] Returning {len(admins)} processed admins")
+            return admins
+            
         except Exception as e:
-            print(f"[Database] Error getting all admins: {str(e)}")
+            error_msg = f"[Database] Error getting all admins: {str(e)}"
+            print(error_msg)
+            import traceback
+            traceback.print_exc()
             return []
             
     def get_all_psychologists(self) -> List[dict]:
-        """Get all psychologist users."""
+        """Get all psychologist users with consistent data structure."""
         try:
+            print("[DEBUG] Fetching all psychologists with user data...")
             supabase = self.get_supabase_client(use_service_role=True)
-            result = supabase.table('psychologists').select('*').order('created_at', desc=True).execute()
-            return result.data if result.data else []
+            
+            # Join psychologists with auth.users table
+            result = supabase.rpc('get_psychologists_with_users').execute()
+            
+            if not result.data:
+                print("[DEBUG] No psychologists found")
+                return []
+                
+            print(f"[DEBUG] Found {len(result.data)} psychologists")
+            
+            psychologists = []
+            for psych in result.data:
+                if not isinstance(psych, dict):
+                    psych = dict(psych)
+                
+                # Get user data from joined auth.users
+                user_data = psych.get('user_data', {}) or {}
+                
+                psych_data = {
+                    'id': str(psych.get('id', '')),
+                    'user_id': str(psych.get('user_id', '')),  # Keep the auth.users ID
+                    'first_name': str(user_data.get('raw_user_meta_data', {}).get('first_name', '') or ''),
+                    'last_name': str(user_data.get('raw_user_meta_data', {}).get('last_name', '') or ''),
+                    'email': str(user_data.get('email', '') or ''),
+                    'username': str(user_data.get('email', '').split('@')[0] if user_data.get('email') else ''),
+                    'user_type': 'psychologist',
+                    'is_active': user_data.get('email_confirmed_at') is not None,
+                    'is_admin': False,
+                    'is_super_admin': False,
+                    'created_at': user_data.get('created_at') or psych.get('created_at'),
+                    'last_login': user_data.get('last_sign_in_at'),
+                    'specialization': str(psych.get('specialization', '') or ''),
+                    'license_number': str(psych.get('license_number', '') or ''),
+                    'status': 'active' if user_data.get('email_confirmed_at') else 'inactive',
+                    'bio': str(psych.get('bio', '') or ''),
+                    'years_of_experience': int(psych.get('years_of_experience') or 0),
+                    'education': str(psych.get('education', '') or ''),
+                    'languages_spoken': psych.get('languages_spoken') or [],
+                    'consultation_fee': float(psych.get('consultation_fee') or 0)
+                }
+                
+                # Ensure all values are JSON serializable
+                for key, value in psych_data.items():
+                    if isinstance(value, (datetime, date)):
+                        psych_data[key] = value.isoformat()
+                
+                psychologists.append(psych_data)
+                
+            print(f"[DEBUG] Returning {len(psychologists)} processed psychologists")
+            return psychologists
+            
         except Exception as e:
-            print(f"[Database] Error getting all psychologists: {str(e)}")
+            error_msg = f"[Database] Error getting all psychologists: {str(e)}"
+            print(error_msg)
+            import traceback
+            traceback.print_exc()
             return []
             
     def create_admin(self, admin_data: dict) -> Optional[dict]:
@@ -876,13 +1019,65 @@ class DatabaseService:
             return None
             
     def get_all_guidance_counselors(self) -> List[dict]:
-        """Get all guidance counselors."""
+        """Get all guidance counselor users with consistent data structure."""
         try:
-            supabase = self.get_supabase_client()
-            result = supabase.table('guidance_counselors').select('*').order('created_at', desc=True).execute()
-            return result.data if result.data else []
+            print("[DEBUG] Fetching all guidance counselors with user data...")
+            supabase = self.get_supabase_client(use_service_role=True)
+            
+            # Join guidance_counselors with auth.users table
+            result = supabase.rpc('get_guidance_counselors_with_users').execute()
+            
+            if not result.data:
+                print("[DEBUG] No guidance counselors found")
+                return []
+                
+            print(f"[DEBUG] Found {len(result.data)} guidance counselors")
+            
+            counselors = []
+            for counselor in result.data:
+                if not isinstance(counselor, dict):
+                    counselor = dict(counselor)
+                
+                # Get user data from joined auth.users
+                user_data = counselor.get('user_data', {}) or {}
+                
+                counselor_data = {
+                    'id': str(counselor.get('id', '')),
+                    'user_id': str(counselor.get('user_id', '')),  # Keep the auth.users ID
+                    'first_name': str(user_data.get('raw_user_meta_data', {}).get('first_name', '') or ''),
+                    'last_name': str(user_data.get('raw_user_meta_data', {}).get('last_name', '') or ''),
+                    'email': str(user_data.get('email', '') or ''),
+                    'username': str(user_data.get('email', '').split('@')[0] if user_data.get('email') else ''),
+                    'user_type': 'guidance_counselor',
+                    'is_active': user_data.get('email_confirmed_at') is not None,
+                    'is_admin': False,
+                    'is_super_admin': False,
+                    'created_at': user_data.get('created_at') or counselor.get('created_at'),
+                    'last_login': user_data.get('last_sign_in_at'),
+                    'specialization': str(counselor.get('specialization', '') or ''),
+                    'license_number': str(counselor.get('license_number', '') or ''),
+                    'status': 'active' if user_data.get('email_confirmed_at') else 'inactive',
+                    'bio': str(counselor.get('bio', '') or ''),
+                    'years_of_experience': int(counselor.get('years_of_experience') or 0),
+                    'education': str(counselor.get('education', '') or ''),
+                    'languages_spoken': counselor.get('languages_spoken') or []
+                }
+                
+                # Ensure all values are JSON serializable
+                for key, value in counselor_data.items():
+                    if isinstance(value, (datetime, date)):
+                        counselor_data[key] = value.isoformat()
+                
+                counselors.append(counselor_data)
+                
+            print(f"[DEBUG] Returning {len(counselors)} processed guidance counselors")
+            return counselors
+            
         except Exception as e:
-            print(f"[Database] Error getting all guidance counselors: {str(e)}")
+            error_msg = f"[Database] Error getting all guidance counselors: {str(e)}"
+            print(error_msg)
+            import traceback
+            traceback.print_exc()
             return []
             
     def create_guidance_counselor(self, counselor_data: dict) -> Optional[dict]:

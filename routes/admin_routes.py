@@ -8,13 +8,10 @@ import traceback
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, abort, login_user, logout_user
-from flask_login import current_user, login_required, login_url
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, abort, session
+from flask_login import current_user, login_required, login_url, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from services import database_service as db_service
-
-# Create the blueprint
-admin_bp = Blueprint('admin', __name__)
 
 # Add the project root to the Python path first
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -138,20 +135,28 @@ def admin_required(f):
     """Decorator to ensure the user is an admin."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        logger.info("Admin required decorator called for %s", request.endpoint)
+        print("\n[DEBUG] ====== admin_required decorator called ======")
+        print(f"[DEBUG] Request endpoint: {request.endpoint}")
+        print(f"[DEBUG] Current user: {current_user}")
+        print(f"[DEBUG] is_authenticated: {current_user.is_authenticated}")
         
         # Check if user is authenticated
         if not current_user.is_authenticated:
-            logger.warning("Unauthenticated access attempt to %s", request.url)
+            print("[DEBUG] User not authenticated, redirecting to login")
             session['next'] = request.url if request.method == 'GET' else None
             return redirect(url_for('admin.admin_login', next=request.url))
             
         # Check if user is admin
-        if not getattr(current_user, 'is_admin', False):
-            logger.warning("Non-admin access attempt by user %s", current_user.id)
+        is_admin = getattr(current_user, 'is_admin', False)
+        print(f"[DEBUG] User is_admin: {is_admin}")
+        print(f"[DEBUG] User attributes: {dir(current_user)}")
+        
+        if not is_admin:
+            print("[DEBUG] User is not an admin, redirecting to index")
             flash('You do not have permission to access this page.', 'error')
             return redirect(url_for('index'))
             
+        print("[DEBUG] User is authenticated and is an admin, proceeding to route handler")
         return f(*args, **kwargs)
     return decorated_function
 
@@ -480,127 +485,125 @@ def debug_db():
     except Exception as e:
         return f"Error in debug endpoint: {str(e)}"
 
-@admin_bp.route('/manage-users')
+@admin_bp.route('/manage_users')
 @login_required
 @admin_required
 def manage_users():
     """Manage all users (admin, client, psychologist, staff)."""
-    try:
-        # Get all user types
-        try:
-            clients = db_service.get_all_users() or []
-            print(f"[DEBUG] Found {len(clients)} clients")
-            for client in clients:
-                print(f"[DEBUG] Client: {client}")
-                if not isinstance(client, dict):
-                    print(f"[WARNING] Client is not a dictionary: {type(client)}")
-                    continue
-                # Ensure required fields exist
-                client.setdefault('first_name', 'Unknown')
-                client.setdefault('last_name', 'User')
-                client.setdefault('email', 'No email')
-                client.setdefault('user_type', 'client')
-                client.setdefault('is_active', True)
-                client.setdefault('created_at', datetime.utcnow())
-        except Exception as e:
-            print(f"[ERROR] Error fetching clients: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            clients = []
+    print("\n[DEBUG] ====== manage_users route called ======")
+    print(f"[DEBUG] Request URL: {request.url}")
+    print(f"[DEBUG] Current user: {current_user}")
+    print(f"[DEBUG] is_authenticated: {current_user.is_authenticated}")
+    print(f"[DEBUG] is_admin: {getattr(current_user, 'is_admin', False)}")
+    
+    def process_user_list(users, user_type):
+        """Helper function to process and validate user lists."""
+        processed = []
+        if not isinstance(users, list):
+            print(f"[WARNING] Expected list for {user_type}, got {type(users).__name__}")
+            return processed
             
-        try:
-            psychologists = db_service.get_all_psychologists() or []
-            print(f"[DEBUG] Found {len(psychologists)} psychologists")
-        except Exception as e:
-            print(f"[ERROR] Error fetching psychologists: {str(e)}")
-            psychologists = []
-            
-        try:
-            admins = db_service.get_all_admins() or []
-            print(f"[DEBUG] Found {len(admins)} admins")
-        except Exception as e:
-            print(f"[ERROR] Error fetching admins: {str(e)}")
-            admins = []
-            
-        try:
-            guidance_counselors = db_service.get_all_guidance_counselors() or []
-            print(f"[DEBUG] Found {len(guidance_counselors)} guidance counselors")
-        except Exception as e:
-            print(f"[ERROR] Error fetching guidance counselors: {str(e)}")
-            guidance_counselors = []
-        
-        # Process client users
-        for user in clients:
+        for user in users:
             try:
                 if not isinstance(user, dict):
-                    print(f"[WARNING] Invalid user format: {user}")
-                    continue
-                    
-                user.update({
-                    'user_type': 'client',
-                    'is_admin': False,
-                    'is_psychologist': False,
-                    'is_super_admin': False,
-                    'is_active': user.get('is_active', True)
-                })
+                    user = dict(user) if hasattr(user, '__dict__') else {}
+                    if not user:
+                        continue
+                
+                # Ensure required fields exist with defaults
+                user.setdefault('first_name', 'Unknown')
+                user.setdefault('last_name', 'User')
+                user.setdefault('email', 'No email')
+                user.setdefault('user_type', user_type)
+                user.setdefault('is_active', True)
+                user.setdefault('created_at', datetime.utcnow())
+                
+                # Ensure all string fields are properly encoded
+                for key, value in user.items():
+                    if isinstance(value, str):
+                        user[key] = value.strip()
+                    elif value is None:
+                        user[key] = ''
+                
+                processed.append(user)
+                
             except Exception as e:
-                user_id = user.get('id', 'unknown')
-                print(f"[ERROR] Error processing client {user_id}: {str(e)}")
-                continue
-            
-        # Process psychologists
-        for psych in psychologists:
-            try:
-                psych.update({
-                    'user_type': 'psychologist',
-                    'is_admin': False,
-                    'is_psychologist': True,
-                    'is_super_admin': False,
-                    'is_active': psych.get('is_active', True)
-                })
-            except Exception as e:
-                user_id = psych.get('id', 'unknown')
-                print(f"[ERROR] Error processing psychologist {user_id}: {str(e)}")
-                continue
-            
-        # Process admins
-        for admin in admins:
-            try:
-                admin.update({
-                    'user_type': 'admin',
-                    'is_admin': True,
-                    'is_psychologist': False,
-                    'is_super_admin': admin.get('is_super_admin', False),
-                    'is_active': admin.get('is_active', True)
-                })
-            except Exception as e:
-                user_id = admin.get('id', 'unknown')
-                print(f"[ERROR] Error processing admin {user_id}: {str(e)}")
+                print(f"[ERROR] Error processing {user_type} user: {str(e)}")
+                import traceback
+                traceback.print_exc()
                 continue
                 
-        # Process guidance counselors
-        for counselor in guidance_counselors:
-            try:
-                counselor.update({
-                    'user_type': 'guidance_counselor',
+        return processed
+    
+    try:
+        # Initialize empty lists for all user types
+        clients = []
+        psychologists = []
+        admins = []
+        guidance_counselors = []
+        
+        # Get all user types with error handling
+        try:
+            clients_data = db_service.get_all_users() or []
+            clients = process_user_list(clients_data, 'client')
+            print(f"[DEBUG] Processed {len(clients)} clients")
+        except Exception as e:
+            print(f"[ERROR] Error processing clients: {str(e)}")
+            import traceback
+            traceback.print_exc()
+        
+        try:
+            psychs_data = db_service.get_all_psychologists() or []
+            psychologists = process_user_list(psychs_data, 'psychologist')
+            for psych in psychologists:
+                psych.update({
+                    'is_admin': False,
+                    'is_psychologist': True,
+                    'is_super_admin': False
+                })
+            print(f"[DEBUG] Processed {len(psychologists)} psychologists")
+        except Exception as e:
+            print(f"[ERROR] Error processing psychologists: {str(e)}")
+            traceback.print_exc()
+            
+        try:
+            admins_data = db_service.get_all_admins() or []
+            admins = process_user_list(admins_data, 'admin')
+            for admin in admins:
+                admin.update({
+                    'is_admin': True,
+                    'is_psychologist': False,
+                    'is_super_admin': admin.get('is_super_admin', False)
+                })
+            print(f"[DEBUG] Processed {len(admins)} admins")
+        except Exception as e:
+            print(f"[ERROR] Error processing admins: {str(e)}")
+            traceback.print_exc()
+            
+        try:
+            gcs_data = db_service.get_all_guidance_counselors() or []
+            guidance_counselors = process_user_list(gcs_data, 'guidance_counselor')
+            for gc in guidance_counselors:
+                gc.update({
                     'is_admin': False,
                     'is_psychologist': False,
                     'is_super_admin': False,
-                    'is_active': counselor.get('is_active', counselor.get('is_available', True))
+                    'is_active': gc.get('is_active', gc.get('is_available', True))
                 })
-            except Exception as e:
-                user_id = counselor.get('id', 'unknown')
-                print(f"[ERROR] Error processing guidance counselor {user_id}: {str(e)}")
-                continue
-        
-        # Debug log guidance counselors data
-        print("\n[DEBUG] Guidance Counselors Data:")
-        for idx, gc in enumerate(guidance_counselors, 1):
-            print(f"  {idx}. ID: {gc.get('id')}, Name: {gc.get('first_name')} {gc.get('last_name')}, Email: {gc.get('email')}, Active: {gc.get('is_active')}")
+            print(f"[DEBUG] Processed {len(guidance_counselors)} guidance counselors")
+        except Exception as e:
+            print(f"[ERROR] Error processing guidance counselors: {str(e)}")
+            traceback.print_exc()
         
         # Combine all users
         all_users = clients + psychologists + admins + guidance_counselors
-        print(f"\n[DEBUG] Total users: {len(all_users)} (Clients: {len(clients)}, Psychologists: {len(psychologists)}, Admins: {len(admins)}, Counselors: {len(guidance_counselors)})")
+        
+        # Sort users by creation date (newest first)
+        try:
+            all_users.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        except Exception as e:
+            print(f"[WARNING] Error sorting users by creation date: {str(e)}")
+            # Keep unsorted if there's an error
         
         # Count users by type
         user_counts = {
@@ -611,18 +614,29 @@ def manage_users():
             'guidance_counselors': len(guidance_counselors)
         }
         
-        print(f"[INFO] Loaded {len(all_users)} total users ({len(clients)} clients, {len(psychologists)} psychologists, {len(admins)} admins, {len(guidance_counselors)} guidance counselors)")
+        print(f"[INFO] Loaded {len(all_users)} total users ({user_counts['clients']} clients, "
+              f"{user_counts['psychologists']} psychologists, {user_counts['admins']} admins, "
+              f"{user_counts['guidance_counselors']} guidance counselors)")
         
-        return render_template('admin/users_clean.html',
+        # Debug: Print first user of each type if available
+        for user_type, user_list in [('clients', clients), ('psychologists', psychologists),
+                                   ('admins', admins), ('guidance_counselors', guidance_counselors)]:
+            if user_list:
+                print(f"[DEBUG] First {user_type} user: {user_list[0].get('email', 'No email')}")
+        
+        return render_template('admin/user_management.html',
                             users=all_users,
-                            user=current_user,
                             user_counts=user_counts,
                             current_user=current_user)
     
     except Exception as e:
-        print(f"[ERROR] Error in manage_users: {str(e)}")
-        flash('An error occurred while loading user data.', 'error')
+        error_msg = f"[CRITICAL] Unhandled exception in manage_users: {str(e)}"
+        print(error_msg)
+        import traceback
+        traceback.print_exc()
+        flash('An error occurred while loading user data. Please check the logs for details.', 'error')
         return redirect(url_for('admin.dashboard'))
+    
 
 @admin_bp.route('/create-admin', methods=['GET', 'POST'])
 @login_required
@@ -638,33 +652,23 @@ def create_admin():
     
     if form.validate_on_submit():
         try:
-            # Generate a random password
-            password = generate_random_password()
-            hashed_password = generate_password_hash(password)
+            # Hash the password
+            hashed_password = generate_password_hash(form.password.data)
             
-            # Create admin data
+            # Prepare admin data
             admin_data = {
                 'email': form.email.data.lower().strip(),
-                'password': hashed_password,
-                'first_name': form.first_name.data.strip(),
-                'last_name': form.last_name.data.strip(),
-                'is_admin': True,
-                'is_super_admin': bool(form.is_super_admin.data),
-                'is_active': True,
-                'created_at': datetime.utcnow(),
-                'updated_at': datetime.utcnow()
+                'password_hash': hashed_password,
+                'full_name': f"{form.first_name.data.strip()} {form.last_name.data.strip()}",
+                'is_super_admin': form.is_super_admin.data,
+                'is_active': True
             }
             
             # Save to database
             admin = db_service.create_admin(admin_data)
             
             if admin:
-                flash(
-                    f'Admin account created successfully. Temporary password: {password}. ' \
-                    'Please change it after first login.', 
-                    'success'
-                )
-                # TODO: Send email with credentials
+                flash('Admin account created successfully!', 'success')
                 return redirect(url_for('admin.manage_users'))
             else:
                 flash('Failed to create admin account. The email may already be in use.', 'error')
@@ -681,7 +685,7 @@ def create_admin():
 @admin_required
 def create_psychologist():
     """Create a new psychologist account."""
-    form = CreatePsychologistForm(prefix='psychologist')
+    form = PsychologistForm(prefix='psychologist')
     
     if form.validate_on_submit():
         try:
@@ -896,7 +900,153 @@ def delete_user(user_type, user_id):
         flash('An error occurred while deleting the user.', 'error')
         return redirect(url_for('admin.manage_users'))
 
+@admin_bp.route('/api/users', methods=['POST'])
+@admin_bp.route('/api/users/<string:user_id>', methods=['PUT'])
+@login_required
+@admin_required
+def manage_user_api(user_id=None):
+    """API endpoint for creating or updating users."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'message': 'No data provided'}), 400
+
+        # Common user data
+        user_data = {
+            'first_name': data.get('first_name'),
+            'last_name': data.get('last_name'),
+            'email': data.get('email'),
+            'is_active': data.get('is_active', True)
+        }
+
+        # Handle password if provided
+        password = data.get('password')
+        if password:
+            if len(password) < 8:
+                return jsonify({'message': 'Password must be at least 8 characters long'}), 400
+            user_data['password_hash'] = generate_password_hash(password)
+
+        role = data.get('role')
+        if not role:
+            return jsonify({'message': 'Role is required'}), 400
+
+        # Create or update user based on role
+        if role == 'admin':
+            if user_id:
+                # Update existing admin
+                admin = db_service.get_admin(user_id)
+                if not admin:
+                    return jsonify({'message': 'Admin not found'}), 404
+                
+                # Update admin data
+                updated_admin = db_service.update_admin(user_id, user_data)
+                return jsonify({
+                    'message': 'Admin updated successfully',
+                    'user': updated_admin
+                })
+            else:
+                # Create new admin
+                if 'password' not in user_data:
+                    return jsonify({'message': 'Password is required for new admin'}), 400
+                
+                new_admin = db_service.create_admin(user_data)
+                return jsonify({
+                    'message': 'Admin created successfully',
+                    'user': new_admin
+                }), 201
+
+        elif role in ['psychologist', 'guidance_counselor']:
+            # Additional fields for mental health professionals
+            professional_data = {
+                **user_data,
+                'license_number': data.get('license_number'),
+                'specialization': data.get('specialization'),
+                'years_of_experience': data.get('years_of_experience'),
+                'bio': data.get('bio'),
+                'is_available': data.get('is_available', True)
+            }
+
+            if role == 'psychologist':
+                if user_id:
+                    # Update psychologist
+                    psych = db_service.get_psychologist(user_id)
+                    if not psych:
+                        return jsonify({'message': 'Psychologist not found'}), 404
+                    
+                    updated_psych = db_service.update_psychologist(user_id, professional_data)
+                    return jsonify({
+                        'message': 'Psychologist updated successfully',
+                        'user': updated_psych
+                    })
+                else:
+                    # Create new psychologist
+                    if 'password' not in professional_data:
+                        return jsonify({'message': 'Password is required for new psychologist'}), 400
+                    
+                    new_psych = db_service.create_psychologist(professional_data)
+                    return jsonify({
+                        'message': 'Psychologist created successfully',
+                        'user': new_psych
+                    }), 201
+            else:  # guidance_counselor
+                if user_id:
+                    # Update guidance counselor
+                    gc = db_service.get_guidance_counselor(user_id)
+                    if not gc:
+                        return jsonify({'message': 'Guidance counselor not found'}), 404
+                    
+                    updated_gc = db_service.update_guidance_counselor(user_id, professional_data)
+                    return jsonify({
+                        'message': 'Guidance counselor updated successfully',
+                        'user': updated_gc
+                    })
+                else:
+                    # Create new guidance counselor
+                    if 'password' not in professional_data:
+                        return jsonify({'message': 'Password is required for new guidance counselor'}), 400
+                    
+                    new_gc = db_service.create_guidance_counselor(professional_data)
+                    return jsonify({
+                        'message': 'Guidance counselor created successfully',
+                        'user': new_gc
+                    }), 201
+
+        elif role == 'staff':
+            if user_id:
+                # Update staff
+                staff = db_service.get_user(user_id)
+                if not staff:
+                    return jsonify({'message': 'Staff member not found'}), 404
+                
+                # Update staff data
+                updated_staff = db_service.update_user(user_id, user_data)
+                return jsonify({
+                    'message': 'Staff member updated successfully',
+                    'user': updated_staff
+                })
+            else:
+                # Create new staff
+                if 'password' not in user_data:
+                    return jsonify({'message': 'Password is required for new staff'}), 400
+                
+                new_staff = db_service.create_user({
+                    **user_data,
+                    'is_staff': True
+                })
+                return jsonify({
+                    'message': 'Staff member created successfully',
+                    'user': new_staff
+                }), 201
+
+        else:
+            return jsonify({'message': 'Invalid role'}), 400
+
+    except Exception as e:
+        current_app.logger.error(f"Error in manage_user_api: {str(e)}")
+        return jsonify({'message': 'An error occurred while processing your request'}), 500
+
 @admin_bp.route('/logout')
+@login_required
 @login_required
 def logout():
     """Handle admin logout."""

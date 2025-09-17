@@ -1,0 +1,112 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Create Admin - UNICARE{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Create Admin User</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.manage_users') }}">Users</a></li>
+        <li class="breadcrumb-item active">Create Admin</li>
+    </ol>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-user-plus me-1"></i>
+            New Admin Details
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.create_admin') }}">
+                {{ form.hidden_tag() }}
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="Enter email") }}
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.email.errors[0] }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-3">
+                        <label for="first_name" class="form-label">First Name</label>
+                        {{ form.first_name(class="form-control" + (" is-invalid" if form.first_name.errors else ""), placeholder="First name") }}
+                        {% if form.first_name.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.first_name.errors[0] }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="last_name" class="form-label">Last Name</label>
+                        {{ form.last_name(class="form-control" + (" is-invalid" if form.last_name.errors else ""), placeholder="Last name") }}
+                        {% if form.last_name.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.last_name.errors[0] }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="Create a strong password") }}
+                        {% if form.password.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.password.errors[0] }}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">Must be at least 8 characters with uppercase, lowercase, and number</div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Confirm your password") }}
+                        {% if form.confirm_password.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.confirm_password.errors[0] }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-check form-switch mb-4">
+                    {{ form.is_super_admin(class="form-check-input", role="switch") }}
+                    <label class="form-check-label" for="is_super_admin">Grant Super Admin Privileges</label>
+                    <div class="form-text">Super admins have full access to all administrative functions.</div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button type="reset" class="btn btn-outline-secondary me-md-2">
+                        <i class="bi bi-x-circle me-1"></i> Reset
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> Create Admin
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize any additional JavaScript here
+        console.log('Admin creation form loaded');
+        
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

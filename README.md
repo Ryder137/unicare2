@@ -16,38 +16,152 @@ UNICARE is a comprehensive digital support system designed to help students mana
 ## Tech Stack
 
 - Frontend: HTML5, CSS3, JavaScript (Vanilla)
-- Backend: Python 3.x, Flask
+- Backend: Python 3.8+, Flask
 - Database: MongoDB
 - AI: OpenAI API for chatbot functionality
 - Authentication: Flask-Login
 - Charts: Chart.js for data visualization
 
+## Project Structure
+
+```
+unicare/
+├── __init__.py         # Application factory and extensions
+├── run.py             # Development server entry point
+├── wsgi.py           # Production WSGI entry point
+├── config.py         # Configuration settings
+├── requirements.txt  # Production dependencies
+├── requirements-dev.txt  # Development dependencies
+├── .env.example     # Example environment variables
+├── .gitignore
+└── README.md
+```
+
 ## Setup and Installation
 
-1. Prerequisites:
-   - Python 3.8 or higher
-   - MongoDB
-   - Git
+### Prerequisites
+- Python 3.8 or higher
+- MongoDB 4.4 or higher
+- Git
 
-2. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/unicare.git
-   cd unicare
-   ```
+### 1. Clone the Repository
+```bash
+git clone https://github.com/yourusername/unicare.git
+cd unicate
+```
 
-3. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 2. Create and Activate Virtual Environment
+```bash
+# On Windows
+python -m venv venv
+.\venv\Scripts\activate
 
-4. Set up environment variables:
-   Create a `.env` file in the root directory with:
-   ```
-   FLASK_SECRET_KEY=your_secret_key_here
-   MONGODB_URI=mongodb://localhost:27017/unicare
-   ```
+# On macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
 
-5. Start the application:
+### 3. Install Dependencies
+```bash
+# Install production dependencies
+pip install -r requirements.txt
+
+# For development, also install:
+pip install -r requirements-dev.txt
+```
+
+### 4. Configure Environment Variables
+Copy the example environment file and update the values:
+```bash
+cp .env.example .env
+```
+
+Edit the `.env` file with your configuration:
+```
+FLASK_APP=wsgi.py
+FLASK_ENV=development
+FLASK_DEBUG=1
+FLASK_SECRET_KEY=your-secret-key-here
+MONGODB_URI=mongodb://localhost:27017/unicare
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=1
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+```
+
+### 5. Initialize the Database
+```bash
+# Create the database and collections
+python -m scripts.init_db
+```
+
+### 6. Run the Application
+```bash
+# Development server
+python run.py
+
+# Or using Flask CLI
+flask run
+```
+
+The application will be available at `http://localhost:5000`
+
+### 7. Access Admin Interface
+1. Open `http://localhost:5000/admin`
+2. Login with the default admin credentials (or create a new admin user)
+
+## Development
+
+### Running Tests
+```bash
+pytest
+```
+
+### Code Formatting
+```bash
+# Auto-format code
+black .
+
+# Check for style issues
+flake8
+```
+
+### Database Migrations
+```bash
+# Create a new migration
+alembic revision --autogenerate -m "description of changes"
+
+# Apply migrations
+alembic upgrade head
+```
+
+## Deployment
+
+### Production with Gunicorn
+```bash
+gunicorn --bind 0.0.0.0:5000 wsgi:app
+```
+
+### Environment Variables for Production
+Make sure to set these in your production environment:
+- `FLASK_ENV=production`
+- `FLASK_DEBUG=0`
+- `SECRET_KEY` (a secure random string)
+- `MONGODB_URI` (production MongoDB connection string)
+- Other production-specific settings
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
    ```bash
    python app.py
    ```
