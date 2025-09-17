@@ -11,7 +11,7 @@ def test_supabase_connection():
         
         # Get Supabase credentials
         supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_ANON_KEY')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
         
         if not supabase_url or not supabase_key:
             print("❌ Missing Supabase credentials in .env file")

@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Dashboard - UniCare{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('admin.staff_dashboard') }}">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.manage_users') }}">
+                            <i class="bi bi-people me-2"></i>
+                            Manage Users
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.manage_appointments') }}">
+                            <i class="bi bi-calendar-check me-2"></i>
+                            Appointments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.reports') }}">
+                            <i class="bi bi-graph-up me-2"></i>
+                            Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.settings') }}">
+                            <i class="bi bi-gear me-2"></i>
+                            Settings
+                        </a>
+                    </li>
+                </ul>
+                
+                <hr>
+                
+                <div class="dropdown px-3">
+                    <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="{{ current_user.avatar_url or url_for('static', filename='img/default-avatar.png') }}" alt="" width="32" height="32" class="rounded-circle me-2">
+                        <strong>{{ current_user.first_name }} {{ current_user.last_name }}</strong>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="{{ url_for('admin.profile') }}">Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin.settings') }}">Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Sign out</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Staff Dashboard</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
+                            <i class="bi bi-calendar"></i> This week
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Users</h5>
+                            <h2 class="mb-0">156</h2>
+                            <p class="card-text">+12 this month</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-success">
+                        <div class="card-body">
+                            <h5 class="card-title">Active Appointments</h5>
+                            <h2 class="mb-0">24</h2>
+                            <p class="card-text">5 pending approval</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body">
+                            <h5 class="card-title">Pending Requests</h5>
+                            <h2 class="mb-0">8</h2>
+                            <p class="card-text">Needs review</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-info">
+                        <div class="card-body">
+                            <h5 class="card-title">System Status</h5>
+                            <h2 class="mb-0">Online</h2>
+                            <p class="card-text">All systems operational</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>User</th>
+                                    <th>Activity</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>10:23 AM</td>
+                                    <td>John Doe</td>
+                                    <td>New registration</td>
+                                    <td>Client account created</td>
+                                </tr>
+                                <tr>
+                                    <td>9:45 AM</td>
+                                    <td>Jane Smith</td>
+                                    <td>Appointment booked</td>
+                                    <td>With Dr. Johnson at 2:00 PM</td>
+                                </tr>
+                                <tr>
+                                    <td>Yesterday</td>
+                                    <td>System</td>
+                                    <td>Backup completed</td>
+                                    <td>Database backup successful</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin.add_user') }}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-person-plus me-2"></i>Add New User
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin.manage_appointments') }}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-calendar-plus me-2"></i>Schedule Appointment
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin.reports') }}" class="btn btn-outline-info w-100">
+                                <i class="bi bi-file-earmark-bar-graph me-2"></i>Generate Report
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin.system_settings') }}" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-gear me-2"></i>System Settings
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Include any additional scripts needed for the dashboard -->
+<script>
+// Initialize tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+})
+</script>
+{% endblock %}

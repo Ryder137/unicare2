@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Psychologist Dashboard - UniCare{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('psychologist.dashboard') }}">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('psychologist.appointments') }}">
+                            <i class="bi bi-calendar-check me-2"></i>
+                            Appointments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('psychologist.clients') }}">
+                            <i class="bi bi-people me-2"></i>
+                            Clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('psychologist.assessments') }}">
+                            <i class="bi bi-clipboard-data me-2"></i>
+                            Assessments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('psychologist.profile') }}">
+                            <i class="bi bi-person me-2"></i>
+                            Profile
+                        </a>
+                    </li>
+                </ul>
+                
+                <hr>
+                
+                <div class="dropdown px-3">
+                    <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="{{ current_user.avatar_url or url_for('static', filename='img/default-avatar.png') }}" alt="" width="32" height="32" class="rounded-circle me-2">
+                        <strong>{{ current_user.first_name }} {{ current_user.last_name }}</strong>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="{{ url_for('psychologist.profile') }}">Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('psychologist.settings') }}">Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Sign out</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Dashboard</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
+                        <i class="bi bi-calendar"></i> This week
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body">
+                            <h5 class="card-title">Upcoming Appointments</h5>
+                            <h2 class="mb-0">5</h2>
+                            <p class="card-text">2 today</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-success">
+                        <div class="card-body">
+                            <h5 class="card-title">Active Clients</h5>
+                            <h2 class="mb-0">24</h2>
+                            <p class="card-text">+3 this month</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body">
+                            <h5 class="card-title">Pending Requests</h5>
+                            <h2 class="mb-0">3</h2>
+                            <p class="card-text">Needs review</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-info">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Sessions</h5>
+                            <h2 class="mb-0">156</h2>
+                            <p class="card-text">This year</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Appointments -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Upcoming Appointments</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Client</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Today, 2:00 PM</td>
+                                    <td>John Doe</td>
+                                    <td>Video Call</td>
+                                    <td><span class="badge bg-success">Confirmed</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline-secondary">Reschedule</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Today, 4:30 PM</td>
+                                    <td>Jane Smith</td>
+                                    <td>In-Person</td>
+                                    <td><span class="badge bg-warning">Pending</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline-secondary">Reschedule</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Tomorrow, 10:00 AM</td>
+                                    <td>Alex Johnson</td>
+                                    <td>Phone Call</td>
+                                    <td><span class="badge bg-success">Confirmed</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline-secondary">Reschedule</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-end mt-3">
+                        <a href="{{ url_for('psychologist.appointments') }}" class="btn btn-primary">View All Appointments</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">New assessment completed</h6>
+                                <small class="text-muted">2 hours ago</small>
+                            </div>
+                            <p class="mb-1">John Doe has completed the anxiety assessment.</p>
+                            <small class="text-muted">View results</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">New appointment scheduled</h6>
+                                <small class="text-muted">5 hours ago</small>
+                            </div>
+                            <p class="mb-1">Jane Smith has scheduled an appointment for Friday.</p>
+                            <small class="text-muted">View details</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Session notes updated</h6>
+                                <small class="text-muted">Yesterday</small>
+                            </div>
+                            <p class="mb-1">You've updated the notes for Alex Johnson's session.</p>
+                            <small class="text-muted">View notes</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Include any additional scripts needed for the dashboard -->
+{% endblock %}
