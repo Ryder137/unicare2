@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block title %}Guidance Counselor Dashboard - UniCare{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <div class="text-center mb-4">
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="UniCare Logo" class="img-fluid mb-2" style="max-height: 40px;">
+                    <h5 class="text-muted">Guidance Portal</h5>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('guidance.dashboard') }}">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.students') }}">
+                            <i class="bi bi-people me-2"></i>
+                            Students
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.appointments') }}">
+                            <i class="bi bi-calendar-check me-2"></i>
+                            Appointments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.assessments') }}">
+                            <i class="bi bi-clipboard-data me-2"></i>
+                            Assessments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.resources') }}">
+                            <i class="bi bi-collection me-2"></i>
+                            Resources
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.profile') }}">
+                            <i class="bi bi-person me-2"></i>
+                            Profile
+                        </a>
+                    </li>
+                </ul>
+                
+                <hr>
+                
+                <div class="dropdown px-3">
+                    <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="{{ current_user.avatar_url or url_for('static', filename='img/default-avatar.png') }}" alt="" width="32" height="32" class="rounded-circle me-2">
+                        <strong>{{ current_user.first_name }} {{ current_user.last_name }}</strong>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="{{ url_for('guidance.profile') }}">Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('guidance.settings') }}">Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Sign out</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <!-- Welcome Header -->
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+                <div>
+                    <h1 class="h2 mb-0">Welcome back, {{ current_user.first_name }}!</h1>
+                    <p class="text-muted mb-0">Here's what's happening with your students today.</p>
+                </div>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-calendar"></i> This week
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#">Today</a></li>
+                            <li><a class="dropdown-item" href="#">This Week</a></li>
+                            <li><a class="dropdown-item" href="#">This Month</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#">Custom Range</a></li>
+                        </ul>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newAppointmentModal">
+                        <i class="bi bi-plus-circle"></i> New Appointment
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-primary h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title text-uppercase small">Total Students</h6>
+                                    <h2 class="mb-0">142</h2>
+                                </div>
+                                <div class="icon-circle">
+                                    <i class="bi bi-people-fill"></i>
+                                </div>
+                            </div>
+                            <p class="card-text small mt-2"><i class="bi bi-arrow-up"></i> 5.2% from last month</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-success h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title text-uppercase small">Today's Appointments</h6>
+                                    <h2 class="mb-0">8</h2>
+                                </div>
+                                <div class="icon-circle">
+                                    <i class="bi bi-calendar-check"></i>
+                                </div>
+                            </div>
+                            <p class="card-text small mt-2">2 pending, 6 confirmed</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-warning h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title text-uppercase small">Pending Actions</h6>
+                                    <h2 class="mb-0">5</h2>
+                                </div>
+                                <div class="icon-circle">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
+                            </div>
+                            <p class="card-text small mt-2">3 assessments, 2 referrals</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-info h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title text-uppercase small">Student Satisfaction</h6>
+                                    <h2 class="mb-0">4.8</h2>
+                                </div>
+                                <div class="icon-circle">
+                                    <i class="bi bi-star-fill"></i>
+                                </div>
+                            </div>
+                            <p class="card-text small mt-2">Based on 28 reviews</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Schedule -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Today's Schedule</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Meeting with Student</h6>
+                                    <small class="text-muted">9:00 AM - 9:45 AM</small>
+                                </div>
+                                <p class="mb-1">John Smith - Academic Advising</p>
+                                <small class="text-muted">Room 205</small>
+                            </div>
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Group Session</h6>
+                                    <small class="text-muted">11:00 AM - 12:00 PM</small>
+                                </div>
+                                <p class="mb-1">Stress Management Workshop</p>
+                                <small class="text-muted">Guidance Office</small>
+                            </div>
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Parent Meeting</h6>
+                                    <small class="text-muted">2:30 PM - 3:15 PM</small>
+                                </div>
+                                <p class="mb-1">Sarah Johnson (Parent of Emily Johnson)</p>
+                                <small class="text-muted">Conference Room B</small>
+                            </div>
+                        </div>
+                        <div class="text-end mt-3">
+                            <a href="{{ url_for('guidance.appointments') }}" class="btn btn-outline-primary btn-sm">View All Appointments</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Alerts -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Alerts & Notifications</h5>
+                        <span class="badge bg-danger">3 New</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group list-group-flush">
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1 text-danger">New Assessment Submitted</h6>
+                                    <small>1 hour ago</small>
+                                </div>
+                                <p class="mb-1">Michael Brown has completed the anxiety assessment.</p>
+                                <small>Click to view results</small>
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Meeting Request</h6>
+                                    <small>3 hours ago</small>
+                                </div>
+                                <p class="mb-1">Emily Chen has requested an appointment.</p>
+                                <small>Click to respond</small>
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Follow-up Required</h6>
+                                    <small>Yesterday</small>
+                                </div>
+                                <p class="mb-1">Follow up with David Wilson regarding last session.</p>
+                                <small>Due: Tomorrow</small>
+                            </a>
+                        </div>
+                        <div class="text-end mt-3">
+                            <a href="#" class="btn btn-outline-secondary btn-sm">View All Alerts</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('guidance.add_student') }}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-person-plus me-2"></i>Add Student
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('guidance.schedule_appointment') }}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-calendar-plus me-2"></i>Schedule Meeting
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('guidance.create_report') }}" class="btn btn-outline-info w-100">
+                                <i class="bi bi-file-earmark-text me-2"></i>Create Report
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('guidance.resources') }}" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-collection me-2"></i>View Resources
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    }
+    
+    .nav-pills .nav-link {
+        color: #495057;
+    }
+    
+    .nav-pills .nav-link.active {
+        font-weight: 500;
+    }
+    
+    .sidebar {
+        background-color: #f8f9fa;
+        border-right: 1px solid #e9ecef;
+    }
+    
+    .sidebar .nav-link {
+        color: #333;
+        border-radius: 0.25rem;
+        margin: 0.25rem 0.5rem;
+    }
+    
+    .sidebar .nav-link:hover {
+        background-color: #e9ecef;
+    }
+    
+    .sidebar .nav-link.active {
+        background-color: #0d6efd;
+        color: white;
+    }
+    
+    .sidebar .nav-link i {
+        width: 20px;
+        text-align: center;
+        margin-right: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Initialize tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+});
+
+// Initialize charts
+document.addEventListener('DOMContentLoaded', function() {
+    // Appointments Chart
+    const ctx1 = document.getElementById('appointmentsChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Appointments',
+                data: [5, 7, 8, 6, 9, 2, 0],
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 2
+                    }
+                }
+            }
+        }
+    });
+    
+    // Student Status Chart
+    const ctx2 = document.getElementById('studentStatusChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: ['Good Standing', 'Needs Attention', 'At Risk'],
+            datasets: [{
+                data: [85, 10, 5],
+                backgroundColor: ['#198754', '#ffc107', '#dc3545'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

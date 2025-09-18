@@ -1,0 +1,326 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manage Appointments - UniCare{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+<style>
+    .fc-event {
+        cursor: pointer;
+    }
+    .appointment-badge {
+        font-size: 0.75rem;
+    }
+    .fc-toolbar-title {
+        font-size: 1.25rem;
+    }
+    .fc-button {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Manage Appointments</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{{ url_for('appointment.new_appointment') }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-circle"></i> New Appointment
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="appointmentTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="calendar-tab" data-bs-toggle="tab" data-bs-target="#calendar-view" type="button" role="tab">
+                                <i class="bi bi-calendar3"></i> Calendar View
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="list-tab" data-bs-toggle="tab" data-bs-target="#list-view" type="button" role="tab">
+                                <i class="bi bi-list-ul"></i> List View
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="appointmentTabsContent">
+                        <!-- Calendar View -->
+                        <div class="tab-pane fade show active" id="calendar-view" role="tabpanel">
+                            <div id="calendar"></div>
+                        </div>
+                        
+                        <!-- List View -->
+                        <div class="tab-pane fade" id="list-view" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="appointmentsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Date & Time</th>
+                                            <th>Title</th>
+                                            <th>Student</th>
+                                            <th>Professional</th>
+                                            <th>Type</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for appt in appointments %}
+                                        <tr>
+                                            <td>
+                                                <div>{{ appt.start_time.strftime('%b %d, %Y') }}</div>
+                                                <small class="text-muted">{{ appt.start_time.strftime('%I:%M %p') }} - {{ appt.end_time.strftime('%I:%M %p') }}</small>
+                                            </td>
+                                            <td>{{ appt.title }}</td>
+                                            <td>{{ appt.student.first_name }} {{ appt.student.last_name }}</td>
+                                            <td>{{ appt.get_professional_name() }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'info' if appt.professional_type == 'guidance' else 'primary' }}">
+                                                    {{ appt.professional_type|title }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if appt.status == 'scheduled' else 'secondary' if appt.status == 'completed' else 'danger' if appt.status == 'cancelled' else 'warning' }}">
+                                                    {{ appt.status|title }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary view-appointment" data-id="{{ appt.id }}">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    <a href="#" class="btn btn-outline-secondary edit-appointment" data-id="{{ appt.id }}">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <button class="btn btn-outline-danger cancel-appointment" data-id="{{ appt.id }}" {{ 'disabled' if appt.status == 'cancelled' }}>
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">No appointments found.</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Appointment Modal -->
+<div class="modal fade" id="viewAppointmentModal" tabindex="-1" aria-labelledby="viewAppointmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewAppointmentModalLabel">Appointment Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h6 class="text-muted">Title</h6>
+                    <p id="appointment-title"></p>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Date & Time</h6>
+                        <p id="appointment-time"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Status</h6>
+                        <p><span id="appointment-status" class="badge"></span></p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Student</h6>
+                        <p id="appointment-student"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Professional</h6>
+                        <p id="appointment-professional"></p>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-muted">Description</h6>
+                    <p id="appointment-description" class="text-muted">No description provided.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="edit-appointment-btn">Edit</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize FullCalendar
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: [
+            {% for appt in appointments %}
+            {
+                id: '{{ appt.id }}',
+                title: '{{ appt.title }} - {{ appt.student.first_name }}',
+                start: '{{ appt.start_time.isoformat() }}',
+                end: '{{ appt.end_time.isoformat() }}',
+                backgroundColor: '{{ "#0d6efd" if appt.professional_type == "guidance" else "#6610f2" }}',
+                borderColor: '{{ "#0d6efd" if appt.professional_type == "guidance" else "#6610f2" }}',
+                extendedProps: {
+                    description: '{{ appt.description|default("")|replace("'", "\\'")|safe }}',
+                    student: '{{ appt.student.first_name }} {{ appt.student.last_name }}',
+                    professional: '{{ appt.get_professional_name() }}',
+                    type: '{{ appt.professional_type|title }}',
+                    status: '{{ appt.status|title }}'
+                }
+            },
+            {% endfor %}
+        ],
+        eventClick: function(info) {
+            const event = info.event;
+            const modal = new bootstrap.Modal(document.getElementById('viewAppointmentModal'));
+            
+            document.getElementById('appointment-title').textContent = event.title.split(' - ')[0];
+            document.getElementById('appointment-time').textContent = 
+                `${event.start.toLocaleString()} - ${event.end.toLocaleTimeString()}`;
+            document.getElementById('appointment-status').textContent = event.extendedProps.status;
+            document.getElementById('appointment-status').className = 
+                `badge bg-${event.extendedProps.status === 'Scheduled' ? 'success' : 'secondary'}`;
+            document.getElementById('appointment-student').textContent = event.extendedProps.student;
+            document.getElementById('appointment-professional').textContent = event.extendedProps.professional;
+            document.getElementById('appointment-description').textContent = 
+                event.extendedProps.description || 'No description provided.';
+                
+            document.getElementById('edit-appointment-btn').onclick = function() {
+                window.location.href = `/staff/appointments/${event.id}/edit`;
+            };
+            
+            modal.show();
+        },
+        eventTimeFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        },
+        slotMinTime: '08:00:00',
+        slotMaxTime: '18:00:00',
+        firstDay: 1, // Monday
+        height: 'auto',
+        nowIndicator: true,
+        navLinks: true,
+        selectable: true,
+        selectMirror: true,
+        select: function(arg) {
+            // Redirect to new appointment with pre-filled dates
+            const start = arg.startStr.replace(/\..*$/, ''); // Remove milliseconds
+            const end = arg.endStr.replace(/\.\d+Z?$/, '');
+            window.location.href = `/staff/appointments/new?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+            calendar.unselect();
+        },
+        editable: true,
+        dayMaxEvents: true,
+    });
+    
+    calendar.render();
+    
+    // Handle cancel appointment
+    document.querySelectorAll('.cancel-appointment').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const appointmentId = this.getAttribute('data-id');
+            if (confirm('Are you sure you want to cancel this appointment?')) {
+                fetch(`/api/appointments/${appointmentId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert('Error cancelling appointment: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while cancelling the appointment.');
+                });
+            }
+        });
+    });
+    
+    // Handle view appointment
+    document.querySelectorAll('.view-appointment').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const appointmentId = this.getAttribute('data-id');
+            fetch(`/api/appointments/${appointmentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const appt = data.appointment;
+                    const modal = new bootstrap.Modal(document.getElementById('viewAppointmentModal'));
+                    
+                    document.getElementById('appointment-title').textContent = appt.title;
+                    document.getElementById('appointment-time').textContent = 
+                        `${new Date(appt.start_time).toLocaleString()} - ${new Date(appt.end_time).toLocaleTimeString()}`;
+                    document.getElementById('appointment-status').textContent = appt.status;
+                    document.getElementById('appointment-status').className = 
+                        `badge bg-${appt.status === 'scheduled' ? 'success' : 'secondary'}`;
+                    document.getElementById('appointment-student').textContent = appt.student_name;
+                    document.getElementById('appointment-professional').textContent = appt.professional_name;
+                    document.getElementById('appointment-description').textContent = 
+                        appt.description || 'No description provided.';
+                        
+                    document.getElementById('edit-appointment-btn').onclick = function() {
+                        window.location.href = `/staff/appointments/${appt.id}/edit`;
+                    };
+                    
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while fetching appointment details.');
+                });
+        });
+    });
+    
+    // Initialize DataTable for list view
+    if (document.getElementById('appointmentsTable')) {
+        $('#appointmentsTable').DataTable({
+            order: [[0, 'asc']],
+            pageLength: 10,
+            responsive: true,
+            columnDefs: [
+                { orderable: false, targets: -1 } // Disable sorting on actions column
+            ]
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,907 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - Guidance Counselor Dashboard - UniCare{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.dashboard') }}">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.students') }}">
+                            <i class="bi bi-people me-2"></i>
+                            Students
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.appointments') }}">
+                            <i class="bi bi-calendar-check me-2"></i>
+                            Appointments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.assessments') }}">
+                            <i class="bi bi-clipboard-data me-2"></i>
+                            Assessments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.resources') }}">
+                            <i class="bi bi-collection me-2"></i>
+                            Resources
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('guidance.profile') }}">
+                            <i class="bi bi-person me-2"></i>
+                            Profile
+                        </a>
+                    </li>
+                </ul>
+                
+                <hr>
+                
+                <div class="dropdown px-3">
+                    <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="{{ current_user.avatar_url or url_for('static', filename='img/default-avatar.png') }}" alt="" width="32" height="32" class="rounded-circle me-2">
+                        <strong>{{ current_user.first_name }} {{ current_user.last_name }}</strong>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item active" href="{{ url_for('guidance.profile') }}">Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('guidance.settings') }}">Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Sign out</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">My Profile</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="editProfileBtn">
+                        <i class="bi bi-pencil"></i> Edit Profile
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary" id="saveProfileBtn" style="display: none;">
+                        <i class="bi bi-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Profile Picture & Basic Info -->
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-body text-center">
+                            <div class="position-relative d-inline-block mb-3">
+                                <img src="{{ current_user.avatar_url or url_for('static', filename='img/default-avatar.png') }}" 
+                                     class="rounded-circle" 
+                                     width="150" 
+                                     height="150"
+                                     alt="Profile Picture"
+                                     id="profilePicture">
+                                <button class="btn btn-sm btn-primary position-absolute bottom-0 end-0 rounded-circle" 
+                                        style="width: 36px; height: 36px;"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#changePictureModal">
+                                    <i class="bi bi-camera"></i>
+                                </button>
+                            </div>
+                            <h4 id="displayName">{{ current_user.first_name }} {{ current_user.last_name }}</h4>
+                            <p class="text-muted mb-1">Guidance Counselor</p>
+                            <p class="text-muted" id="displayDepartment">Student Guidance and Counseling Office</p>
+                            
+                            <div class="d-flex justify-content-center gap-2 mt-3">
+                                <a href="#" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-envelope"></i> Message
+                                </a>
+                                <a href="#" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-calendar"></i> Schedule
+                                </a>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="text-start">
+                                <h6 class="mb-3">Contact Information</h6>
+                                <p class="mb-1">
+                                    <i class="bi bi-envelope me-2"></i>
+                                    <span id="displayEmail">{{ current_user.email or 'N/A' }}</span>
+                                </p>
+                                <p class="mb-1">
+                                    <i class="bi bi-telephone me-2"></i>
+                                    <span id="displayPhone">{{ current_user.phone or 'N/A' }}</span>
+                                </p>
+                                <p class="mb-0">
+                                    <i class="bi bi-geo-alt me-2"></i>
+                                    <span id="displayOffice">Guidance Office, Main Building</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Availability -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Office Hours</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled mb-0" id="officeHoursList">
+                                <li class="d-flex justify-content-between py-1">
+                                    <span>Monday</span>
+                                    <span>8:00 AM - 5:00 PM</span>
+                                </li>
+                                <li class="d-flex justify-content-between py-1">
+                                    <span>Tuesday</span>
+                                    <span>8:00 AM - 5:00 PM</span>
+                                </li>
+                                <li class="d-flex justify-content-between py-1">
+                                    <span>Wednesday</span>
+                                    <span>8:00 AM - 5:00 PM</span>
+                                </li>
+                                <li class="d-flex justify-content-between py-1">
+                                    <span>Thursday</span>
+                                    <span>8:00 AM - 5:00 PM</span>
+                                </li>
+                                <li class="d-flex justify-content-between py-1">
+                                    <span>Friday</span>
+                                    <span>8:00 AM - 12:00 PM</span>
+                                </li>
+                                <li class="d-flex justify-content-between py-1">
+                                    <span>Saturday</span>
+                                    <span>Not Available</span>
+                                </li>
+                                <li class="d-flex justify-content-between py-1">
+                                    <span>Sunday</span>
+                                    <span>Not Available</span>
+                                </li>
+                            </ul>
+                            <button class="btn btn-sm btn-outline-primary w-100 mt-2" id="editOfficeHoursBtn">
+                                <i class="bi bi-pencil"></i> Edit Hours
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Profile Details -->
+                <div class="col-md-8">
+                    <!-- Edit Profile Form (Initially Hidden) -->
+                    <div class="card mb-4" id="editProfileForm" style="display: none;">
+                        <div class="card-header">
+                            <h6 class="mb-0">Edit Profile Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="profileForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="firstName" class="form-label">First Name</label>
+                                        <input type="text" class="form-control" id="firstName" value="{{ current_user.first_name }}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="lastName" class="form-label">Last Name</label>
+                                        <input type="text" class="form-control" id="lastName" value="{{ current_user.last_name }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="email" value="{{ current_user.email }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="phone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="phone" value="{{ current_user.phone or '' }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="department" class="form-label">Department</label>
+                                    <input type="text" class="form-control" id="department" value="Student Guidance and Counseling Office">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="officeLocation" class="form-label">Office Location</label>
+                                    <input type="text" class="form-control" id="officeLocation" value="Guidance Office, Main Building">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="bio" class="form-label">Bio</label>
+                                    <textarea class="form-control" id="bio" rows="4" placeholder="Tell us about yourself..."></textarea>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="emailNotifications" checked>
+                                    <label class="form-check-label" for="emailNotifications">Receive email notifications</label>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="smsNotifications">
+                                    <label class="form-check-label" for="smsNotifications">Receive SMS notifications</label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- Profile Tabs -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <ul class="nav nav-tabs card-header-tabs" id="profileTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
+                                        <i class="bi bi-person-lines-fill me-1"></i> Overview
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab" aria-controls="activity" aria-selected="false">
+                                        <i class="bi bi-activity me-1"></i> Activity
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab" aria-controls="documents" aria-selected="false">
+                                        <i class="bi bi-files me-1"></i> Documents
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content" id="profileTabsContent">
+                                <!-- Overview Tab -->
+                                <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+                                    <h5 class="mb-3">About Me</h5>
+                                    <p id="profileBio">
+                                        I am a dedicated guidance counselor with over 8 years of experience helping students navigate academic, personal, and social challenges. 
+                                        My approach focuses on creating a supportive environment where students feel heard and empowered to achieve their full potential.
+                                    </p>
+                                    
+                                    <hr>
+                                    
+                                    <h5 class="mb-3">Areas of Expertise</h5>
+                                    <div class="mb-3">
+                                        <span class="badge bg-primary me-1 mb-1">Academic Advising</span>
+                                        <span class="badge bg-primary me-1 mb-1">Career Counseling</span>
+                                        <span class="badge bg-primary me-1 mb-1">Mental Health Support</span>
+                                        <span class="badge bg-primary me-1 mb-1">College Applications</span>
+                                        <span class="badge bg-primary me-1 mb-1">Crisis Intervention</span>
+                                    </div>
+                                    
+                                    <hr>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h5 class="mb-3">Contact Information</h5>
+                                            <p class="mb-1">
+                                                <i class="bi bi-envelope me-2"></i>
+                                                <span id="displayEmail2">{{ current_user.email or 'N/A' }}</span>
+                                            </p>
+                                            <p class="mb-1">
+                                                <i class="bi bi-telephone me-2"></i>
+                                                <span id="displayPhone2">{{ current_user.phone or 'N/A' }}</span>
+                                            </p>
+                                            <p class="mb-0">
+                                                <i class="bi bi-geo-alt me-2"></i>
+                                                <span id="displayOffice2">Guidance Office, Main Building</span>
+                                            </p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h5 class="mb-3">Office Hours</h5>
+                                            <p class="mb-1">Monday - Thursday: 8:00 AM - 5:00 PM</p>
+                                            <p class="mb-1">Friday: 8:00 AM - 12:00 PM</p>
+                                            <p class="mb-0">Weekends: Closed</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Activity Tab -->
+                                <div class="tab-pane fade" id="activity" role="tabpanel" aria-labelledby="activity-tab">
+                                    <div class="list-group list-group-flush">
+                                        <div class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">Meeting with Sarah Johnson</h6>
+                                                <small class="text-muted">Today, 2:30 PM</small>
+                                            </div>
+                                            <p class="mb-1">Career counseling session - discussed college options and application process.</p>
+                                            <small class="text-muted">Status: Completed</small>
+                                        </div>
+                                        <div class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">Group Workshop: Stress Management</h6>
+                                                <small class="text-muted">Yesterday, 10:00 AM</small>
+                                            </div>
+                                            <p class="mb-1">Conducted a workshop for Grade 11 students on stress management techniques.</p>
+                                            <small class="text-muted">Attendees: 24 students</small>
+                                        </div>
+                                        <div class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">Assessment Reviewed</h6>
+                                                <small class="text-muted">Oct 14, 2023</small>
+                                            </div>
+                                            <p class="mb-1">Reviewed and scored anxiety assessment for John Smith.</p>
+                                            <small class="text-muted">Score: 14/21 (Moderate Anxiety)</small>
+                                        </div>
+                                        <!-- More activity items would go here -->
+                                    </div>
+                                    <div class="text-center mt-3">
+                                        <button class="btn btn-outline-primary btn-sm">View All Activity</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Documents Tab -->
+                                <div class="tab-pane fade" id="documents" role="tabpanel" aria-labelledby="documents-tab">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Document Name</th>
+                                                    <th>Type</th>
+                                                    <th>Date Uploaded</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Professional Development Certificate.pdf</td>
+                                                    <td>PDF</td>
+                                                    <td>Oct 10, 2023</td>
+                                                    <td>
+                                                        <div class="btn-group btn-group-sm">
+                                                            <button class="btn btn-outline-primary">
+                                                                <i class="bi bi-eye"></i>
+                                                            </button>
+                                                            <button class="btn btn-outline-secondary">
+                                                                <i class="bi bi-download"></i>
+                                                            </button>
+                                                            <button class="btn btn-outline-danger">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <!-- More document rows would go here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="text-center mt-3">
+                                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadDocumentModal">
+                                            <i class="bi bi-upload"></i> Upload Document
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Cards -->
+                    <div class="row">
+                        <div class="col-md-6 col-xl-3 mb-4">
+                            <div class="card bg-primary text-white h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-uppercase mb-1">Students</h6>
+                                            <h2 class="mb-0">142</h2>
+                                        </div>
+                                        <div class="icon-circle">
+                                            <i class="bi bi-people-fill"></i>
+                                        </div>
+                                    </div>
+                                    <div class="small mt-2">
+                                        <i class="bi bi-arrow-up"></i> 12% from last month
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-xl-3 mb-4">
+                            <div class="card bg-success text-white h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-uppercase mb-1">Appointments</h6>
+                                            <h2 class="mb-0">28</h2>
+                                        </div>
+                                        <div class="icon-circle">
+                                            <i class="bi bi-calendar-check"></i>
+                                        </div>
+                                    </div>
+                                    <div class="small mt-2">
+                                        <i class="bi bi-arrow-up"></i> 5 this week
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-xl-3 mb-4">
+                            <div class="card bg-warning text-dark h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-uppercase mb-1">Assessments</h6>
+                                            <h2 class="mb-0">45</h2>
+                                        </div>
+                                        <div class="icon-circle">
+                                            <i class="bi bi-clipboard-data"></i>
+                                        </div>
+                                    </div>
+                                    <div class="small mt-2">
+                                        <i class="bi bi-arrow-down"></i> 2% from last month
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-xl-3 mb-4">
+                            <div class="card bg-info text-white h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-uppercase mb-1">Satisfaction</h6>
+                                            <h2 class="mb-0">4.8</h2>
+                                        </div>
+                                        <div class="icon-circle">
+                                            <i class="bi bi-star-fill"></i>
+                                        </div>
+                                    </div>
+                                    <div class="small mt-2">
+                                        <i class="bi bi-arrow-up"></i> 0.2 from last month
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Change Profile Picture Modal -->
+<div class="modal fade" id="changePictureModal" tabindex="-1" aria-labelledby="changePictureModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePictureModalLabel">Change Profile Picture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <img src="{{ current_user.avatar_url or url_for('static', filename='img/default-avatar.png') }}" 
+                         class="img-fluid rounded-circle mb-3" 
+                         id="profileImagePreview" 
+                         style="width: 200px; height: 200px; object-fit: cover;">
+                </div>
+                <div class="mb-3">
+                    <input type="file" class="form-control" id="profileImageUpload" accept="image/*">
+                    <div class="form-text">Recommended size: 400x400px (JPG, PNG, or GIF)</div>
+                </div>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-outline-secondary" id="removePictureBtn">
+                        <i class="bi bi-trash"></i> Remove
+                    </button>
+                    <button type="button" class="btn btn-primary" id="savePictureBtn">
+                        <i class="bi bi-upload"></i> Upload
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Document Modal -->
+<div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-labelledby="uploadDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadDocumentModalLabel">Upload Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="documentUploadForm">
+                    <div class="mb-3">
+                        <label for="documentName" class="form-label">Document Name</label>
+                        <input type="text" class="form-control" id="documentName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="documentType" class="form-label">Document Type</label>
+                        <select class="form-select" id="documentType" required>
+                            <option value="">Select Type</option>
+                            <option value="certificate">Certificate</option>
+                            <option value="transcript">Transcript</option>
+                            <option value="license">License</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="documentFile" class="form-label">Choose File</label>
+                        <input class="form-control" type="file" id="documentFile" required>
+                        <div class="form-text">Max file size: 10MB (PDF, DOC, DOCX, JPG, PNG)</div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="shareWithAdmin">
+                        <label class="form-check-label" for="shareWithAdmin">
+                            Share with school administration
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="documentUploadForm" class="btn btn-primary">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Office Hours Modal -->
+<div class="modal fade" id="editOfficeHoursModal" tabindex="-1" aria-labelledby="editOfficeHoursModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editOfficeHoursModalLabel">Edit Office Hours</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="officeHoursForm">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Day</th>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Available</th>
+                                </tr>
+                            </thead>
+                            <tbody id="officeHoursTableBody">
+                                <!-- Rows will be added dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" id="applyToAll" checked>
+                        <label class="form-check-label" for="applyToAll">Apply this schedule to all weekdays</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveOfficeHoursBtn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #495057;
+    }
+    
+    .nav-tabs .nav-link.active {
+        font-weight: 500;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .list-group-item {
+        border-left: none;
+        border-right: none;
+    }
+    
+    .list-group-item:first-child {
+        border-top: none;
+    }
+    
+    .badge {
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Initialize tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+});
+
+// Toggle edit profile form
+$('#editProfileBtn').click(function() {
+    $('#editProfileForm').slideDown();
+    $(this).hide();
+    $('#saveProfileBtn').show();
+    $('html, body').animate({
+        scrollTop: $('#editProfileForm').offset().top - 20
+    }, 500);
+});
+
+// Save profile changes
+$('#saveProfileBtn').click(function() {
+    // Here you would typically submit the form via AJAX
+    
+    // Update the display fields with the new values
+    const firstName = $('#firstName').val();
+    const lastName = $('#lastName').val();
+    const email = $('#email').val();
+    const phone = $('#phone').val();
+    const department = $('#department').val();
+    const officeLocation = $('#officeLocation').val();
+    
+    $('#displayName').text(`${firstName} ${lastName}`);
+    $('.dropdown .me-2 + strong').text(`${firstName} ${lastName}`);
+    $('#displayEmail, #displayEmail2').text(email);
+    $('#displayPhone, #displayPhone2').text(phone || 'N/A');
+    $('#displayOffice, #displayOffice2').text(officeLocation);
+    
+    // Hide the edit form and show the save button
+    $('#editProfileForm').slideUp();
+    $(this).hide();
+    $('#editProfileBtn').show();
+    
+    // Show success message
+    const toast = new bootstrap.Toast(document.getElementById('profileUpdateToast'));
+    toast.show();
+});
+
+// Handle profile picture upload
+$('#profileImageUpload').change(function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            $('#profileImagePreview').attr('src', event.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Save profile picture
+$('#savePictureBtn').click(function() {
+    const fileInput = document.getElementById('profileImageUpload');
+    
+    if (fileInput.files.length === 0) {
+        alert('Please select an image to upload.');
+        return;
+    }
+    
+    // Here you would typically upload the file to the server
+    // and update the user's profile picture URL
+    
+    // For demo purposes, we'll just update the preview
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = function(event) {
+        // Update all profile pictures on the page
+        $('.rounded-circle, #profilePicture').attr('src', event.target.result);
+        
+        // Close the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('changePictureModal'));
+        modal.hide();
+        
+        // Show success message
+        const toast = new bootstrap.Toast(document.getElementById('profilePictureToast'));
+        toast.show();
+    };
+    
+    reader.readAsDataURL(file);
+});
+
+// Remove profile picture
+$('#removePictureBtn').click(function() {
+    const defaultAvatar = '{{ url_for(\'static\', filename=\'img/default-avatar.png\') }}';
+    
+    // Update all profile pictures on the page to default
+    $('.rounded-circle, #profilePicture').attr('src', defaultAvatar);
+    
+    // Clear the file input
+    $('#profileImageUpload').val('');
+    
+    // Here you would typically update the user's profile picture URL to null/empty
+    // to indicate using the default avatar
+});
+
+// Initialize office hours editor
+$('#editOfficeHoursBtn').click(function() {
+    // Populate the office hours table
+    const days = [
+        'Monday', 'Tuesday', 'Wednesday', 'Thursday', 
+        'Friday', 'Saturday', 'Sunday'
+    ];
+    
+    const defaultHours = {
+        'Monday': { start: '08:00', end: '17:00', available: true },
+        'Tuesday': { start: '08:00', end: '17:00', available: true },
+        'Wednesday': { start: '08:00', end: '17:00', available: true },
+        'Thursday': { start: '08:00', end: '17:00', available: true },
+        'Friday': { start: '08:00', end: '12:00', available: true },
+        'Saturday': { start: '00:00', end: '00:00', available: false },
+        'Sunday': { start: '00:00', end: '00:00', available: false }
+    };
+    
+    let tableHtml = '';
+    
+    days.forEach(day => {
+        const dayData = defaultHours[day];
+        const checked = dayData.available ? 'checked' : '';
+        
+        tableHtml += `
+        <tr>
+            <td>${day}</td>
+            <td>
+                <input type="time" class="form-control form-control-sm" 
+                       value="${dayData.start}" 
+                       ${!dayData.available ? 'disabled' : ''}>
+            </td>
+            <td>
+                <input type="time" class="form-control form-control-sm" 
+                       value="${dayData.end}" 
+                       ${!dayData.available ? 'disabled' : ''}>
+            </td>
+            <td class="text-center">
+                <div class="form-check form-switch d-inline-block">
+                    <input class="form-check-input availability-toggle" 
+                           type="checkbox" 
+                           ${checked}
+                           data-day="${day}">
+                </div>
+            </td>
+        </tr>`;
+    });
+    
+    $('#officeHoursTableBody').html(tableHtml);
+    
+    // Initialize the modal
+    const modal = new bootstrap.Modal(document.getElementById('editOfficeHoursModal'));
+    modal.show();
+    
+    // Handle availability toggle
+    $('.availability-toggle').change(function() {
+        const isChecked = $(this).is(':checked');
+        const row = $(this).closest('tr');
+        
+        // Enable/disable time inputs based on availability
+        row.find('input[type="time"]').prop('disabled', !isChecked);
+    });
+    
+    // Handle apply to all weekdays
+    $('#applyToAll').change(function() {
+        const isChecked = $(this).is(':checked');
+        const modalBody = $(this).closest('.modal-body');
+        
+        if (isChecked) {
+            // Get values from Monday
+            const mondayRow = modalBody.find('tr:first');
+            const startTime = mondayRow.find('input[type="time"]').first().val();
+            const endTime = mondayRow.find('input[type="time"]').last().val();
+            const isAvailable = mondayRow.find('.availability-toggle').is(':checked');
+            
+            // Apply to all weekdays (Monday to Friday)
+            modalBody.find('tr:lt(5)').each(function() {
+                $(this).find('input[type="time"]').first().val(startTime);
+                $(this).find('input[type="time"]').last().val(endTime);
+                $(this).find('.availability-toggle').prop('checked', isAvailable);
+                $(this).find('input[type="time"]').prop('disabled', !isAvailable);
+            });
+        }
+    });
+    
+    // Save office hours
+    $('#saveOfficeHoursBtn').off('click').on('click', function() {
+        const officeHours = [];
+        let hasError = false;
+        
+        $('#officeHoursTableBody tr').each(function() {
+            const day = $(this).find('td:first').text();
+            const isAvailable = $(this).find('.availability-toggle').is(':checked');
+            let startTime = $(this).find('input[type="time"]').first().val();
+            let endTime = $(this).find('input[type="time"]').last().val();
+            
+            if (isAvailable && (!startTime || !endTime)) {
+                alert(`Please enter both start and end times for ${day}`);
+                hasError = true;
+                return false; // Exit the loop
+            }
+            
+            // If not available, set times to null or empty
+            if (!isAvailable) {
+                startTime = null;
+                endTime = null;
+            }
+            
+            officeHours.push({
+                day: day,
+                startTime: startTime,
+                endTime: endTime,
+                available: isAvailable
+            });
+        });
+        
+        if (hasError) return;
+        
+        // Here you would typically send the officeHours data to the server
+        console.log('Saving office hours:', officeHours);
+        
+        // Close the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editOfficeHoursModal'));
+        modal.hide();
+        
+        // Show success message
+        const toast = new bootstrap.Toast(document.getElementById('officeHoursToast'));
+        toast.show();
+    });
+});
+
+// Initialize DataTables for document table
+$(document).ready(function() {
+    $('table').DataTable({
+        responsive: true,
+        pageLength: 5,
+        lengthMenu: [5, 10, 25, 50],
+        order: [[2, 'desc']] // Sort by date by default
+    });
+});
+</script>
+
+<!-- Toast Notifications -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <!-- Profile Update Toast -->
+    <div class="toast align-items-center text-white bg-success border-0" id="profileUpdateToast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi bi-check-circle me-2"></i> Profile updated successfully!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+    
+    <!-- Profile Picture Toast -->
+    <div class="toast align-items-center text-white bg-success border-0" id="profilePictureToast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi bi-check-circle me-2"></i> Profile picture updated successfully!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+    
+    <!-- Office Hours Toast -->
+    <div class="toast align-items-center text-white bg-success border-0" id="officeHoursToast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi bi-check-circle me-2"></i> Office hours updated successfully!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+{% endblock %}

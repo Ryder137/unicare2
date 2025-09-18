@@ -47,9 +47,10 @@ def create_app():
     login_manager.login_view = 'auth.login_selector'
     
     # Register blueprints
-    from routes import admin_bp, auth_bp
+    from routes import admin_bp, auth_bp, appointment_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(appointment_bp, url_prefix='')
     
     # Register filters
     from utils.filters import time_ago

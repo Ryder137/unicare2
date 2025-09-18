@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+
+{% block title %}Assessments - Guidance Counselor Dashboard - UniCare{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.dashboard') }}">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.students') }}">
+                            <i class="bi bi-people me-2"></i>
+                            Students
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.appointments') }}">
+                            <i class="bi bi-calendar-check me-2"></i>
+                            Appointments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('guidance.assessments') }}">
+                            <i class="bi bi-clipboard-data me-2"></i>
+                            Assessments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.resources') }}">
+                            <i class="bi bi-collection me-2"></i>
+                            Resources
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.profile') }}">
+                            <i class="bi bi-person me-2"></i>
+                            Profile
+                        </a>
+                    </li>
+                </ul>
+                
+                <hr>
+                
+                <div class="dropdown px-3">
+                    <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="{{ current_user.avatar_url or url_for('static', filename='img/default-avatar.png') }}" alt="" width="32" height="32" class="rounded-circle me-2">
+                        <strong>{{ current_user.first_name }} {{ current_user.last_name }}</strong>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="{{ url_for('guidance.profile') }}">Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('guidance.settings') }}">Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Sign out</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Student Assessments</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
+                            <i class="bi bi-funnel"></i> Filter
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newAssessmentModal">
+                        <i class="bi bi-plus-circle"></i> New Assessment
+                    </button>
+                </div>
+            </div>
+
+            <!-- Assessment Types -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Anxiety</h5>
+                            <h2 class="mb-0">24</h2>
+                            <p class="mb-0">assessments</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Depression</h5>
+                            <h2 class="mb-0">18</h2>
+                            <p class="mb-0">assessments</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-warning text-dark">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Stress</h5>
+                            <h2 class="mb-0">15</h2>
+                            <p class="mb-0">assessments</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Self-Esteem</h5>
+                            <h2 class="mb-0">9</h2>
+                            <p class="mb-0">assessments</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assessment List -->
+            <div class="card">
+                <div class="card-body">
+                    <ul class="nav nav-tabs mb-4" id="assessmentTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="recent-tab" data-bs-toggle="tab" data-bs-target="#recent" type="button" role="tab" aria-controls="recent" aria-selected="true">
+                                Recent
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="anxiety-tab" data-bs-toggle="tab" data-bs-target="#anxiety" type="button" role="tab" aria-controls="anxiety" aria-selected="false">
+                                Anxiety
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="depression-tab" data-bs-toggle="tab" data-bs-target="#depression" type="button" role="tab" aria-controls="depression" aria-selected="false">
+                                Depression
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="stress-tab" data-bs-toggle="tab" data-bs-target="#stress" type="button" role="tab" aria-controls="stress" aria-selected="false">
+                                Stress
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="assessmentTabsContent">
+                        <div class="tab-pane fade show active" id="recent" role="tabpanel" aria-labelledby="recent-tab">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Student</th>
+                                            <th>Assessment Type</th>
+                                            <th>Score</th>
+                                            <th>Risk Level</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>2023-10-15</td>
+                                            <td>John Smith</td>
+                                            <td>Anxiety (GAD-7)</td>
+                                            <td>14/21</td>
+                                            <td><span class="badge bg-warning">Moderate</span></td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewAssessmentModal">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-secondary">
+                                                        <i class="bi bi-download"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <!-- More assessment rows would go here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Other tab panes would go here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- New Assessment Modal -->
+<div class="modal fade" id="newAssessmentModal" tabindex="-1" aria-labelledby="newAssessmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newAssessmentModalLabel">New Assessment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assessmentForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="studentSelect" class="form-label">Student</label>
+                                <select class="form-select" id="studentSelect" required>
+                                    <option value="">Select Student</option>
+                                    <option value="1">John Smith</option>
+                                    <option value="2">Sarah Johnson</option>
+                                    <option value="3">Michael Brown</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="assessmentType" class="form-label">Assessment Type</label>
+                                <select class="form-select" id="assessmentType" required>
+                                    <option value="">Select Type</option>
+                                    <option value="gad7">Anxiety (GAD-7)</option>
+                                    <option value="phq9">Depression (PHQ-9)</option>
+                                    <option value="pss">Perceived Stress Scale</option>
+                                    <option value="rses">Self-Esteem (RSES)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assessmentDate" class="form-label">Date</label>
+                                <input type="date" class="form-control" id="assessmentDate" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="administeredBy" class="form-label">Administered By</label>
+                                <input type="text" class="form-control" id="administeredBy" value="{{ current_user.first_name }} {{ current_user.last_name }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dynamic questions will be loaded here based on assessment type -->
+                    <div id="assessmentQuestions" class="mb-3">
+                        <p class="text-muted">Select an assessment type to load questions.</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="assessmentForm" class="btn btn-primary">Save Assessment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Assessment Modal -->
+<div class="modal fade" id="viewAssessmentModal" tabindex="-1" aria-labelledby="viewAssessmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewAssessmentModalLabel">Assessment Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <p><strong>Student:</strong> John Smith</p>
+                        <p><strong>Assessment Type:</strong> Anxiety (GAD-7)</p>
+                        <p><strong>Date:</strong> October 15, 2023</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Score:</strong> 14/21</p>
+                        <p><strong>Risk Level:</strong> <span class="badge bg-warning">Moderate</span></p>
+                        <p><strong>Administered By:</strong> {{ current_user.first_name }} {{ current_user.last_name }}</p>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6>Assessment Results</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">1. Feeling nervous, anxious, or on edge</label>
+                            <div class="progress">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">3</div>
+                            </div>
+                        </div>
+                        <!-- More questions would go here -->
+                        
+                        <div class="alert alert-warning mt-3">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>Interpretation:</strong> Moderate anxiety symptoms. Consider follow-up assessment and potential referral.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label"><strong>Notes:</strong></label>
+                    <p>Student reported increased anxiety around academic performance. Recommended follow-up in 2 weeks.</p>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>Scoring Guide:</strong> 0-4: Minimal Anxiety | 5-9: Mild | 10-14: Moderate | 15-21: Severe
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-outline-primary">
+                    <i class="bi bi-download me-1"></i> Export PDF
+                </button>
+                <button type="button" class="btn btn-primary">
+                    <i class="bi bi-calendar-plus me-1"></i> Schedule Follow-up
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Initialize tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+});
+
+// Handle assessment type change
+$('#assessmentType').change(function() {
+    const type = $(this).val();
+    const questionsDiv = $('#assessmentQuestions');
+    
+    if (!type) {
+        questionsDiv.html('<p class="text-muted">Select an assessment type to load questions.</p>');
+        return;
+    }
+    
+    // Simulate loading questions based on assessment type
+    let questions = '';
+    let questionCount = 0;
+    
+    switch(type) {
+        case 'gad7':
+            questionCount = 7;
+            questions = '<h6>Over the last 2 weeks, how often have you been bothered by the following problems?</h6>';
+            const gad7Questions = [
+                'Feeling nervous, anxious, or on edge',
+                'Not being able to stop or control worrying',
+                'Worrying too much about different things',
+                'Trouble relaxing',
+                'Being so restless that it is hard to sit still',
+                'Becoming easily annoyed or irritable',
+                'Feeling afraid as if something awful might happen'
+            ];
+            
+            gad7Questions.forEach((q, i) => {
+                questions += `
+                <div class="mb-3">
+                    <label class="form-label">${i+1}. ${q}</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="q${i+1}" id="q${i+1}_0" value="0" required>
+                        <label class="form-check-label" for="q${i+1}_0">Not at all</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="q${i+1}" id="q${i+1}_1" value="1">
+                        <label class="form-check-label" for="q${i+1}_1">Several days</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="q${i+1}" id="q${i+1}_2" value="2">
+                        <label class="form-check-label" for="q${i+1}_2">More than half the days</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="q${i+1}" id="q${i+1}_3" value="3">
+                        <label class="form-check-label" for="q${i+1}_3">Nearly every day</label>
+                    </div>
+                </div>`;
+            });
+            break;
+            
+        // Add cases for other assessment types
+        
+        default:
+            questions = '<p class="text-muted">No questions available for the selected assessment type.</p>';
+    }
+    
+    questionsDiv.html(questions);
+});
+
+// Set default date to today
+$(document).ready(function() {
+    const today = new Date().toISOString().split('T')[0];
+    $('#assessmentDate').val(today);
+    
+    // Initialize DataTable
+    $('table').DataTable({
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'desc']] // Sort by date descending by default
+    });
+});
+</script>
+{% endblock %}

@@ -199,9 +199,11 @@ from routes.admin_routes import admin_bp
 def register_blueprints(app):
     # Import blueprints here to avoid circular imports
     from routes.admin_routes import admin_bp
+    from routes.guidance_routes import guidance_bp
     
-    # Register admin blueprint with URL prefix
+    # Register blueprints with URL prefixes
     app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(guidance_bp, url_prefix='/guidance')
     
     # Import and register other blueprints when they're available
     # from routes.auth import auth_bp

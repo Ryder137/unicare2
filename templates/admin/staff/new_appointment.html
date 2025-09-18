@@ -1,0 +1,392 @@
+{% extends "admin/base.html" %}
+
+{% block title %}New Appointment - UniCare{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+<style>
+    .select2-container--default .select2-selection--single {
+        height: 38px;
+        padding: 5px;
+        border: 1px solid #ced4da;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 26px;
+    }
+    .flatpickr-input {
+        background-color: #fff;
+    }
+    .professional-type-btn {
+        transition: all 0.2s;
+    }
+    .professional-type-btn.active {
+        background-color: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+    }
+    .professional-type-btn i {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .time-inputs {
+        display: flex;
+        gap: 1rem;
+    }
+    .time-inputs .form-group {
+        flex: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+        <h1 class="h2">Schedule New Appointment</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{{ url_for('appointment.manage_appointments') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Appointments
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-body">
+                    <form id="appointmentForm">
+                        <!-- Step 1: Select Professional Type -->
+                        <div class="step" id="step1">
+                            <h5 class="mb-4">1. Select Professional Type</h5>
+                            <div class="row text-center mb-4">
+                                <div class="col-md-6 mb-3">
+                                    <button type="button" class="btn btn-outline-primary w-100 py-4 professional-type-btn" data-type="guidance">
+                                        <i class="bi bi-person-badge"></i>
+                                        <div class="mt-2">Guidance Counselor</div>
+                                    </button>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <button type="button" class="btn btn-outline-primary w-100 py-4 professional-type-btn" data-type="psychologist">
+                                        <i class="bi bi-heart-pulse"></i>
+                                        <div class="mt-2">Psychologist</div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Select Professional -->
+                        <div class="step d-none" id="step2">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="mb-0">2. Select Professional</h5>
+                                <button type="button" class="btn btn-link p-0" id="backToStep1">
+                                    <i class="bi bi-arrow-left"></i> Back
+                                </button>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label">Select a Professional</label>
+                                <select class="form-select" id="professionalSelect" required>
+                                    <option value="" selected disabled>Select a professional...</option>
+                                    <!-- Options will be populated by JavaScript -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Appointment Details -->
+                        <div class="step d-none" id="step3">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="mb-0">3. Appointment Details</h5>
+                                <button type="button" class="btn btn-link p-0" id="backToStep2">
+                                    <i class="bi bi-arrow-left"></i> Back
+                                </button>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="studentSelect" class="form-label">Student</label>
+                                <select class="form-select select2" id="studentSelect" required>
+                                    <option value="" selected disabled>Select a student...</option>
+                                    {% for student in students %}
+                                    <option value="{{ student.id }}">{{ student.first_name }} {{ student.last_name }} ({{ student.student_id }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="appointmentTitle" class="form-label">Appointment Title</label>
+                                <input type="text" class="form-control" id="appointmentTitle" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="appointmentDate" class="form-label">Date</label>
+                                    <input type="text" class="form-control" id="appointmentDate" placeholder="Select date" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Time</label>
+                                    <div class="time-inputs">
+                                        <div class="form-group">
+                                            <input type="text" class="form-control timepicker" id="startTime" placeholder="Start time" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" class="form-control timepicker" id="endTime" placeholder="End time" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="appointmentDescription" class="form-label">Description (Optional)</label>
+                                <textarea class="form-control" id="appointmentDescription" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="submit" class="btn btn-primary" id="scheduleBtn">
+                                    <span class="spinner-border spinner-border-sm d-none" id="submitSpinner" role="status" aria-hidden="true"></span>
+                                    Schedule Appointment
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body text-center p-5">
+                <div class="mb-4">
+                    <div class="bg-success bg-opacity-10 d-inline-flex p-3 rounded-circle mb-3">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 2rem;"></i>
+                    </div>
+                    <h4>Appointment Scheduled!</h4>
+                    <p class="text-muted mb-0">The appointment has been successfully scheduled.</p>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('appointment.manage_appointments') }}" class="btn btn-primary">View All Appointments</a>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Schedule Another</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Select2
+    $('.select2').select2({
+        width: '100%',
+        placeholder: 'Select an option',
+        allowClear: true
+    });
+    
+    // Initialize date picker
+    const datePicker = flatpickr("#appointmentDate", {
+        minDate: 'today',
+        dateFormat: 'Y-m-d',
+        disable: [
+            function(date) {
+                // Disable weekends
+                return (date.getDay() === 0 || date.getDay() === 6);
+            }
+        ]
+    });
+    
+    // Initialize time picker
+    const timeOptions = {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: "H:i",
+        time_24hr: true,
+        minuteIncrement: 15,
+        minTime: "08:00",
+        maxTime: "17:00"
+    };
+    
+    const startTimePicker = flatpickr("#startTime", timeOptions);
+    const endTimePicker = flatpickr("#endTime", timeOptions);
+    
+    // Set default time (next available hour)
+    const now = new Date();
+    const nextHour = new Date(now.getTime() + 60 * 60 * 1000);
+    startTimePicker.setDate(nextHour);
+    endTimePicker.setDate(new Date(nextHour.getTime() + 30 * 60 * 1000));
+    
+    // Professional type selection
+    let selectedType = null;
+    const professionalTypeBtns = document.querySelectorAll('.professional-type-btn');
+    
+    professionalTypeBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            professionalTypeBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            selectedType = this.getAttribute('data-type');
+            
+            // Populate professionals based on type
+            populateProfessionals(selectedType);
+            
+            // Show next step
+            document.getElementById('step1').classList.add('d-none');
+            document.getElementById('step2').classList.remove('d-none');
+        });
+    });
+    
+    // Back to step 1
+    document.getElementById('backToStep1').addEventListener('click', function() {
+        document.getElementById('step2').classList.add('d-none');
+        document.getElementById('step1').classList.remove('d-none');
+    });
+    
+    // Back to step 2
+    document.getElementById('backToStep2').addEventListener('click', function() {
+        document.getElementById('step3').classList.add('d-none');
+        document.getElementById('step2').classList.remove('d-none');
+    });
+    
+    // Professional selection
+    document.getElementById('professionalSelect').addEventListener('change', function() {
+        if (this.value) {
+            // Show next step
+            document.getElementById('step2').classList.add('d-none');
+            document.getElementById('step3').classList.remove('d-none');
+        }
+    });
+    
+    // Form submission
+    document.getElementById('appointmentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('scheduleBtn');
+        const spinner = document.getElementById('submitSpinner');
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        spinner.classList.remove('d-none');
+        
+        // Prepare data
+        const appointmentData = {
+            title: document.getElementById('appointmentTitle').value,
+            description: document.getElementById('appointmentDescription').value,
+            start_time: `${document.getElementById('appointmentDate').value}T${document.getElementById('startTime').value}:00`,
+            end_time: `${document.getElementById('appointmentDate').value}T${document.getElementById('endTime').value}:00`,
+            professional_type: selectedType,
+            professional_id: document.getElementById('professionalSelect').value,
+            student_id: document.getElementById('studentSelect').value
+        };
+        
+        // Check availability
+        checkAvailability(appointmentData)
+            .then(isAvailable => {
+                if (isAvailable) {
+                    // Submit the appointment
+                    return fetch('/api/appointments', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(appointmentData)
+                    });
+                } else {
+                    throw new Error('The selected time slot is not available. Please choose another time.');
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Show success modal
+                    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                    successModal.show();
+                } else {
+                    throw new Error(data.message || 'Failed to schedule appointment');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message || 'An error occurred while scheduling the appointment.');
+            })
+            .finally(() => {
+                // Reset loading state
+                submitBtn.disabled = false;
+                spinner.classList.add('d-none');
+            });
+    });
+    
+    // Populate professionals based on type
+    function populateProfessionals(type) {
+        const select = document.getElementById('professionalSelect');
+        select.innerHTML = '<option value="" selected disabled>Select a ' + type + '...</option>';
+        
+        // Get professionals based on type
+        let professionals = [];
+        {% if guidance_counselors and psychologists %}
+            professionals = type === 'guidance' ? 
+                {{ guidance_counselors|tojson|safe }} : 
+                {{ psychologists|tojson|safe }};
+        {% endif %}
+        
+        // Add options
+        professionals.forEach(prof => {
+            const option = document.createElement('option');
+            option.value = prof.id;
+            option.textContent = `${prof.first_name} ${prof.last_name}`;
+            
+            // Add specialization if available
+            if (prof.specialization) {
+                option.textContent += ` (${prof.specialization})`;
+            }
+            
+            select.appendChild(option);
+        });
+        
+        // Reinitialize Select2
+        $(select).trigger('change');
+    }
+    
+    // Check appointment availability
+    function checkAvailability(appointmentData) {
+        return fetch('/api/appointments/availability?' + new URLSearchParams({
+            professional_type: appointmentData.professional_type,
+            professional_id: appointmentData.professional_id,
+            start_time: appointmentData.start_time,
+            end_time: appointmentData.end_time
+        }))
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'error') {
+                throw new Error(data.message);
+            }
+            return data.available;
+        });
+    }
+    
+    // Pre-fill date and time if provided in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const startParam = urlParams.get('start');
+    const endParam = urlParams.get('end');
+    
+    if (startParam && endParam) {
+        const start = new Date(startParam);
+        const end = new Date(endParam);
+        
+        // Set date
+        datePicker.setDate(start, true, 'Y-m-d');
+        
+        // Set times
+        startTimePicker.setDate(start);
+        endTimePicker.setDate(end);
+    }
+});
+</script>
+{% endblock %}

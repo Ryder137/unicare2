@@ -909,141 +909,200 @@ def manage_user_api(user_id=None):
     try:
         data = request.get_json()
         if not data:
-            return jsonify({'message': 'No data provided'}), 400
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
 
         # Common user data
         user_data = {
-            'first_name': data.get('first_name'),
-            'last_name': data.get('last_name'),
-            'email': data.get('email'),
-            'is_active': data.get('is_active', True)
+            'first_name': data.get('first_name', '').strip(),
+            'last_name': data.get('last_name', '').strip(),
+            'email': data.get('email', '').lower().strip(),
+            'is_active': bool(data.get('is_active', True))
         }
 
-        # Handle password if provided
+        # Validate required fields
+        required_fields = ['first_name', 'last_name', 'email']
+        for field in required_fields:
+            if not user_data[field]:
+                return jsonify({'success': False, 'message': f'{field.replace("_", " ").title()} is required'}), 400
+
+        # Email validation
+        import re
+        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_regex, user_data['email']):
+            return jsonify({'success': False, 'message': 'Invalid email format'}), 400
+
+        # Handle password if provided or for new user
         password = data.get('password')
+        if not user_id and not password:
+            return jsonify({'success': False, 'message': 'Password is required for new users'}), 400
+            
         if password:
             if len(password) < 8:
-                return jsonify({'message': 'Password must be at least 8 characters long'}), 400
-            user_data['password_hash'] = generate_password_hash(password)
+                return jsonify({'success': False, 'message': 'Password must be at least 8 characters long'}), 400
+            user_data['password'] = password  # Will be hashed in the service layer
 
         role = data.get('role')
         if not role:
-            return jsonify({'message': 'Role is required'}), 400
+            return jsonify({'success': False, 'message': 'Role is required'}), 400
 
         # Create or update user based on role
         if role == 'admin':
-            if user_id:
-                # Update existing admin
-                admin = db_service.get_admin(user_id)
-                if not admin:
-                    return jsonify({'message': 'Admin not found'}), 404
-                
-                # Update admin data
-                updated_admin = db_service.update_admin(user_id, user_data)
-                return jsonify({
-                    'message': 'Admin updated successfully',
-                    'user': updated_admin
-                })
-            else:
-                # Create new admin
-                if 'password' not in user_data:
-                    return jsonify({'message': 'Password is required for new admin'}), 400
+            try:
+                if user_id:
+                    # Update existing admin
+                    admin = db_service.get_admin_by_id(user_id)
+                    if not admin:
+                        return jsonify({'success': False, 'message': 'Admin not found'}), 404
+                    
+                    # Update admin data
+                    updated_admin = db_service.update_admin(user_id, user_data)
+                    return jsonify({
+                        'success': True,
+                        'message': 'Admin updated successfully',
+                        'user': updated_admin
+                    })
+                else:
+                    # Create new admin
+                    admin_id = db_service.create_admin(user_data)
+                    if not admin_id:
+                        return jsonify({'success': False, 'message': 'Failed to create admin user'}), 400
+                    
+                    # Get the created admin to return
+                    new_admin = db_service.get_admin_by_id(admin_id)
+                    return jsonify({
+                        'success': True,
+                        'message': 'Admin created successfully',
+                        'user': new_admin
+                    }), 201
+                    
+            except ValueError as e:
+                return jsonify({'success': False, 'message': str(e)}), 400
+            except Exception as e:
+                current_app.logger.error(f"Error in manage_user_api (admin): {str(e)}")
+                return jsonify({'success': False, 'message': 'An error occurred while processing your request'}), 500
                 
                 new_admin = db_service.create_admin(user_data)
-                return jsonify({
-                    'message': 'Admin created successfully',
-                    'user': new_admin
-                }), 201
-
         elif role in ['psychologist', 'guidance_counselor']:
-            # Additional fields for mental health professionals
-            professional_data = {
-                **user_data,
-                'license_number': data.get('license_number'),
-                'specialization': data.get('specialization'),
-                'years_of_experience': data.get('years_of_experience'),
-                'bio': data.get('bio'),
-                'is_available': data.get('is_available', True)
-            }
-
-            if role == 'psychologist':
+            try:
+                # Additional fields for mental health professionals
+                professional_data = {
+                    'license_number': data.get('license_number', '').strip(),
+                    'specialization': data.get('specialization', '').strip(),
+                    'phone': data.get('phone', '').strip(),
+                    'address': data.get('address', '').strip(),
+                    'bio': data.get('bio', '').strip()
+                }
+                
+                # Merge with user data
+                user_data.update(professional_data)
+                
+                if role == 'psychologist':
+                    if user_id:
+                        # Update existing psychologist
+                        psychologist = db_service.get_psychologist_by_id(user_id)
+                        if not psychologist:
+                            return jsonify({'success': False, 'message': 'Psychologist not found'}), 404
+                        
+                        updated_psychologist = db_service.update_psychologist(user_id, user_data)
+                        return jsonify({
+                            'success': True,
+                            'message': 'Psychologist updated successfully',
+                            'user': updated_psychologist
+                        })
+                    else:
+                        # Create new psychologist
+                        psychologist_id = db_service.create_psychologist(user_data)
+                        if not psychologist_id:
+                            return jsonify({'success': False, 'message': 'Failed to create psychologist'}), 400
+                        
+                        new_psychologist = db_service.get_psychologist_by_id(psychologist_id)
+                        return jsonify({
+                            'success': True,
+                            'message': 'Psychologist created successfully',
+                            'user': new_psychologist
+                        }), 201
+                else:  # guidance_counselor
+                    if user_id:
+                        # Update existing guidance counselor
+                        counselor = db_service.get_guidance_counselor_by_id(user_id)
+                        if not counselor:
+                            return jsonify({'success': False, 'message': 'Guidance counselor not found'}), 404
+                        
+                        updated_counselor = db_service.update_guidance_counselor(user_id, user_data)
+                        return jsonify({
+                            'success': True,
+                            'message': 'Guidance counselor updated successfully',
+                            'user': updated_counselor
+                        })
+                    else:
+                        # Create new guidance counselor
+                        counselor_id = db_service.create_guidance_counselor(user_data)
+                        if not counselor_id:
+                            return jsonify({'success': False, 'message': 'Failed to create guidance counselor'}), 400
+                        
+                        new_counselor = db_service.get_guidance_counselor_by_id(counselor_id)
+                        return jsonify({
+                            'success': True,
+                            'message': 'Guidance counselor created successfully',
+                            'user': new_counselor
+                        }), 201
+                        
+            except ValueError as e:
+                return jsonify({'success': False, 'message': str(e)}), 400
+            except Exception as e:
+                current_app.logger.error(f"Error in manage_user_api ({role}): {str(e)}")
+                return jsonify({'success': False, 'message': 'An error occurred while processing your request'}), 500
+                
+        elif role == 'client':
+            try:
+                # Additional fields for clients
+                client_data = {
+                    'username': data.get('username', '').strip(),
+                    'date_of_birth': data.get('date_of_birth'),
+                    'gender': data.get('gender', '').strip(),
+                    'phone': data.get('phone', '').strip()
+                }
+                
+                # Merge with user data
+                user_data.update(client_data)
+                
                 if user_id:
-                    # Update psychologist
-                    psych = db_service.get_psychologist(user_id)
-                    if not psych:
-                        return jsonify({'message': 'Psychologist not found'}), 404
+                    # Update existing client
+                    client = db_service.get_user_by_id(user_id)
+                    if not client:
+                        return jsonify({'success': False, 'message': 'Client not found'}), 404
                     
-                    updated_psych = db_service.update_psychologist(user_id, professional_data)
+                    updated_client = db_service.update_user(user_id, user_data)
                     return jsonify({
-                        'message': 'Psychologist updated successfully',
-                        'user': updated_psych
+                        'success': True,
+                        'message': 'Client updated successfully',
+                        'user': updated_client
                     })
                 else:
-                    # Create new psychologist
-                    if 'password' not in professional_data:
-                        return jsonify({'message': 'Password is required for new psychologist'}), 400
+                    # Create new client
+                    client_id = db_service.create_user(user_data)
+                    if not client_id:
+                        return jsonify({'success': False, 'message': 'Failed to create client'}), 400
                     
-                    new_psych = db_service.create_psychologist(professional_data)
+                    new_client = db_service.get_user_by_id(client_id)
                     return jsonify({
-                        'message': 'Psychologist created successfully',
-                        'user': new_psych
+                        'success': True,
+                        'message': 'Client created successfully',
+                        'user': new_client
                     }), 201
-            else:  # guidance_counselor
-                if user_id:
-                    # Update guidance counselor
-                    gc = db_service.get_guidance_counselor(user_id)
-                    if not gc:
-                        return jsonify({'message': 'Guidance counselor not found'}), 404
                     
-                    updated_gc = db_service.update_guidance_counselor(user_id, professional_data)
-                    return jsonify({
-                        'message': 'Guidance counselor updated successfully',
-                        'user': updated_gc
-                    })
-                else:
-                    # Create new guidance counselor
-                    if 'password' not in professional_data:
-                        return jsonify({'message': 'Password is required for new guidance counselor'}), 400
-                    
-                    new_gc = db_service.create_guidance_counselor(professional_data)
-                    return jsonify({
-                        'message': 'Guidance counselor created successfully',
-                        'user': new_gc
-                    }), 201
-
-        elif role == 'staff':
-            if user_id:
-                # Update staff
-                staff = db_service.get_user(user_id)
-                if not staff:
-                    return jsonify({'message': 'Staff member not found'}), 404
+            except ValueError as e:
+                return jsonify({'success': False, 'message': str(e)}), 400
+            except Exception as e:
+                current_app.logger.error(f"Error in manage_user_api (client): {str(e)}")
+                return jsonify({'success': False, 'message': 'An error occurred while processing your request'}), 500
                 
-                # Update staff data
-                updated_staff = db_service.update_user(user_id, user_data)
-                return jsonify({
-                    'message': 'Staff member updated successfully',
-                    'user': updated_staff
-                })
-            else:
-                # Create new staff
-                if 'password' not in user_data:
-                    return jsonify({'message': 'Password is required for new staff'}), 400
-                
-                new_staff = db_service.create_user({
-                    **user_data,
-                    'is_staff': True
-                })
-                return jsonify({
-                    'message': 'Staff member created successfully',
-                    'user': new_staff
-                }), 201
-
         else:
-            return jsonify({'message': 'Invalid role'}), 400
-
+            return jsonify({'success': False, 'message': 'Invalid role specified'}), 400
+            
     except Exception as e:
-        current_app.logger.error(f"Error in manage_user_api: {str(e)}")
-        return jsonify({'message': 'An error occurred while processing your request'}), 500
+        current_app.logger.error(f"Unexpected error in manage_user_api: {str(e)}")
+        return jsonify({'success': False, 'message': 'An unexpected error occurred'}), 500
 
 @admin_bp.route('/logout')
 @login_required
