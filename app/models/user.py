@@ -1,26 +1,47 @@
 """
 User model for the application.
 """
+from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from bson import ObjectId
-from datetime import datetime
+from ..extensions import db
 
-class User(UserMixin):
-    """User class that implements Flask-Login's UserMixin."""
+class User(UserMixin, db.Model):
+    """User model that implements Flask-Login's UserMixin and SQLAlchemy Model."""
+    __tablename__ = 'users'
     
-    def __init__(self, user_data):
-        """Initialize user with data from database."""
-        self.id = str(user_data.get('_id'))
-        self.email = user_data.get('email')
-        self.password_hash = user_data.get('password')
-        self.first_name = user_data.get('first_name', '')
-        self.last_name = user_data.get('last_name', '')
-        self.is_admin = user_data.get('is_admin', False)
-        self.is_active = user_data.get('is_active', True)
-        self.created_at = user_data.get('created_at', datetime.utcnow())
-        self.last_login = user_data.get('last_login')
-        self.avatar = user_data.get('avatar')
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(256), nullable=False)
+    first_name = db.Column(db.String(50), nullable=False, default='')
+    last_name = db.Column(db.String(50), nullable=False, default='')
+    is_admin = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime)
+    avatar = db.Column(db.String(256))
+    
+    # Relationships
+    appointments = db.relationship('Appointment', backref='user', lazy='dynamic')
+    
+    def __repr__(self):
+        return f'<User {self.email}>'
+    
+    # Flask-Login required properties and methods
+    @property
+    def is_authenticated(self):
+        """Return True if the user is authenticated."""
+        return True
+    
+    @property
+    def is_active(self):
+        """Return True if the user is active."""
+        return self.is_active
+    
+    @property
+    def is_anonymous(self):
+        """Return False as anonymous users are not supported."""
+        return False
     
     def get_id(self):
         """Return the user ID as a string."""
@@ -36,33 +57,49 @@ class User(UserMixin):
     
     def update_last_login(self):
         """Update the user's last login timestamp."""
-        from ..extensions import mongo
         self.last_login = datetime.utcnow()
-        mongo.db.users.update_one(
-            {'_id': ObjectId(self.id)},
-            {'$set': {'last_login': self.last_login}}
-        )
+        db.session.commit()
     
     @classmethod
     def get_by_id(cls, user_id):
         """Get a user by ID."""
-        from ..extensions import mongo
-        user_data = mongo.db.users.find_one({'_id': ObjectId(user_id)})
-        if user_data:
-            return cls(user_data)
-        return None
+        return cls.query.get(int(user_id))
     
     @classmethod
     def get_by_email(cls, email):
-        """Get a user by email."""
-        from ..extensions import mongo
-        user_data = mongo.db.users.find_one({'email': email.lower()})
-        if user_data:
-            return cls(user_data)
-        return None
+        """Get a user by email (case-insensitive)."""
+        return cls.query.filter(db.func.lower(cls.email) == email.lower()).first()
+    
+    @classmethod
+    def create(cls, email, password, first_name='', last_name='', is_admin=False, **kwargs):
+        """Create a new user."""
+        user = cls(
+            email=email.lower(),
+            first_name=first_name,
+            last_name=last_name,
+            is_admin=is_admin,
+            **kwargs
+        )
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        return user
+    
+    def update(self, **kwargs):
+        """Update user attributes."""
+        for key, value in kwargs.items():
+            if hasattr(self, key) and key != 'id':
+                setattr(self, key, value)
+        db.session.commit()
+        return self
+    
+    def delete(self):
+        """Delete the user."""
+        db.session.delete(self)
+        db.session.commit()
     
     def to_dict(self):
-        """Convert user object to dictionary."""
+        """Return user data as a dictionary."""
         return {
             'id': self.id,
             'email': self.email,
@@ -74,27 +111,3 @@ class User(UserMixin):
             'last_login': self.last_login.isoformat() if self.last_login else None,
             'avatar': self.avatar
         }
-    
-    @classmethod
-    def create(cls, email, password, first_name='', last_name='', is_admin=False):
-        """Create a new user."""
-        from ..extensions import mongo
-        
-        if cls.get_by_email(email):
-            return None  # User already exists
-        
-        user_data = {
-            'email': email.lower(),
-            'password': generate_password_hash(password),
-            'first_name': first_name,
-            'last_name': last_name,
-            'is_admin': is_admin,
-            'is_active': True,
-            'created_at': datetime.utcnow(),
-            'last_login': None,
-            'avatar': None
-        }
-        
-        result = mongo.db.users.insert_one(user_data)
-        user_data['_id'] = result.inserted_id
-        return cls(user_data)

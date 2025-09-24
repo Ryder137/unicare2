@@ -4,11 +4,14 @@ from flask_mail import Mail
 from flask_pymongo import PyMongo
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 import os
 from dotenv import load_dotenv
 import logging
 
 # Initialize extensions
+db = SQLAlchemy()
 mail = Mail()
 mongo = PyMongo()
 limiter = Limiter(
@@ -17,6 +20,8 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 login_manager = LoginManager()
+# Initialize migrate without app first, will be initialized with app later
+migrate = Migrate()
 
 def create_app():
     """Create and configure the Flask application."""
@@ -29,6 +34,8 @@ def create_app():
     app.config.update(
         SECRET_KEY=os.getenv('FLASK_SECRET_KEY', 'dev-secret-key'),
         MONGO_URI=os.getenv('MONGODB_URI', 'mongodb://localhost:27017/unicare'),
+        SQLALCHEMY_DATABASE_URI=os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost/unicare'),
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
         MAIL_SERVER=os.getenv('MAIL_SERVER', 'smtp.gmail.com'),
         MAIL_PORT=int(os.getenv('MAIL_PORT', 587)),
         MAIL_USE_TLS=os.getenv('MAIL_USE_TLS', 'true').lower() == 'true',
@@ -40,11 +47,41 @@ def create_app():
     )
     
     # Initialize extensions with app
+    db.init_app(app)
     mail.init_app(app)
     mongo.init_app(app)
     limiter.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login_selector'
+    
+    # Initialize migrate with app and db
+    migrate.init_app(app, db)
+    
+    # Import models to ensure they are registered with SQLAlchemy
+    from models import (
+        user, 
+        game_score, 
+        personality_test, 
+        admin, 
+        psychologist, 
+        guidance_counselor,
+        admin_user,
+        client,
+        appointment
+    )
+    
+    # Import models to register them with SQLAlchemy
+    from models import (
+        user, 
+        game_score, 
+        personality_test, 
+        admin, 
+        psychologist, 
+        guidance_counselor,
+        admin_user,
+        client,
+        appointment
+    )
     
     # Register blueprints
     from routes import admin_bp, auth_bp, appointment_bp

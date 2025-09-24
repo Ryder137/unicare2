@@ -1,68 +1,114 @@
-from flask import Flask, render_template, request, jsonify, session, g, flash, redirect, url_for, current_app
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user, current_user
+import sys
+import os
+import sys
+import logging
+import json
+import jwt
+import secrets
+import bcrypt
+from datetime import datetime, timedelta, timezone
+from functools import wraps
+from threading import Timer
+
+# Add the project root to the Python path
+project_root = os.path.dirname(os.path.abspath(__file__))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+# Third-party imports
+from flask import (
+    Flask, render_template, request, jsonify, session, g, flash, 
+    redirect, url_for, current_app, abort, send_from_directory
+)
+from flask_login import (
+    LoginManager, UserMixin, login_user, login_required, 
+    logout_user, current_user
+)
 from flask_pymongo import PyMongo
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from datetime import datetime, timedelta
-import os
-import jwt
-import secrets
-from functools import wraps
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
-import json
 from dotenv import load_dotenv
-import bcrypt
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 import socketio
 from bson.objectid import ObjectId
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from flask_mail import Mail, Message
-# Import forms from the forms package
-from forms import (
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# Load environment variables
+load_dotenv()
+
+# Configure app
+app.config.update(
+    # Flask settings
+    SECRET_KEY=os.getenv('FLASK_SECRET_KEY', 'dev-secret-key'),
+    FLASK_ENV=os.getenv('FLASK_ENV', 'development'),
+    FLASK_DEBUG=os.getenv('FLASK_DEBUG', 'true').lower() == 'true',
+    
+    # Database settings
+    SQLALCHEMY_DATABASE_URI=os.getenv('DATABASE_URL', 'sqlite:///unicare.db'),
+    SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    
+    # MongoDB settings
+    MONGODB_URI=os.getenv('MONGODB_URI', 'mongodb://localhost:27017/unicare'),
+    
+    # Email settings
+    MAIL_SERVER=os.getenv('MAIL_SERVER', 'smtp.gmail.com'),
+    MAIL_PORT=int(os.getenv('MAIL_PORT', 587)),
+    MAIL_USE_TLS=os.getenv('MAIL_USE_TLS', 'true').lower() == 'true',
+    MAIL_USERNAME=os.getenv('MAIL_USERNAME'),
+    MAIL_PASSWORD=os.getenv('MAIL_PASSWORD'),
+    MAIL_DEFAULT_SENDER=os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME')),
+    
+    # Session settings
+    SESSION_COOKIE_SECURE=False,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=3600  # 1 hour
+)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG if app.config['FLASK_DEBUG'] else logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Initialize extensions
+db = SQLAlchemy()
+mail = Mail()
+csrf = CSRFProtect()
+login_manager = LoginManager()
+login_manager.login_view = 'auth.login'
+login_manager = LoginManager(app)
+login_manager.login_view = 'auth.login'  # Update this to your login route
+
+# Initialize Socket.IO
+sio = socketio.Server(cors_allowed_origins="*")
+app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
+
+# Import database service
+try:
+    from services.database_service import db_service
+except ImportError as e:
+    logging.error(f"Failed to import database service: {e}")
+    raise
+
+# Import forms after app creation to avoid circular imports
+from app.forms import (
     ForgotPasswordForm, 
     ResetPasswordForm, 
     AdminLoginForm, 
     LoginForm, 
     AdminRegisterForm,
     CreateAdminForm,
-    RegisterForm
+    RegisterForm,
+    BaseLoginForm
 )
-from services.database_service import db_service
-# Import Blueprints after app creation to avoid circular imports
-from functools import wraps
-import logging
-
-def create_default_env():
-    """Create a default .env file if it doesn't exist"""
-    env_path = os.path.join(os.path.dirname(__file__), '.env')
-    if not os.path.exists(env_path):
-        with open(env_path, 'w') as f:
-            f.write("""# Flask Configuration
-FLASK_SECRET_KEY=your-very-secret-key-here-make-it-strong
-
-# Email Configuration (GMAIL)
-MAIL_SERVER=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USE_TLS=true
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-app-password-here
-MAIL_DEFAULT_SENDER=your-email@gmail.com
-MAIL_DEBUG=false
-
-# Database Configuration
-MONGODB_URI=your-mongodb-connection-string
-""")
-        print("Created default .env file. Please update it with your configuration.")
-
-# Create default .env if it doesn't exist
-create_default_env()
-
-# Now load the environment variables
-load_dotenv()
-
-app = Flask(__name__)
 
 # Configure server settings for URL generation
 app.config['SERVER_NAME'] = 'localhost:5000'  # Update with your domain in production
@@ -1549,10 +1595,6 @@ from models.admin_user import AdminUser
 
 if __name__ == '__main__':
     try:
-        # Create database tables if they don't exist
-        with app.app_context():
-            db.create_all()
-        
         # Print initialization header
         print("\n" + "="*50)
         print("Starting application initialization...")

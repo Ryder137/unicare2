@@ -19,9 +19,10 @@ class User(UserMixin):
         self.password_hash = kwargs.get('password_hash') or kwargs.get('password')
         self.is_verified = kwargs.get('is_verified', False)
         
-        # Admin properties
+        # Admin and staff properties
         self._is_admin = kwargs.get('is_admin', False)
         self._is_super_admin = kwargs.get('is_super_admin', False)
+        self._is_staff = kwargs.get('is_staff', self._is_admin or self._is_super_admin)
         
         # Handle datetime fields
         self.created_at = self._parse_datetime(kwargs.get('created_at'))

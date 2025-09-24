@@ -1,156 +1,319 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
-from flask_login import login_required, current_user, login_required
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, abort, current_app
+from flask_login import login_required, current_user
 from datetime import datetime, timedelta
-from ..models.appointment import Appointment
-from ..models.client import Client
-from ..models.guidance_counselor import GuidanceCounselor
-from ..models.psychologist import Psychologist
-from ..models.admin_user import AdminUser
-from .. import db
+from models import db, User, Appointment
+from functools import wraps
 
 # Create blueprint
-appointment_bp = Blueprint('appointment', __name__, url_prefix='/staff/appointments')
+appointment_bp = Blueprint('appointment', __name__)
+
+def staff_required(f):
+    """Decorator to ensure user is a staff member."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not hasattr(current_user, 'is_staff') or not current_user.is_staff:
+            flash('You do not have permission to access this page.', 'danger')
+            return redirect(url_for('auth.login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
-@appointment_bp.route('/')
+@appointment_bp.route('/staff/appointments')
 @login_required
+@staff_required
 def manage_appointments():
-    # Get all appointments for the current staff member
-    appointments = Appointment.query.filter_by(staff_id=current_user.id).all()
-    return render_template('admin/staff/appointments.html', 
-                         appointments=appointments,
-                         active_page='appointments')
-
-@appointment_bp.route('/new', methods=['GET', 'POST'])
-@login_required
-def new_appointment():
-    if request.method == 'POST':
-        try:
-            # Get form data
-            title = request.form.get('title')
-            description = request.form.get('description', '')
-            start_time = datetime.fromisoformat(request.form.get('start_time'))
-            end_time = datetime.fromisoformat(request.form.get('end_time'))
-            professional_type = request.form.get('professional_type')
-            professional_id = int(request.form.get('professional_id'))
-            student_id = int(request.form.get('student_id'))
-            
-            # Create new appointment
-            appointment = Appointment(
-                title=title,
-                description=description,
-                start_time=start_time,
-                end_time=end_time,
-                professional_type=professional_type,
-                professional_id=professional_id,
-                student_id=student_id,
-                staff_id=current_user.id,
-                appointment_type=professional_type,
-                status='scheduled'
-            )
-            
-            db.session.add(appointment)
-            db.session.commit()
-            
-            flash('Appointment scheduled successfully!', 'success')
-            return jsonify({
-                'status': 'success',
-                'message': 'Appointment scheduled successfully!',
-                'appointment': appointment.to_dict()
-            })
-            
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({
-                'status': 'error',
-                'message': f'Error scheduling appointment: {str(e)}'
-            }), 400
-    
-    # GET request - show form
-    students = Client.query.order_by(Client.first_name, Client.last_name).all()
-    guidance_counselors = GuidanceCounselor.query.all()
-    psychologists = Psychologist.query.all()
-    
-    return render_template('admin/staff/new_appointment.html',
-                         students=students,
-                         guidance_counselors=guidance_counselors,
-                         psychologists=psychologists,
-                         active_page='appointments')
-
-@appointment_bp.route('/api/appointments/availability', methods=['GET'])
-@login_required
-def check_availability():
+    """View all appointments for the current staff member."""
     try:
-        professional_type = request.args.get('professional_type')
-        professional_id = request.args.get('professional_id', type=int)
-        start_time = datetime.fromisoformat(request.args.get('start_time'))
-        end_time = datetime.fromisoformat(request.args.get('end_time'))
+        # Get all appointments for the current staff member
+        appointments = Appointment.query.filter_by(staff_id=current_user.id).order_by(Appointment.start_time.desc()).all()
         
-        # Check for overlapping appointments
-        overlapping = Appointment.query.filter(
-            Appointment.professional_type == professional_type,
-            Appointment.professional_id == professional_id,
-            ((Appointment.start_time < end_time) & (Appointment.end_time > start_time)),
+        # Get list of students for the appointment form
+        students = User.query.filter_by(is_student=True).all()
+        
+        return render_template('admin/staff/appointments.html', 
+                            appointments=appointments,
+                            students=students,
+                            active_page='appointments')
+    except Exception as e:
+        current_app.logger.error(f"Error fetching appointments: {str(e)}")
+        flash('An error occurred while fetching appointments.', 'danger')
+        return redirect(url_for('main.dashboard'))
+
+@appointment_bp.route('/api/appointments', methods=['POST'])
+@login_required
+@staff_required
+def create_appointment():
+    """Create a new appointment (API endpoint)."""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['title', 'start_time', 'end_time', 'student_id', 'appointment_type', 'professional_type']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({
+                    'success': False,
+                    'message': f'Missing required field: {field}'
+                }), 400
+        
+        # Parse datetime strings
+        start_time = datetime.fromisoformat(data['start_time'].replace('Z', '+00:00'))
+        end_time = datetime.fromisoformat(data['end_time'].replace('Z', '+00:00'))
+        
+        # Check if end time is after start time
+        if end_time <= start_time:
+            return jsonify({
+                'success': False,
+                'message': 'End time must be after start time.'
+            }), 400
+            
+        # Check if student exists
+        student = User.query.get(data['student_id'])
+        if not student or not student.is_student:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid student selected.'
+            }), 400
+            
+        # Check for scheduling conflicts
+        conflict = Appointment.query.filter(
+            Appointment.staff_id == current_user.id,
+            Appointment.start_time < end_time,
+            Appointment.end_time > start_time,
             Appointment.status != 'cancelled'
         ).first()
         
+        if conflict:
+            return jsonify({
+                'success': False,
+                'message': 'There is a scheduling conflict with an existing appointment.'
+            }), 409
+            
+        # Create new appointment
+        appointment = Appointment(
+            title=data['title'],
+            description=data.get('description', ''),
+            start_time=start_time,
+            end_time=end_time,
+            student_id=data['student_id'],
+            staff_id=current_user.id,
+            appointment_type=data['appointment_type'],
+            professional_type=data['professional_type'],
+            status='scheduled'
+        )
+        
+        db.session.add(appointment)
+        db.session.commit()
+        
         return jsonify({
-            'available': overlapping is None,
-            'message': 'This time slot is already booked. Please choose another time.' if overlapping else 'Time slot is available.'
+            'success': True,
+            'message': 'Appointment created successfully!',
+            'appointment_id': appointment.id
         })
         
     except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating appointment: {str(e)}")
         return jsonify({
-            'status': 'error',
-            'message': f'Error checking availability: {str(e)}'
-        }), 400
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }), 500
 
-@appointment_bp.route('/api/appointments/<int:appointment_id>', methods=['PUT', 'DELETE'])
+@appointment_bp.route('/api/appointments/<int:appointment_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
+@staff_required
 def manage_appointment(appointment_id):
+    """Get, update, or delete a specific appointment."""
     appointment = Appointment.query.get_or_404(appointment_id)
     
-    if request.method == 'PUT':
+    # Ensure the current user owns this appointment or is an admin
+    if appointment.staff_id != current_user.id and not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    if request.method == 'GET':
+        # Return appointment details
+        return jsonify({
+            'success': True,
+            'appointment': {
+                'id': appointment.id,
+                'title': appointment.title,
+                'description': appointment.description,
+                'start_time': appointment.start_time.isoformat(),
+                'end_time': appointment.end_time.isoformat(),
+                'status': appointment.status,
+                'appointment_type': appointment.appointment_type,
+                'professional_type': appointment.professional_type,
+                'student_id': appointment.student_id,
+                'created_at': appointment.created_at.isoformat(),
+                'updated_at': appointment.updated_at.isoformat()
+            }
+        })
+        
+    elif request.method == 'PUT':
+        # Update appointment
         try:
             data = request.get_json()
             
-            # Update appointment fields
-            if 'status' in data:
-                appointment.status = data['status']
+            # Update fields if provided
             if 'title' in data:
                 appointment.title = data['title']
             if 'description' in data:
                 appointment.description = data['description']
-            if 'start_time' in data:
-                appointment.start_time = datetime.fromisoformat(data['start_time'])
-            if 'end_time' in data:
-                appointment.end_time = datetime.fromisoformat(data['end_time'])
+            if 'status' in data and data['status'] in ['scheduled', 'completed', 'cancelled']:
+                appointment.status = data['status']
             
+            # Handle rescheduling
+            if 'start_time' in data and 'end_time' in data:
+                new_start = datetime.fromisoformat(data['start_time'].replace('Z', '+00:00'))
+                new_end = datetime.fromisoformat(data['end_time'].replace('Z', '+00:00'))
+                
+                # Check for conflicts (excluding the current appointment)
+                conflict = Appointment.query.filter(
+                    Appointment.id != appointment.id,
+                    Appointment.staff_id == current_user.id,
+                    Appointment.start_time < new_end,
+                    Appointment.end_time > new_start,
+                    Appointment.status != 'cancelled'
+                ).first()
+                
+                if conflict:
+                    return jsonify({
+                        'success': False,
+                        'message': 'There is a scheduling conflict with another appointment.'
+                    }), 409
+                
+                appointment.start_time = new_start
+                appointment.end_time = new_end
+            
+            appointment.updated_at = datetime.utcnow()
             db.session.commit()
             
             return jsonify({
-                'status': 'success',
-                'message': 'Appointment updated successfully!',
-                'appointment': appointment.to_dict()
+                'success': True,
+                'message': 'Appointment updated successfully!'
             })
             
         except Exception as e:
             db.session.rollback()
+            current_app.logger.error(f"Error updating appointment: {str(e)}")
             return jsonify({
-                'status': 'error',
-                'message': f'Error updating appointment: {str(e)}'
-            }), 400
+                'success': False,
+                'message': f'An error occurred: {str(e)}'
+            }), 500
             
     elif request.method == 'DELETE':
+        # Delete appointment
         try:
             db.session.delete(appointment)
             db.session.commit()
             
             return jsonify({
-                'status': 'success',
-                'message': 'Appointment cancelled successfully!'
+                'success': True,
+                'message': 'Appointment deleted successfully!'
             })
             
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error deleting appointment: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': f'An error occurred: {str(e)}'
+            }), 500
+
+@appointment_bp.route('/api/appointments/check-availability', methods=['POST'])
+@login_required
+@staff_required
+def check_availability():
+    """Check if a time slot is available for scheduling."""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['start_time', 'end_time']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({
+                    'success': False,
+                    'message': f'Missing required field: {field}'
+                }), 400
+        
+        # Parse datetime strings
+        start_time = datetime.fromisoformat(data['start_time'].replace('Z', '+00:00'))
+        end_time = datetime.fromisoformat(data['end_time'].replace('Z', '+00:00'))
+        
+        # Check for conflicts
+        conflict_query = Appointment.query.filter(
+            Appointment.staff_id == current_user.id,
+            Appointment.start_time < end_time,
+            Appointment.end_time > start_time,
+            Appointment.status != 'cancelled'
+        )
+        
+        # If checking a specific appointment (for updates), exclude it from the conflict check
+        if 'appointment_id' in data and data['appointment_id']:
+            conflict_query = conflict_query.filter(Appointment.id != data['appointment_id'])
+        
+        conflict = conflict_query.first()
+        
+        return jsonify({
+            'success': True,
+            'available': conflict is None,
+            'conflict': {
+                'id': conflict.id if conflict else None,
+                'title': conflict.title if conflict else None,
+                'start_time': conflict.start_time.isoformat() if conflict else None,
+                'end_time': conflict.end_time.isoformat() if conflict else None
+            } if conflict else None
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error checking availability: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'An error occurred while checking availability: {str(e)}'
+        }), 500
+    # Check if current user is the staff who created the appointment
+    if appointment.staff_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    if request.method == 'GET':
+        # Return appointment details
+        return jsonify({
+            'status': 'success',
+            'appointment': appointment.to_dict()
+        })
+    
+    elif request.method == 'PUT':
+        data = request.get_json()
+        
+        # Update appointment fields
+        for field in ['title', 'description', 'status', 'appointment_type']:
+            if field in data:
+                setattr(appointment, field, data[field])
+                
+        # Update times if provided
+        if 'start_time' in data:
+            appointment.start_time = datetime.fromisoformat(data['start_time'].replace('Z', '+00:00'))
+        if 'end_time' in data:
+            appointment.end_time = datetime.fromisoformat(data['end_time'].replace('Z', '+00:00'))
+            
+        db.session.commit()
+        return jsonify({
+            'status': 'success', 
+            'message': 'Appointment updated successfully',
+            'appointment': appointment.to_dict()
+        })
+        
+    elif request.method == 'DELETE':
+        try:
+            # Soft delete by changing status
+            appointment.status = 'cancelled'
+            db.session.commit()
+            return jsonify({
+                'status': 'success', 
+                'message': 'Appointment cancelled successfully',
+                'appointment_id': appointment_id
+            })
         except Exception as e:
             db.session.rollback()
             return jsonify({

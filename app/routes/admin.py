@@ -1,14 +1,15 @@
 """
 Admin routes for the application.
 """
+from functools import wraps
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from bson import ObjectId
 from datetime import datetime
 
-from ..models.user import User
-from ..forms import CreateAdminForm
-from ..extensions import mongo
+from app.models.user import User
+from app.forms import CreateAdminForm
+from app.extensions import mongo
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 

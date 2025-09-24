@@ -1,24 +1,39 @@
 """
 Authentication routes for the application.
 """
+from functools import wraps
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson import ObjectId
 from datetime import datetime, timedelta
 import jwt
-from functools import wraps
 
-from ..forms import LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm
-from ..models.user import User
-from ..extensions import mail, limiter
-from flask_mail import Message
-
+# Initialize blueprint
 bp = Blueprint('auth', __name__)
+
+# Lazy imports
+def get_limiter():
+    from app.extensions import limiter
+    return limiter
+
+def get_mail():
+    from app.extensions import mail
+    return mail
+
+def get_db():
+    from app.extensions import db
+    return db
 
 def login_limiter(f):
     """Decorator to limit login attempts."""
-    return limiter.limit("5 per hour")(f)
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        limiter = get_limiter()
+        if limiter is None:
+            return f(*args, **kwargs)
+        return limiter.limit("5 per hour")(f)(*args, **kwargs)
+    return decorated_function
 
 @bp.route('/login', methods=['GET', 'POST'])
 @login_limiter
@@ -27,31 +42,48 @@ def login_selector():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
     
-    return render_template('auth/login_selector.html')
+    # Lazy import forms
+    from app.forms.auth_forms import LoginForm
+    
+    form = LoginForm()
+    return render_template('auth/login_selector.html', form=form)
 
 @bp.route('/login/user', methods=['GET', 'POST'])
 @login_limiter
 def user_login():
     """Handle user login."""
+    # Lazy imports
+    from app.forms.auth_forms import LoginForm
+    from app.models.user import User
+    from flask_login import login_user
+    
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
     
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.get_by_email(form.email.data)
-        if user and user.check_password(form.password.data):
-            if not user.is_active:
-                flash('Your account has been deactivated. Please contact support.', 'danger')
-                return redirect(url_for('auth.user_login'))
-            
-            login_user(user, remember=form.remember_me.data)
-            user.update_last_login()
-            
-            next_page = request.args.get('next')
-            flash('You have been logged in successfully!', 'success')
-            return redirect(next_page or url_for('main.dashboard'))
+        user = User.query.filter_by(email=form.email.data).first()
         
-        flash('Invalid email or password', 'danger')
+        if user is None or not user.check_password(form.password.data):
+            flash('Invalid email or password', 'danger')
+            return redirect(url_for('auth.user_login'))
+        
+        if not user.is_active:
+            flash('Your account is not active. Please contact support.', 'danger')
+            return redirect(url_for('auth.user_login'))
+        
+        login_user(user, remember=form.remember_me.data)
+        
+        # Update last login
+        from app.extensions import db
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+        
+        next_page = request.args.get('next')
+        if not next_page or not next_page.startswith('/'):
+            next_page = url_for('main.dashboard')
+        
+        return redirect(next_page)
     
     return render_template('auth/login.html', form=form, user_type='user')
 
@@ -59,6 +91,11 @@ def user_login():
 @login_limiter
 def admin_login():
     """Handle admin login."""
+    # Lazy imports
+    from app.forms.auth_forms import LoginForm
+    from app.models.user import User
+    from flask_login import login_user
+    
     if current_user.is_authenticated and current_user.is_admin:
         return redirect(url_for('admin.dashboard'))
     
@@ -84,23 +121,42 @@ def admin_login():
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
     """Handle user registration."""
+    # Lazy imports
+    from app.forms.auth_forms import RegisterForm
+    from app.models.user import User
+    from app.extensions import db
+    
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
     
     form = RegisterForm()
     if form.validate_on_submit():
-        user = User.create(
-            email=form.email.data,
-            password=form.password.data,
-            first_name=form.first_name.data,
-            last_name=form.last_name.data
-        )
+        # Check if user already exists
+        existing_user = User.query.filter_by(email=form.email.data).first()
+        if existing_user:
+            flash('Email already registered. Please use a different email.', 'danger')
+            return redirect(url_for('auth.register'))
         
-        if user:
+        # Create new user
+        user = User(
+            email=form.email.data,
+            first_name=form.first_name.data,
+            last_name=form.last_name.data,
+            is_admin=False,
+            is_active=True
+        )
+        user.set_password(form.password.data)
+        
+        # Add to database
+        try:
+            db.session.add(user)
+            db.session.commit()
             flash('Registration successful! You can now log in.', 'success')
             return redirect(url_for('auth.user_login'))
-        
-        flash('Email already registered', 'danger')
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error creating user: {e}")
+            flash('An error occurred during registration. Please try again.', 'danger')
     
     return render_template('auth/register.html', form=form)
 
@@ -198,3 +254,6 @@ def reset_password(token):
         return redirect(url_for('main.dashboard'))
     
     return render_template('auth/reset_password.html', form=form, token=token)
+
+# Export the blueprint
+bp = bp

@@ -14,6 +14,13 @@ from .base_forms import (
 # Import other forms
 from .guidance_counselor_form import CreateGuidanceCounselorForm
 from .psychologist_form import PsychologistForm, PsychologistFilterForm
+from .role_forms import (
+    BaseLoginForm,
+    PsychologistLoginForm,
+    GuidanceCounselorLoginForm,
+    ClientLoginForm,
+    RoleSelectionForm
+)
 
 __all__ = [
     'AdminRegisterForm',
@@ -25,5 +32,10 @@ __all__ = [
     'ResetPasswordForm',
     'CreateGuidanceCounselorForm',
     'PsychologistForm',
-    'PsychologistFilterForm'
+    'PsychologistFilterForm',
+    'BaseLoginForm',
+    'PsychologistLoginForm',
+    'GuidanceCounselorLoginForm',
+    'ClientLoginForm',
+    'RoleSelectionForm'
 ]

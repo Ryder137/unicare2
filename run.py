@@ -2,7 +2,7 @@
 """
 Run the UNICARE development server.
 """
-from unicate import create_app
+from app import create_app
 
 app = create_app()
 
