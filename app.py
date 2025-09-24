@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, jsonify, session, g, flash, redirect, url_for, current_app
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user, current_user
 from flask_pymongo import PyMongo
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from datetime import datetime, timedelta
@@ -129,7 +131,14 @@ def add_header(response):
         response.headers['Expires'] = '-1'
     return response
 
-# MongoDB configuration
+# Database configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost/unicare')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+# MongoDB configuration (for existing functionality)
 app.config['MONGO_URI'] = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/unicare')
 mongo = PyMongo(app)
 
@@ -1533,8 +1542,17 @@ def print_startup_info():
         except Exception as e:
             print("\n[WARNING] Could not print startup URLs:", str(e))
 
+# Import models to ensure they are registered with SQLAlchemy
+from models.appointment import Appointment
+from models.client import Client
+from models.admin_user import AdminUser
+
 if __name__ == '__main__':
     try:
+        # Create database tables if they don't exist
+        with app.app_context():
+            db.create_all()
+        
         # Print initialization header
         print("\n" + "="*50)
         print("Starting application initialization...")
