@@ -1623,7 +1623,7 @@ if __name__ == '__main__':
         Timer(1, print_startup_info).start()
         
         # Only open browser in development mode
-        if app.config.get('FLASK_ENV') == 'development':
+        if app.config.get('FLASK_ENV') == 'development' and not os.environ.get('WERKZEUG_RUN_MAIN'):
             Timer(2, open_browser).start()
             
     except Exception as e:
