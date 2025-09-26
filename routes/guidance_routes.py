@@ -10,7 +10,7 @@ def guidance_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('auth.user_login'))
         if not hasattr(current_user, 'is_guidance_counselor') or not current_user.is_guidance_counselor:
             flash('You do not have permission to access this page.', 'danger')
             return redirect(url_for('main.index'))
