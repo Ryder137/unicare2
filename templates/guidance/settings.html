@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Guidance Counselor - UniCare{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.dashboard') }}">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.students') }}">
+                            <i class="bi bi-people me-2"></i>
+                            Students
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.appointments') }}">
+                            <i class="bi bi-calendar-check me-2"></i>
+                            Appointments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.assessments') }}">
+                            <i class="bi bi-clipboard-data me-2"></i>
+                            Assessments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.resources') }}">
+                            <i class="bi bi-collection me-2"></i>
+                            Resources
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('guidance.profile') }}">
+                            <i class="bi bi-person me-2"></i>
+                            Profile
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Settings</h1>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Account Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email address</label>
+                                    <input type="email" class="form-control" id="email" value="counselor@example.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="timezone" class="form-label">Time Zone</label>
+                                    <select class="form-select" id="timezone">
+                                        <option selected>Select timezone</option>
+                                        <option>UTC-08:00 Pacific Time (US & Canada)</option>
+                                        <option>UTC-07:00 Mountain Time (US & Canada)</option>
+                                        <option>UTC-06:00 Central Time (US & Canada)</option>
+                                        <option>UTC-05:00 Eastern Time (US & Canada)</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Notification Preferences</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="emailNotifications" checked>
+                                    <label class="form-check-label" for="emailNotifications">
+                                        Email Notifications
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="appointmentReminders" checked>
+                                    <label class="form-check-label" for="appointmentReminders">
+                                        Appointment Reminders
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="newsletter">
+                                    <label class="form-check-label" for="newsletter">
+                                        Newsletter Subscription
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn btn-primary mt-3">Update Preferences</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

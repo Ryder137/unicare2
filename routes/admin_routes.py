@@ -142,6 +142,8 @@ def admin_required(f):
         
         # Check if user is authenticated
         if not current_user.is_authenticated:
+        if not getattr(current_user, 'is_authenticated', False):
+            print("[DEBUG] User not authenticated, redirecting to login")
             session['next'] = request.url if request.method == 'GET' else None
             return redirect(url_for('admin.admin_login', next=request.url))
             
@@ -154,7 +156,7 @@ def admin_required(f):
         if is_client:
             print("[DEBUG] User is client, redirecting to index")
             flash('You do not have permission to access this page.', 'error')
-            return redirect(url_for('index'))
+            return redirect(url_for('admin.dashboard'))
             
         print("[DEBUG] User is authenticated, proceeding to route handler")
         return f(*args, **kwargs)
@@ -1110,34 +1112,96 @@ def manage_user_api(user_id=None):
         current_app.logger.error(f"Unexpected error in manage_user_api: {str(e)}")
         return jsonify({'success': False, 'message': 'An unexpected error occurred'}), 500
 
+@admin_bp.route('/appointments')
+@login_required
+@admin_required
+def manage_appointments():
+    """Manage appointments in the admin panel."""
+    try:
+        print("\n[DEBUG] ====== manage_appointments called ======")
+        print(f"[DEBUG] Current user: {current_user}")
+        print(f"[DEBUG] is_authenticated: {current_user.is_authenticated}")
+        print(f"[DEBUG] is_admin: {getattr(current_user, 'is_admin', False)}")
+        print(f"[DEBUG] User attributes: {dir(current_user)}")
+        from models.appointment import Appointment
+        from models.client import Client
+        from sqlalchemy.orm import joinedload
+        import json
+        
+        # Get all appointments with related data
+        appointments = (Appointment.query
+                      .options(joinedload(Appointment.student))
+                      .order_by(Appointment.start_time.desc())
+                      .all())
+        
+        # Convert appointments to a list of dictionaries for JSON serialization
+        appointments_data = []
+        for appt in appointments:
+            student_data = None
+            if appt.student:
+                student_data = {
+                    'id': appt.student.id,
+                    'full_name': f"{appt.student.first_name} {appt.student.last_name}"
+                }
+            
+            appt_data = {
+                'id': appt.id,
+                'title': appt.title or 'Appointment',
+                'description': appt.description or '',
+                'start_time': appt.start_time.isoformat() if appt.start_time else None,
+                'end_time': appt.end_time.isoformat() if appt.end_time else None,
+                'status': appt.status or 'pending',
+                'appointment_type': appt.appointment_type or '',
+                'professional_type': appt.professional_type or '',
+                'student': student_data
+            }
+            appointments_data.append(appt_data)
+        
+        # Get all students for the dropdown
+        students = Client.query.order_by(Client.last_name, Client.first_name).all()
+        
+        # Get appointment count for the badge
+        appointment_count = len(appointments)
+        
+        # Convert appointments to JSON string for template
+        appointments_json = json.dumps(appointments_data, default=str)
+        
+        return render_template('admin/appointments.html', 
+                             appointments=appointments_json,
+                             students=students,
+                             appointment_count=appointment_count)
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Error in manage_appointments: {str(e)}\n{error_details}")
+        current_app.logger.error(f"Error details: {error_details}")
+        flash(f'An error occurred while loading appointments: {str(e)}', 'danger')
+        return redirect(url_for('admin.dashboard'))
+
 @admin_bp.route('/logout')
 @login_required
 @login_required
 def logout():
     """Handle admin logout."""
     try:
-        # Log the logout
-        logger.info("Admin %s logging out", current_user.email)
-        
-        # Clear user session
-        user_email = current_user.email
-        
-        # Logout the user (this will clear the session)
-        logout_user()
-        
-        # Clear any remaining session data
+        # Clear the session
         session.clear()
+        
+        # Logout the user
+        logout_user()
         
         # Clear any flash messages
         clear_flash_messages()
         
-        # Add a success message
+        # Log the logout
+        logger.info(f"Admin user logged out")
+        
+        # Redirect to the login page with a success message
         flash('You have been successfully logged out.', 'success')
-        logger.info("Admin %s logged out successfully", user_email)
+        return redirect(url_for('admin.admin_login'))
         
     except Exception as e:
-        logger.error("Error during logout: %s\n%s", str(e), traceback.format_exc())
-        flash('An error occurred during logout.', 'error')
-    
-    # Redirect to login page
-    return redirect(url_for('admin.admin_login'))
+        logger.error(f"Error during logout: {str(e)}")
+        flash('An error occurred during logout.', 'danger')
+        return redirect(url_for('admin.dashboard'))

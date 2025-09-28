@@ -272,6 +272,20 @@
                         </div>
                     </li>
 
+                    <!-- Appointments -->
+                    <li class="nav-item mb-2">
+                        <a class="nav-link text-white d-flex align-items-center py-2 px-3 rounded-3 {% if request.endpoint == 'admin.manage_appointments' %}active bg-primary{% endif %}" 
+                        href="{{ url_for('admin.manage_appointments') }}">
+                            <i class="bi bi-calendar-check me-3"></i>
+                            <div class="d-flex justify-content-between align-items-center w-100">
+                                <span>Appointments</span>
+                                <span class="badge bg-primary rounded-pill ms-2">
+                                    {{ appointment_count if appointment_count is defined else '0' }}
+                                </span>
+                            </div>
+                        </a>
+                    </li>
+                    
                     <!-- Admin Only Section - Removed as per request -->
                 </ul>
             </div>
