@@ -51,7 +51,7 @@ except Exception as e:
 
 @accounts_bp.route('/management')
 @login_required
-def manage_users():
+def management():
     """Manage all users (admin, client, psychologist, staff)."""
     print("\n[DEBUG] ====== manage_users route called ======")
     print(f"[DEBUG] Request URL: {request.url}")
@@ -187,7 +187,7 @@ def manage_users():
             if user_list:
                 print(f"[DEBUG] First {user_type} user: {user_list[0].get('email', 'No email')}")
         
-        return render_template('admin/user_management.html',
+        return render_template('accounts/user_management.html',
                             users=all_users,
                             user_counts=user_counts,
                             current_user=current_user)
