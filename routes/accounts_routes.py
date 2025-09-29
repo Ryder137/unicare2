@@ -13,6 +13,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import current_user, login_required, login_url, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from services import database_service as db_service
+from models.accounts import AccountsModel,PsychologistDetailModel
 
 # Add the project root to the Python path first
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -64,10 +65,6 @@ def management():
     
     users_result = db_service.get_all_accounts();
     users_data = users_result.data if hasattr(users_result, "data") else []
-          
-    # Count users per role
-    role_counts = Counter(user.get('role', '').lower() for user in users_data)
-    active_counts = sum(1 for user in users_data if not user.get('is_active', False))
     
     # Count users created in the current month
     # Get current year and month
@@ -75,22 +72,23 @@ def management():
     current_year = now.year
     current_month = now.month
     
-    users_created_this_month = [
+    new_users_count = len([
         user for user in users_data
         if user.get('created_at') and
           datetime.fromisoformat(user['created_at']).year == current_year and
           datetime.fromisoformat(user['created_at']).month == current_month
-    ]
-    new_users_count = len(users_created_this_month)
+    ])
     
-    pending_counts = sum(1 for user in users_data if not user.get('is_verified', False))
+    user_counts = len(users_data)
+    active_counts = sum(1 for user in users_data if user.get('is_active', True))
+    pending_counts = sum(1 for user in users_data if not user.get('is_verified', True))
     
     # Count users object
     user_counts = {
-      'total_users': len(users_data),
+      'total_users': user_counts,
       'active_counts': active_counts,
       'new_users_count': new_users_count,
-      'pending_counts': role_counts.get('admin', 0)
+      'pending_counts': pending_counts
     }
   
     return render_template('accounts/user_management.html',
@@ -114,13 +112,81 @@ def get_user(id):
   print(f"[DEBUG] Request Data: {data}")
   return jsonify({'message': 'User data fetched successfully.'}), 200
       
+      
+# CREATE USER ACCOUNT
 @accounts_bp.route('/user/create',methods=['POST'])
 @login_required
 def create_user():
   print("\n[DEBUG] ====== create_user route called ======")
   data = request.get_json()
   print(f"[DEBUG] Request Data:",data)
-  return jsonify({'message': 'User created successfully.'}), 201
+  
+  # Ensure data is a dictionary
+  if isinstance(data, str):
+    try:
+        data = json.loads(data)
+    except Exception as e:
+        print(f"[ERROR] Failed to parse JSON string: {e}")
+        return jsonify({'error': 'Invalid JSON format.'}), 400
+  elif not isinstance(data, dict):
+      return jsonify({'error': 'Invalid data format.'}), 400
+  
+  # Validate password and confirm_password match
+  password = data.get("password")
+  confirm_password = data.get("confirm_password")
+  if password != confirm_password:
+    return jsonify({'error': 'Password and confirm password do not match.'}), 400
+
+  # Hash the password
+  hashed_password = generate_password_hash(password)
+
+  try:
+    reqAccounts = AccountsModel(
+      id=None,
+      first_name = data.get("first_name"),
+      middle_name = data.get("middle_name"),
+      last_name = data.get("last_name"),
+      email = data.get("email"),
+      role = data.get("role"),
+      password = hashed_password,
+      is_deleted = False,
+      is_active = True,
+      is_verified = False
+    )
+    
+    print(f"[DEBUG] Prepared Account Data: {reqAccounts}")
+      
+    new_user = db_service.create_account(reqAccounts)
+    print(f"[DEBUG] New User Created: {new_user}")
+    
+    # If the new user is a psychologist, create a corresponding psychologist detail record
+    if reqAccounts.role == 'psychologist' and new_user is not None:
+      reqPsychologistDetail = PsychologistDetailModel(
+        id=None,
+        user_id=new_user,  # Use the ID of the newly created user account
+        license_number = data.get("license_number"),
+        specialization = data.get("specialization"),
+        bio = data.get("bio"),
+        years_of_experience = data.get("years_of_experience"),
+        education = data.get("education"),
+        languages_spoken = data.get("languages_spoken", []),
+        consultation_fee = data.get("consultation_fee"),
+        is_available = data.get("is_available", True),
+        created_at = datetime.now().isoformat(),
+        updated_at = datetime.now().isoformat()
+      )
+      
+      print(f"[DEBUG] Prepared Psychologist Detail Data: {reqPsychologistDetail}")
+      
+      psychologist_detail_result = db_service.create_psychologist_detail(reqPsychologistDetail)
+      print(f"[DEBUG] Psychologist Detail Created: {psychologist_detail_result}")
+    
+    return jsonify({'message': 'User created successfully.'}), 201
+  
+  except Exception as e:
+    print(f"[ERROR] Failed to create user: {str(e)}")
+    return jsonify({'error': 'Failed to create user.'}), 500
+#######################################################################
   
 @accounts_bp.route('/user/update/<id>',methods=['PUT'])  
 @login_required

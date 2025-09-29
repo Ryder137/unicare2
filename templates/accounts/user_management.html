@@ -142,14 +142,14 @@
                                 {% set role_display = {
                                     'admin': 'Admin',
                                     'psychologist': 'Psychologist',
-                                    'therapist': 'Therapist',
+                                    'staff': 'Staff',
                                     'client': 'Client'
                                 }.get(user.role, 'Unknown') %}
 
                                 {% set badge_class = {
                                     'admin': 'bg-primary',
                                     'psychologist': 'bg-success',
-                                    'therapist': 'bg-info',
+                                    'staff': 'bg-info',
                                     'client': 'bg-secondary'
                                 }.get(user.role, 'bg-secondary') %}
 
@@ -826,10 +826,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     response = { message: xhr.statusText || errorMessage };
                 }
                 
-                const errors = response.errors || { message: response.message || errorMessage };
+                const errors = response.errors || { message: response.error || errorMessage };
                 
                 // Handle field-specific errors
                 for (const [field, message] of Object.entries(errors)) {
+                    console.log(`Field: ${field}, Message: ${message}`);
                     if (field !== 'message') {
                         // Convert snake_case to camelCase for matching with field IDs
                         const fieldId = field.split('_').map((word, i) => 

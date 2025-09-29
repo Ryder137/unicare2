@@ -67,25 +67,30 @@ COMMENT ON COLUMN public.psychologists.languages_spoken IS 'Array of languages t
 COMMENT ON COLUMN public.psychologists.consultation_fee IS 'Standard consultation fee per session';
 COMMENT ON COLUMN public.psychologists.is_available IS 'Flag indicating if the psychologist is currently accepting new patients';
 
--- Create a view for public psychologist profiles
-CREATE OR REPLACE VIEW public.psychologist_profiles AS
-SELECT 
-    p.id,
-    u.email,
-    u.raw_user_meta_data->>'full_name' as name,
-    p.license_number,
-    p.specialization,
-    p.bio,
-    p.years_of_experience,
-    p.education,
-    p.languages_spoken,
-    p.consultation_fee,
-    p.is_available,
-    p.created_at,
-    p.updated_at
-FROM public.psychologists p
-JOIN auth.users u ON p.user_id = u.id
-WHERE p.is_available = true;
+
+
+-- Drop and Create a view for public psychologist profiles
+DROP VIEW IF EXISTS public.psychologist_profiles;
+CREATE VIEW public.psychologist_profiles AS
+select
+  p.id,
+  u.email,
+  u.first_name || ' ' || u.last_name  as name,
+  p.license_number,
+  p.specialization,
+  p.bio,
+  p.years_of_experience,
+  p.education,
+  p.languages_spoken,
+  p.consultation_fee,
+  p.is_available,
+  p.created_at,
+  p.updated_at
+from
+  psychologists p
+inner join user_accounts u on p.user_id = u.id
+where 1=1
+  AND p.is_available = true;
 
 -- Grant necessary permissions
 GRANT SELECT ON public.psychologists TO anon, authenticated;

@@ -16,7 +16,7 @@ from .guidance_counselor import GuidanceCounselor
 from .admin_user import AdminUser
 from .client import Client
 from .appointment import Appointment
-from .accounts import AccountsModel
+from .accounts import AccountsModel,PsychologistDetailModel
 
 # Make models available at package level
 __all__ = [
@@ -30,5 +30,6 @@ __all__ = [
     'AdminUser',
     'Client',
     'Appointment',
-    'AccountsModel'
+    'AccountsModel',
+    'PsychologistDetailModel'
 ]

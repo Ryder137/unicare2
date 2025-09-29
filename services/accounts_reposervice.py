@@ -25,8 +25,27 @@ class AccountRepoService:
       "is_active": True,
       "is_verified": False
     }
-    return self.supabase.table('user_accounts').insert(accounts_data).execute()
+    
+    result = self.supabase.table('user_accounts').insert(accounts_data).execute()
+    inserted_id = result.data[0]['id'] if result.data else None
+    return inserted_id
   
+  def create_psychologist_detail(self, psychologist_detail):
+    psychologist_data = {
+      "user_id": psychologist_detail.user_id,
+      "license_number": psychologist_detail.license_number,
+      "specialization": psychologist_detail.specialization,
+      "bio": psychologist_detail.bio,
+      "years_of_experience": psychologist_detail.years_of_experience,
+      "education": psychologist_detail.education,
+      "languages_spoken": psychologist_detail.languages_spoken,
+      "consultation_fee": psychologist_detail.consultation_fee,
+      "is_available": psychologist_detail.is_available,
+      "created_at": psychologist_detail.created_at,
+      "updated_at": psychologist_detail.updated_at
+    }
+    return self.supabase.table('psychologists').insert(psychologist_data).execute()
+
   def update_account(self, id: str, account: AccountsModel):
     accounts_data = {
       "first_name": account.first_name,

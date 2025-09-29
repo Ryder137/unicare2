@@ -19,7 +19,31 @@ class AccountsModel():
     self.is_deleted = is_deleted
     self.is_active = is_active
     self.is_verified = is_verified
-    
-    
-    
-    
+
+
+class PsychologistDetailModel(): 
+    def __init__(self, id: str,
+                 user_id: str,
+                 license_number: str,
+                 specialization: str,
+                 bio: str,
+                 years_of_experience: int,
+                 education: str,
+                 languages_spoken: list,
+                 consultation_fee: float,
+                 is_available: bool,
+                 created_at: str,
+                 updated_at: str):
+        self.id = id
+        self.user_id = user_id
+        self.license_number = license_number
+        self.specialization = specialization
+        self.bio = bio
+        self.years_of_experience = years_of_experience
+        self.education = education
+        self.languages_spoken = languages_spoken
+        self.consultation_fee = consultation_fee
+        self.is_available = is_available
+        self.created_at = created_at
+        self.updated_at = updated_at
+
