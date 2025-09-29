@@ -104,13 +104,19 @@ def management():
     #   flash('An error occurred while loading user data. Please check the logs for details.', 'error')
     #   return redirect(url_for('admin.dashboard'))
 
-@accounts_bp.route('/user/<id>',methods=['GET'])
+@accounts_bp.route('/user/<string:id>',methods=['GET'])
 @login_required
 def get_user(id):
-  data = request.get_json()
   print("\n[DEBUG] ====== get_user route called ======")
-  print(f"[DEBUG] Request Data: {data}")
-  return jsonify({'message': 'User data fetched successfully.'}), 200
+  print("\n[DEBUG] GET USER DETAILS : ",id  )
+
+  user_result = db_service.get_account_by_id(id);
+
+  if not user_result:
+      return jsonify({'error': 'User not found.'}), 404
+    
+  return jsonify({'user': user_result}), 200
+  
       
       
 # CREATE USER ACCOUNT

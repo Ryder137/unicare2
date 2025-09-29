@@ -96,9 +96,10 @@
                         <li><a class="dropdown-item" href="#" data-filter="active">Active</a></li>
                         <li><a class="dropdown-item" href="#" data-filter="inactive">Inactive</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#" data-filter="admin">Admins</a></li>
-                        <li><a class="dropdown-item" href="#" data-filter="client">Clients</a></li>
-                        <li><a class="dropdown-item" href="#" data-filter="therapist">Therapists</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="admin">Admin</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="psychologist">Psychologist</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="staff">Staff</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="client">Client</a></li>
                     </ul>
                 </div>
             </div>
@@ -138,30 +139,8 @@
                                 </div>
                             </td>
                             <td>{{ user.email }}</td>
-                            <td>
-                                {% set role_display = {
-                                    'admin': 'Admin',
-                                    'psychologist': 'Psychologist',
-                                    'staff': 'Staff',
-                                    'client': 'Client'
-                                }.get(user.role, 'Unknown') %}
-
-                                {% set badge_class = {
-                                    'admin': 'bg-primary',
-                                    'psychologist': 'bg-success',
-                                    'staff': 'bg-info',
-                                    'client': 'bg-secondary'
-                                }.get(user.role, 'bg-secondary') %}
-
-                                <span class="badge {{ badge_class }}">
-                                    {{ role_display }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge bg-{{ 'success' if user.is_active else 'secondary' }}">
-                                    {{ 'Active' if user.is_active else 'Inactive' }}
-                                </span>
-                            </td>
+                            <td>{{user.role|title}}</td>
+                            <td>{{ 'Active' if user.is_active else 'Inactive' }}</td>
                             <td>{{ user.last_login|datetimeformat('%b %d, %Y %H:%M') if user.last_login else 'Never' }}</td>
                             <td>
                                 <div class="d-flex justify-content-center align-items-center gap-1">
@@ -390,35 +369,31 @@
 
 {% block extra_js %}
 <script>
-// Toggle psychologist fields based on role selection
-$(document).ready(function() {
-  function togglePsychologistFields() {
-    const role = $('#role').val();
-    const psychFields = document.getElementById('psychologistFields');
-    if (role === 'psychologist') {
-        // Make psychologist fields required
-        const requiredFields = psychFields.querySelectorAll('input[type="text"], input[type="number"], textarea, select');
-        requiredFields.forEach(field => {
-            field.required = true;
-        });
-        $('#psychologistFields').show();
-    } else {
-        // Remove required from psychologist fields
-        const requiredFields = psychFields.querySelectorAll('input[type="text"], input[type="number"], textarea, select');
-        requiredFields.forEach(field => {
-            field.required = false;
-        });
-
-        $('#psychologistFields').hide();
-    }
-  }
-
-  $('#role').on('change', togglePsychologistFields);
-});
-
-
 // Initialize when document is ready
-document.addEventListener('DOMContentLoaded', function() { 
+$(document).ready(function() {
+    function togglePsychologistFields() {
+      const role = $('#role').val();
+      const psychFields = document.getElementById('psychologistFields');
+      if (role === 'psychologist') {
+          // Make psychologist fields required
+          const requiredFields = psychFields.querySelectorAll('input[type="text"], input[type="number"], textarea, select');
+          requiredFields.forEach(field => {
+              field.required = true;
+          });
+          $('#psychologistFields').show();
+      } else {
+          // Remove required from psychologist fields
+          const requiredFields = psychFields.querySelectorAll('input[type="text"], input[type="number"], textarea, select');
+          requiredFields.forEach(field => {
+              field.required = false;
+          });
+
+          $('#psychologistFields').hide();
+      }
+    }
+
+    $('#role').on('change', togglePsychologistFields);
+
     // Initialize DataTable
     const usersTable = $('#usersTable').DataTable({
         order: [[1, 'asc']],
@@ -426,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
         responsive: true,
         columnDefs: [
             { orderable: false, targets: [0, 6] },
-            { searchable: false, targets: [0, 3, 4, 5, 6] }
+            { searchable: false, targets: [0, 5, 6] }
         ],
         language: {
             search: "_INPUT_",
@@ -447,20 +422,36 @@ document.addEventListener('DOMContentLoaded', function() {
         usersTable.search(this.value).draw();
     });
 
-    // Filter functionality
-    $('[data-filter]').on('click', function(e) {
+    // Filter functionality (ensure after DataTable init)
+    $('[data-filter]').off('click').on('click', function(e) {
         e.preventDefault();
         const filter = $(this).data('filter');
-        
-        // Reset all active states
         $('[data-filter]').removeClass('active');
         $(this).addClass('active');
-        
-        // Apply filter
+
+        // Clear all column filters
+        usersTable.columns().search("");
+
         if (filter === 'all') {
-            usersTable.column(3).search('').draw();
+            console.log('Filter: all (show all users)');
+            usersTable.draw();
+        } else if (filter === 'active' || filter === 'inactive') {
+            // Status column is index 4, text is 'Active'/'Inactive'
+            console.log('Filter: status', filter, 'on column 4');
+            usersTable.column(4).search('^' + filter + '$', true, false).draw();
+        } else if (["admin", "psychologist", "staff", "client", "therapist"].includes(filter)) {
+            // Role column is index 3, text is 'Admin', 'Psychologist', 'Staff', 'Client'
+            const roleMap = {
+                'admin': 'Admin',
+                'psychologist': 'Psychologist',
+                'staff': 'Staff',
+                'client': 'Client', // for the filter dropdown
+            };
+            const roleText = roleMap[filter] || '';
+            console.log('Filter: role', roleText, 'on column 3');
+            usersTable.column(3).search('^' + roleText + '$', true, false).draw();
         } else {
-            usersTable.column(3).search(filter, true, false).draw();
+            console.log('Unknown filter:', filter);
         }
     });
 
@@ -508,9 +499,12 @@ document.addEventListener('DOMContentLoaded', function() {
         `);
         
         // Load user data via AJAX
-        fetch(`/admin/api/users/${userId}`)
+        fetch(`/accounts/user/${userId}`)
             .then(response => response.json())
             .then(data => {
+
+                console.log('User data:', data);
+                
                 if (data.error) {
                     $('#userDetailsContent').html(`
                         <div class="alert alert-danger">
