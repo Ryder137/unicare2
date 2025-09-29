@@ -7,6 +7,7 @@ import sys
 import traceback
 from datetime import datetime, timedelta
 from functools import wraps
+from typing import Counter
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, abort, session
 from flask_login import current_user, login_required, login_url, login_user, logout_user
@@ -59,145 +60,54 @@ def management():
     print(f"[DEBUG] is_authenticated: {current_user.is_authenticated}")
     print(f"[DEBUG] is_admin: {getattr(current_user, 'is_admin', False)}")
     
-    def process_user_list(users, user_type):
-        """Helper function to process and validate user lists."""
-        processed = []
-        if not isinstance(users, list):
-            print(f"[WARNING] Expected list for {user_type}, got {type(users).__name__}")
-            return processed
-            
-        for user in users:
-            try:
-                if not isinstance(user, dict):
-                    user = dict(user) if hasattr(user, '__dict__') else {}
-                    if not user:
-                        continue
-                
-                # Ensure required fields exist with defaults
-                user.setdefault('first_name', 'Unknown')
-                user.setdefault('last_name', 'User')
-                user.setdefault('email', 'No email')
-                user.setdefault('user_type', user_type)
-                user.setdefault('is_active', True)
-                user.setdefault('created_at', datetime.utcnow())
-                
-                # Ensure all string fields are properly encoded
-                for key, value in user.items():
-                    if isinstance(value, str):
-                        user[key] = value.strip()
-                    elif value is None:
-                        user[key] = ''
-                
-                processed.append(user)
-                
-            except Exception as e:
-                print(f"[ERROR] Error processing {user_type} user: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                continue
-                
-        return processed
+    # try:
     
-    try:
-        # Initialize empty lists for all user types
-        clients = []
-        psychologists = []
-        admins = []
-        guidance_counselors = []
-        
-        # Get all user types with error handling
-        try:
-            clients_data = db_service.get_all_users() or []
-            clients = process_user_list(clients_data, 'client')
-            print(f"[DEBUG] Processed {len(clients)} clients")
-        except Exception as e:
-            print(f"[ERROR] Error processing clients: {str(e)}")
-            import traceback
-            traceback.print_exc()
-        
-        try:
-            psychs_data = db_service.get_all_psychologists() or []
-            psychologists = process_user_list(psychs_data, 'psychologist')
-            for psych in psychologists:
-                psych.update({
-                    'is_admin': False,
-                    'is_psychologist': True,
-                    'is_super_admin': False
-                })
-            print(f"[DEBUG] Processed {len(psychologists)} psychologists")
-        except Exception as e:
-            print(f"[ERROR] Error processing psychologists: {str(e)}")
-            traceback.print_exc()
-            
-        try:
-            admins_data = db_service.get_all_admins() or []
-            admins = process_user_list(admins_data, 'admin')
-            for admin in admins:
-                admin.update({
-                    'is_admin': True,
-                    'is_psychologist': False,
-                    'is_super_admin': admin.get('is_super_admin', False)
-                })
-            print(f"[DEBUG] Processed {len(admins)} admins")
-        except Exception as e:
-            print(f"[ERROR] Error processing admins: {str(e)}")
-            traceback.print_exc()
-            
-        try:
-            gcs_data = db_service.get_all_guidance_counselors() or []
-            guidance_counselors = process_user_list(gcs_data, 'guidance_counselor')
-            for gc in guidance_counselors:
-                gc.update({
-                    'is_admin': False,
-                    'is_psychologist': False,
-                    'is_super_admin': False,
-                    'is_active': gc.get('is_active', gc.get('is_available', True))
-                })
-            print(f"[DEBUG] Processed {len(guidance_counselors)} guidance counselors")
-        except Exception as e:
-            print(f"[ERROR] Error processing guidance counselors: {str(e)}")
-            traceback.print_exc()
-        
-        # Combine all users
-        all_users = clients + psychologists + admins + guidance_counselors
-        
-        # Sort users by creation date (newest first)
-        try:
-            all_users.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-        except Exception as e:
-            print(f"[WARNING] Error sorting users by creation date: {str(e)}")
-            # Keep unsorted if there's an error
-        
-        # Count users by type
-        user_counts = {
-            'total': len(all_users),
-            'clients': len(clients),
-            'psychologists': len(psychologists),
-            'admins': len(admins),
-            'guidance_counselors': len(guidance_counselors)
-        }
-        
-        print(f"[INFO] Loaded {len(all_users)} total users ({user_counts['clients']} clients, "
-              f"{user_counts['psychologists']} psychologists, {user_counts['admins']} admins, "
-              f"{user_counts['guidance_counselors']} guidance counselors)")
-        
-        # Debug: Print first user of each type if available
-        for user_type, user_list in [('clients', clients), ('psychologists', psychologists),
-                                   ('admins', admins), ('guidance_counselors', guidance_counselors)]:
-            if user_list:
-                print(f"[DEBUG] First {user_type} user: {user_list[0].get('email', 'No email')}")
-        
-        return render_template('accounts/user_management.html',
-                            users=all_users,
-                            user_counts=user_counts,
-                            current_user=current_user)
+    users_result = db_service.get_all_accounts();
+    users_data = users_result.data if hasattr(users_result, "data") else []
+          
+    # Count users per role
+    role_counts = Counter(user.get('role', '').lower() for user in users_data)
+    active_counts = sum(1 for user in users_data if not user.get('is_active', False))
     
-    except Exception as e:
-        error_msg = f"[CRITICAL] Unhandled exception in manage_users: {str(e)}"
-        print(error_msg)
-        import traceback
-        traceback.print_exc()
-        flash('An error occurred while loading user data. Please check the logs for details.', 'error')
-        return redirect(url_for('admin.dashboard'))
+    # Count users created in the current month
+    # Get current year and month
+    now = datetime.now()
+    current_year = now.year
+    current_month = now.month
     
+    users_created_this_month = [
+        user for user in users_data
+        if user.get('created_at') and
+          datetime.fromisoformat(user['created_at']).year == current_year and
+          datetime.fromisoformat(user['created_at']).month == current_month
+    ]
+    new_users_count = len(users_created_this_month)
+    
+    pending_counts = sum(1 for user in users_data if not user.get('is_verified', False))
+    
+    # Count users object
+    user_counts = {
+      'total_users': len(users_data),
+      'active_counts': active_counts,
+      'new_users_count': new_users_count,
+      'pending_counts': role_counts.get('admin', 0)
+    }
+  
+    return render_template('accounts/user_management.html',
+      users= users_data,
+      user_counts=user_counts,
+      current_user=current_user)
+      
+    # except Exception as e:
+    #   error_msg = f"[CRITICAL] Unhandled exception in manage_users: {str(e)}"
+    #   print(error_msg)
+    #   import traceback
+    #   traceback.print_exc()
+    #   flash('An error occurred while loading user data. Please check the logs for details.', 'error')
+    #   return redirect(url_for('admin.dashboard'))
+      
+      
+     
+
+
 

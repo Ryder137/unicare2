@@ -20,7 +20,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Users</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_counts.total }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_counts.total_users }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-users fa-2x text-gray-300"></i>
@@ -35,7 +35,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Users</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_counts.active }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_counts.active_counts }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-user-check fa-2x text-gray-300"></i>
@@ -50,7 +50,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">New This Month</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_counts.new_this_month }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_counts.new_users_count }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-calendar fa-2x text-gray-300"></i>
@@ -65,7 +65,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Invitations</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_counts.pending }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_counts.pending_counts }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-envelope fa-2x text-gray-300"></i>
@@ -133,10 +133,10 @@
                                 <div class="d-flex align-items-center">
                                     <img src="{{ user.avatar_url or url_for('static', filename='img/default-avatar.png') }}" 
                                          class="rounded-circle me-2" width="32" height="32" 
-                                         alt="{{ user.first_name }} {{ user.last_name }}">
+                                         alt="{{ user.first_name|title }} {{ user.last_name|title }}">
                                     <div>
-                                        <div class="fw-bold">{{ user.first_name }} {{ user.last_name }}</div>
-                                        <small class="text-muted">ID: {{ user.id[:8] }}...</small>
+                                        <div class="fw-bold">{{ user.first_name|title }} {{ user.last_name|title }}</div>
+                                        <small class="text-muted">{{ user.id[:15] }}...</small>
                                     </div>
                                 </div>
                             </td>
@@ -146,16 +146,16 @@
                                     'admin': 'Admin',
                                     'psychologist': 'Psychologist',
                                     'therapist': 'Therapist',
-                                    'guidance_counselor': 'Guidance Counselor',
                                     'client': 'Client'
-                                }.get(user.user_type, 'Unknown') %}
+                                }.get(user.role, 'Unknown') %}
+
                                 {% set badge_class = {
                                     'admin': 'bg-primary',
                                     'psychologist': 'bg-success',
                                     'therapist': 'bg-info',
-                                    'guidance_counselor': 'bg-warning',
                                     'client': 'bg-secondary'
-                                }.get(user.user_type, 'bg-secondary') %}
+                                }.get(user.role, 'bg-secondary') %}
+
                                 <span class="badge {{ badge_class }}">
                                     {{ role_display }}
                                 </span>
@@ -282,7 +282,6 @@
                             <option value="admin">Admin</option>
                             <option value="psychologist">Psychologist</option>
                             <option value="staff">Staff</option>
-                            <option value="guidance_counselor">Guidance Counselor</option>
                         </select>
                     </div>
                     

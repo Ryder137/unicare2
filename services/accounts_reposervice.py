@@ -25,7 +25,7 @@ class AccountRepoService:
       "is_active": True,
       "is_verified": False
     }
-    return self.supabase.table('accounts').insert(accounts_data).execute()
+    return self.supabase.table('user_accounts').insert(accounts_data).execute()
   
   def update_account(self, id: str, account: AccountsModel):
     accounts_data = {
@@ -39,19 +39,28 @@ class AccountRepoService:
       "is_active": account.is_active,
       "is_verified": account.is_verified
     }
-    return self.supabase.table('accounts').update(accounts_data).eq('id', id).execute()
+    return self.supabase.table('user_accounts').update(accounts_data).eq('id', id).execute()
   
   def delete_account(self, id: str):
-    return self.supabase.table('accounts').update({'is_deleted': True}).eq('id', id).execute()
+    return (self.supabase.table('user_accounts')
+                .update({'is_deleted': True})
+                .eq('id', id)
+                .execute()
+    )
   
   def get_all_accounts(self):
-    return self.supabase.table('accounts').select("*").eq('is_deleted',False).execute()
+    result = (self.supabase
+                .table('user_accounts')
+                .select("*")
+                .eq('is_deleted', False)
+                .execute())
+    return result
   
   def get_account_by_id(self, id: str):
-    return self.supabase.table('accounts').select('*').eq('id', id).execute()
+    return self.supabase.table('user_accounts').select('*').eq('id', id).execute()
   
   def get_account_by_role(self, role: str):
-    return self.supabase.table('accounts').select("*").eq('role', role).execute()
+    return self.supabase.table('user_accounts').select("*").eq('role', role).execute()
 
 # Singleton instance
 db_service = AccountRepoService()
