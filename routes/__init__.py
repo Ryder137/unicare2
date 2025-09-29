@@ -5,6 +5,7 @@ from routes.guidance_routes import guidance_bp
 from routes.psychologist_routes import psychologist_bp
 from routes.accounts_routes import accounts_bp
 from routes.assessments import assessments_bp
+from routes.chatbot import chatbot_bp
 
 __all__ = ['admin_bp', 
            'auth_bp', 
@@ -12,4 +13,6 @@ __all__ = ['admin_bp',
            'guidance_bp', 
            'psychologist_bp',
            'accounts_bp'
-           'assessments_bp']
+           'assessments_bp',
+           'chatbot_bp'
+]

@@ -1,18 +1,18 @@
 from flask import Blueprint, request, jsonify, render_template
 from flask_login import login_required, current_user
 from datetime import datetime
-from ..models.cdrisc_assessment import CDRISCAssessment
-from .. import db
+from models.cdrisc_assessment import CDRISCAssessment
+from app import db
 
-assessments = Blueprint('assessments', __name__)
+assessments_bp = Blueprint('assessments', __name__)
 
-@assessments.route('/cdrisc', methods=['GET'])
+@assessments_bp.route('/cdrisc', methods=['GET'])
 @login_required
 def cdrisc_assessment():
     """Render the CD-RISC assessment page"""
     return render_template('assessments/cdrisc.html')
 
-@assessments.route('/submit_cdrisc', methods=['POST'])
+@assessments_bp.route('/submit_cdrisc', methods=['POST'])
 @login_required
 def submit_cdrisc():
     """Handle CD-RISC assessment submission"""
@@ -53,7 +53,7 @@ def submit_cdrisc():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@assessments.route('/cdrisc/history')
+@assessments_bp.route('/cdrisc/history')
 @login_required
 def cdrisc_history():
     """Get user's CD-RISC assessment history"""
@@ -63,7 +63,7 @@ def cdrisc_history():
     
     return jsonify([assess.to_dict() for assess in assessments])
 
-@assessments.route('/cdrisc/latest')
+@assessments_bp.route('/cdrisc/latest')
 @login_required
 def latest_cdrisc():
     """Get user's latest CD-RISC assessment"""

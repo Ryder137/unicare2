@@ -1,5 +1,5 @@
 from datetime import datetime
-from .. import db
+from . import db
 
 class CDRISCAssessment(db.Model):
     """Model for CD-RISC 10-item resilience assessment results"""
