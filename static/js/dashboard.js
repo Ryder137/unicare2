@@ -673,9 +673,199 @@ function displayDailyQuote() {
     }
 }
 
+// Handle DASS payment button click
+function handleDassPayment() {
+    const paymentSection = document.getElementById('dassPaymentRequired');
+    const loadingState = document.getElementById('dassLoadingState');
+    const paymentMethod = document.querySelector('input[name="dassPaymentMethod"]:checked');
+    
+    if (!paymentSection || !loadingState || !paymentMethod) return;
+    
+    // Show loading state
+    paymentSection.style.display = 'none';
+    loadingState.style.display = 'block';
+    
+    // Simulate payment processing (2 seconds)
+    setTimeout(() => {
+        // Hide loading state
+        loadingState.style.display = 'none';
+        
+        // Show receipt
+        showDassReceipt(paymentMethod.value);
+    }, 2000);
+}
+
+// Show receipt after successful payment for DASS
+function showDassReceipt(paymentMethod) {
+    const receiptContainer = document.getElementById('dassReceiptContainer');
+    const receiptNumber = document.getElementById('dassReceiptNumber');
+    const receiptDate = document.getElementById('dassReceiptDate');
+    const receiptDateTime = document.getElementById('dassReceiptDateTime');
+    const receiptPaymentMethod = document.getElementById('dassReceiptPaymentMethod');
+    const printReceiptBtn = document.getElementById('dassPrintReceiptBtn');
+    const viewResultsBtn = document.getElementById('dassViewResultsBtn');
+    
+    if (!receiptContainer || !receiptNumber || !receiptDate || !receiptDateTime || !receiptPaymentMethod || !printReceiptBtn || !viewResultsBtn) return;
+    
+    // Generate receipt details
+    const now = new Date();
+    const receiptId = 'RC-' + Math.floor(100000 + Math.random() * 900000);
+    const formattedDate = now.toLocaleDateString('en-PH', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    const formattedDateTime = now.toLocaleString('en-PH', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    // Payment method display names
+    const paymentMethods = {
+        'gcash': 'GCash',
+        'paymaya': 'PayMaya',
+        'card': 'Credit/Debit Card'
+    };
+    
+    // Update receipt content
+    receiptNumber.textContent = receiptId;
+    receiptDate.textContent = formattedDate;
+    receiptDateTime.textContent = formattedDateTime;
+    receiptPaymentMethod.textContent = paymentMethods[paymentMethod] || paymentMethod;
+    
+    // Set up print receipt button
+    printReceiptBtn.addEventListener('click', function() {
+        const receipt = document.getElementById('dassReceipt');
+        if (!receipt) return;
+        
+        // Create a new window for printing
+        const printWindow = window.open('', '_blank');
+        
+        // Get the receipt HTML and add print styles
+        const receiptHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>UniCare Receipt - DASS-21 Assessment</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    .receipt { max-width: 300px; margin: 0 auto; }
+                    .text-center { text-align: center; }
+                    .text-muted { color: #6c757d; }
+                    .fw-bold { font-weight: bold; }
+                    .border-top { border-top: 1px solid #dee2e6; }
+                    .mt-4 { margin-top: 1.5rem; }
+                    .pt-3 { padding-top: 1rem; }
+                    .small { font-size: 0.875em; }
+                    .mb-0 { margin-bottom: 0; }
+                    .mb-4 { margin-bottom: 1.5rem; }
+                    .my-3 { margin-top: 1rem; margin-bottom: 1rem; }
+                </style>
+            </head>
+            <body>
+                <div class="receipt">
+                    <div class="text-center mb-4">
+                        <h4 class="mb-1">UniCare</h4>
+                        <p class="text-muted mb-0">Official Receipt</p>
+                        <p class="text-muted small">${formattedDate}</p>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span>Receipt #:</span>
+                            <span>${receiptId}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Date:</span>
+                            <span>${formattedDateTime}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Payment Method:</span>
+                            <span>${paymentMethods[paymentMethod] || paymentMethod}</span>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-3">
+                    
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between fw-bold">
+                            <span>Item</span>
+                            <span>Amount</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>DASS-21 Assessment</span>
+                            <span>₱5.00</span>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-2">
+                    
+                    <div class="d-flex justify-content-between fw-bold">
+                        <span>Total Paid:</span>
+                        <span>₱5.00</span>
+                    </div>
+                    
+                    <div class="mt-4 pt-3 border-top text-center">
+                        <p class="small text-muted mb-0">This is an official receipt for your records.</p>
+                        <p class="small text-muted">Thank you for using UniCare services.</p>
+                    </div>
+                </div>
+                
+                <script>
+                    // Auto-print when the window loads
+                    window.onload = function() {
+                        setTimeout(function() {
+                            window.print();
+                            window.onafterprint = function() {
+                                window.close();
+                            };
+                        }, 500);
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+        
+        // Write the receipt HTML to the new window
+        printWindow.document.open();
+        printWindow.document.write(receiptHTML);
+        printWindow.document.close();
+    });
+    
+    // Set up view results button
+    viewResultsBtn.addEventListener('click', function() {
+        receiptContainer.style.display = 'none';
+        document.getElementById('dassAssessmentForm').style.display = 'block';
+        initAssessment();
+    });
+    
+    // Show the receipt container
+    receiptContainer.style.display = 'block';
+    
+    // Scroll to the receipt
+    receiptContainer.scrollIntoView({ behavior: 'smooth' });
+}
+
 // Initialize the assessment and display quote when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    initAssessment();
+    // Check if we should show the assessment (for demo purposes)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('showDass') !== 'true') {
+        document.getElementById('dassAssessmentForm').style.display = 'none';
+    } else {
+        document.getElementById('dassPaymentRequired').style.display = 'none';
+        initAssessment();
+    }
+    
+    // Set up payment button
+    const payNowBtn = document.getElementById('dassPayNowBtn');
+    if (payNowBtn) {
+        payNowBtn.addEventListener('click', handleDassPayment);
+    }
+    
     displayDailyQuote();
     
     // Update the quote every 24 hours (in case the page stays open)

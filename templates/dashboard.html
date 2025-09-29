@@ -317,25 +317,230 @@
             </div>
         </div>
         
-        <!-- Today's Assessment -->
-        <div class="assessment-card card mb-4">
+        <!-- Mental Health Assessments -->
+        <div class="card mb-4">
             <div class="card-header">
-                <h3 class="mb-0">Today's Mental Health Check-in</h3>
+                <h3 class="mb-0">Mental Health Assessments</h3>
             </div>
-            <div class="card-body" style="padding: 0px;">
-                <form id="dassAssessmentForm">
-                    <div id="dassAssessment">
-                        <div class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading assessment...</span>
+            <div class="card-body">
+                <ul class="nav nav-tabs nav-fill mb-4" id="assessmentTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="dass-tab" data-bs-toggle="tab" data-bs-target="#dass-tab-pane" type="button" role="tab">
+                            <i class="bi bi-activity me-2"></i>Mental Health Check
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="cdrisc-tab" data-bs-toggle="tab" data-bs-target="#cdrisc-tab-pane" type="button" role="tab">
+                            <i class="bi bi-clipboard2-pulse me-2"></i>Resilience Assessment
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="assessmentTabContent">
+                    <!-- DASS-21 Tab -->
+                    <div class="tab-pane fade show active" id="dass-tab-pane" role="tabpanel" aria-labelledby="dass-tab" tabindex="0">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-activity fs-1 text-primary"></i>
                             </div>
-                            <p class="mt-2">Loading assessment questions...</p>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="mb-1">DASS-21</h5>
+                                <p class="text-muted mb-0">Check your current mental health status with this 21-item questionnaire.</p>
+                                <small class="text-muted">Takes about 5-7 minutes to complete</small>
+                            </div>
+                        </div>
+                        
+                        <div id="dassAssessmentContainer">
+                            <!-- Payment Required Section -->
+                            <div id="dassPaymentRequired" class="text-center py-5">
+                                <div class="card border-0 shadow-sm mx-auto" style="max-width: 600px;">
+                                    <div class="card-body p-4">
+                                        <div class="mb-4">
+                                            <i class="bi bi-lock-fill text-primary" style="font-size: 3rem;"></i>
+                                            <h3 class="mt-3 mb-3">Assessment Results Locked</h3>
+                                            <p class="text-muted mb-4">To view your detailed mental health assessment results, a small processing fee of ₱5.00 is required.</p>
+                                            
+                                            <div class="payment-details bg-light p-4 rounded mb-4">
+                                                <h5 class="mb-3">Order Summary</h5>
+                                                <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                                                    <span class="text-muted">Assessment Type:</span>
+                                                    <span>DASS-21 Mental Health Assessment</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                                                    <span class="text-muted">Fee:</span>
+                                                    <span class="fw-bold">₱5.00 PHP</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between mt-3 fw-bold">
+                                                    <span>Total Amount:</span>
+                                                    <span>₱5.00 PHP</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Payment Methods -->
+                                            <div class="payment-methods mb-4">
+                                                <h5 class="mb-3">Select Payment Method</h5>
+                                                <div class="list-group">
+                                                    <label class="list-group-item d-flex align-items-center">
+                                                        <input class="form-check-input me-3" type="radio" name="dassPaymentMethod" value="gcash" checked>
+                                                        <div class="d-flex align-items-center">
+                                                            <img src="/static/img/gcash.png" alt="GCash" style="height: 24px; margin-right: 10px;">
+                                                            <span>GCash</span>
+                                                        </div>
+                                                    </label>
+                                                    <label class="list-group-item d-flex align-items-center">
+                                                        <input class="form-check-input me-3" type="radio" name="dassPaymentMethod" value="paymaya">
+                                                        <div class="d-flex align-items-center">
+                                                            <img src="/static/img/paymaya.png" alt="PayMaya" style="height: 24px; margin-right: 10px;">
+                                                            <span>PayMaya</span>
+                                                        </div>
+                                                    </label>
+                                                    <label class="list-group-item d-flex align-items-center">
+                                                        <input class="form-check-input me-3" type="radio" name="dassPaymentMethod" value="card">
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="bi bi-credit-card me-2"></i>
+                                                            <span>Credit/Debit Card</span>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <button id="dassPayNowBtn" class="btn btn-primary btn-lg w-100 mb-3">
+                                                <i class="bi bi-credit-card me-2"></i>Pay Now (₱5.00)
+                                            </button>
+                                            
+                                            <p class="small text-muted mb-0">
+                                                <i class="bi bi-lock-fill me-1"></i> Secure payment processing powered by PayMongo
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Receipt Template (initially hidden) -->
+                            <div id="dassReceiptContainer" class="text-center py-5" style="display: none;">
+                                <div class="card border-0 shadow-sm mx-auto" style="max-width: 600px;">
+                                    <div class="card-body p-4">
+                                        <div class="text-center mb-4">
+                                            <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                                            <h3 class="mt-3">Payment Successful!</h3>
+                                            <p class="text-muted">Thank you for your payment. Your receipt is ready.</p>
+                                        </div>
+                                        
+                                        <!-- Receipt -->
+                                        <div id="dassReceipt" class="border rounded p-4 mb-4 text-start">
+                                            <div class="text-center mb-4">
+                                                <h4 class="mb-1">UniCare</h4>
+                                                <p class="text-muted mb-0">Official Receipt</p>
+                                                <p class="text-muted small" id="dassReceiptDate"></p>
+                                            </div>
+                                            
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span class="text-muted">Receipt #:</span>
+                                                <span id="dassReceiptNumber">RC-</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span class="text-muted">Date:</span>
+                                                <span id="dassReceiptDateTime"></span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span class="text-muted">Payment Method:</span>
+                                                <span id="dassReceiptPaymentMethod"></span>
+                                            </div>
+                                            
+                                            <hr class="my-3">
+                                            
+                                            <div class="mb-2">
+                                                <div class="d-flex justify-content-between fw-bold">
+                                                    <span>Item</span>
+                                                    <span>Amount</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between">
+                                                    <span>DASS-21 Assessment</span>
+                                                    <span>₱5.00</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <hr class="my-2">
+                                            
+                                            <div class="d-flex justify-content-between fw-bold">
+                                                <span>Total Paid:</span>
+                                                <span>₱5.00</span>
+                                            </div>
+                                            
+                                            <div class="mt-4 pt-3 border-top text-center">
+                                                <p class="small text-muted mb-0">This is an official receipt for your records.</p>
+                                                <p class="small text-muted">Thank you for using UniCare services.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-between gap-2">
+                                            <button id="dassPrintReceiptBtn" class="btn btn-outline-primary flex-grow-1">
+                                                <i class="bi bi-printer me-2"></i>Print Receipt
+                                            </button>
+                                            <button id="dassViewResultsBtn" class="btn btn-primary flex-grow-1">
+                                                Take Assessment <i class="bi bi-arrow-right ms-2"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form id="dassAssessmentForm" style="display: none;">
+                                <div id="dassAssessment">
+                                    <div class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading assessment...</span>
+                                        </div>
+                                        <p class="mt-2">Loading assessment questions...</p>
+                                    </div>
+                                </div>
+                            </form>
+                            
+                            <div id="assessmentResults" class="mt-4" style="display: none;">
+                                <!-- DASS Results will be displayed here -->
+                            </div>
+                            
+                            <!-- Loading State (initially hidden) -->
+                            <div id="dassLoadingState" class="text-center py-5" style="display: none;">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Processing...</span>
+                                </div>
+                                <p class="mt-2">Processing your payment...</p>
+                            </div>
                         </div>
                     </div>
-                </form>
-                
-                <div id="assessmentResults" class="mt-4">
-                    <!-- Results will be displayed here -->
+                    
+                    <!-- CD-RISC Tab -->
+                    <div class="tab-pane fade" id="cdrisc-tab-pane" role="tabpanel" aria-labelledby="cdrisc-tab" tabindex="0">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-clipboard2-pulse fs-1 text-primary"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="mb-1">CD-RISC 10</h5>
+                                <p class="text-muted mb-0">Assess your resilience level with this 10-item questionnaire.</p>
+                                <small class="text-muted">Takes about 2-3 minutes to complete</small>
+                            </div>
+                        </div>
+                        
+                        <div id="cdriscAssessmentContainer">
+                            <div id="cdriscResults">
+                                <div class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="text-muted mt-2 mb-0">Loading your latest assessment...</p>
+                                </div>
+                            </div>
+                            
+                            <div id="cdriscAssessment" class="mt-3" style="display: none;">
+                                <!-- CD-RISC assessment will be loaded here when started -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
                 </div>
             </div>
         </div>
@@ -399,4 +604,83 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/cdrisc.js') }}"></script>
+<script src="{{ url_for('static', filename='js/avatar_picker.js') }}"></script>
+    
+<script>
+// Load CD-RISC assessment results
+document.addEventListener('DOMContentLoaded', function() {
+    fetch("{{ url_for('assessments.latest_cdrisc') }}")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('No assessment data');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const container = document.getElementById('cdriscResults');
+            if (!container) return;
+            
+            // Format the assessment date
+            const assessmentDate = new Date(data.assessment_date);
+            const formattedDate = assessmentDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            
+            // Interpret the score
+            let interpretation = '';
+            if (data.total_score >= 32) {
+                interpretation = 'Very High Resilience';
+            } else if (data.total_score >= 29) {
+                interpretation = 'High Resilience';
+            } else if (data.total_score >= 25) {
+                interpretation = 'Average Resilience';
+            } else if (data.total_score >= 20) {
+                interpretation = 'Low Resilience';
+            } else {
+                interpretation = 'Very Low Resilience';
+            }
+            
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-medium">Your Latest Score:</span>
+                    <span class="badge bg-primary rounded-pill">${data.total_score}/40</span>
+                </div>
+                <div class="progress mb-2" style="height: 10px;">
+                    <div class="progress-bar bg-primary" 
+                         role="progressbar" 
+                         style="width: ${(data.total_score / 40) * 100}%" 
+                         aria-valuenow="${data.total_score}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="40">
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <small class="text-muted">${interpretation}</small>
+                    <small class="text-muted">${formattedDate}</small>
+                </div>
+                <div class="mt-3">
+                    <a href="{{ url_for('assessments.cdrisc') }}" class="btn btn-sm btn-outline-primary">
+                        View Details
+                    </a>
+                </div>
+            `;
+        })
+        .catch(error => {
+            const container = document.getElementById('cdriscResults');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-2">
+                        <p class="text-muted">No assessment completed yet.</p>
+                        <a href="{{ url_for('assessments.cdrisc') }}" class="btn btn-primary btn-sm">
+                            Take Assessment
+                        </a>
+                    </div>
+                `;
+            }
+        });
+});
+</script>
 {% endblock %}

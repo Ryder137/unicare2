@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}CD-RISC Resilience Assessment{% endblock %}
+
+{% block extra_css %}
+<style>
+    .assessment-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem 0;
+    }
+    
+    .question-container {
+        background: white;
+        border-radius: 8px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .response-options {
+        margin-top: 1.5rem;
+    }
+    
+    .form-check {
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0;
+        border-radius: 6px;
+        transition: all 0.2s;
+        border: 1px solid #eee;
+    }
+    
+    .form-check:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .form-check-input {
+        width: 1.2em;
+        height: 1.2em;
+        margin-top: 0.2em;
+    }
+    
+    .form-check-label {
+        font-size: 1.05rem;
+        padding-left: 0.5rem;
+    }
+    
+    .progress {
+        height: 8px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .results-container {
+        background: white;
+        border-radius: 8px;
+        padding: 2rem;
+        margin-top: 2rem;
+    }
+    
+    .score-display {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #0d6efd;
+        margin: 1rem 0;
+    }
+    
+    .interpretation {
+        font-size: 1.1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .response-summary {
+        margin-top: 2rem;
+    }
+    
+    .response-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .response-item:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="assessment-container">
+    <div class="text-center mb-5">
+        <h1 class="mb-3">Resilience Assessment (CD-RISC - 10 Items)</h1>
+        <p class="lead text-muted">Please rate how true each statement has been for you during the past month.</p>
+    </div>
+    
+    <div id="cdriscAssessment">
+        <!-- Assessment will be loaded here by JavaScript -->
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3">Loading assessment questions...</p>
+        </div>
+    </div>
+    
+    <div id="cdriscResults" style="display: none;">
+        <!-- Results will be displayed here after submission -->
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/cdrisc.js') }}"></script>
+<script>
+// Add CSRF token to all AJAX requests
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token() }}");
+        }
+    }
+});
+</script>
+{% endblock %}

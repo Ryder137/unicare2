@@ -43,7 +43,7 @@
                             <thead>
                                 <tr>
                                     <th>Title</th>
-                                    <th>Student</th>
+                                    <th>Client</th>
                                     <th>Professional</th>
                                     <th>Date & Time</th>
                                     <th>Status</th>
@@ -55,7 +55,7 @@
                                 {% for appt in appointments %}
                                 <tr>
                                     <td>{{ appt.title }}</td>
-                                    <td>{{ appt.student.full_name if appt.student else 'N/A' }}</td>
+                                    <td>{{ appt.client.full_name if appt.client else 'N/A' }}</td>
                                     <td>
                                         {% if appt.professional_type == 'guidance' %}
                                             Guidance Counselor
@@ -152,11 +152,11 @@
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="student_id" class="form-label">Student</label>
+                            <label for="student_id" class="form-label">Client</label>
                             <select class="form-select" id="student_id" name="student_id" required>
-                                <option value="">Select student</option>
-                                {% for student in students %}
-                                <option value="{{ student.id }}">{{ student.full_name }} ({{ student.student_id }})</option>
+                                <option value="">Select client</option>
+                                {% for client in clients %}
+                                <option value="{{ client.id }}">{{ client.full_name }} ({{ client.client_id or client.id }})</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -255,10 +255,10 @@ $(document).ready(function() {
         
         // Process each appointment
         eventsData = appointmentsData.map(function(appt) {
-            // Get student name
-            var studentName = 'N/A';
-            if (appt.student && appt.student.full_name) {
-                studentName = appt.student.full_name;
+            // Get client name
+            var clientName = 'N/A';
+            if (appt.client && appt.client.full_name) {
+                clientName = appt.client.full_name;
             }
             
             // Format professional type
@@ -287,7 +287,7 @@ $(document).ready(function() {
                     description: appt.description || '',
                     status: appt.status || 'pending',
                     type: appt.appointment_type || '',
-                    student: studentName,
+                    client: clientName,
                     professional: professional
                 }
             };
@@ -323,7 +323,7 @@ $(document).ready(function() {
             
             let details = `
                 <h5>${event.title}</h5>
-                <p><strong>Student:</strong> ${event.extendedProps.student}</p>
+                <p><strong>Client:</strong> ${event.extendedProps.client}</p>
                 <p><strong>Professional:</strong> ${event.extendedProps.professional}</p>
                 <p><strong>Date & Time:</strong> ${start.toLocaleDateString('en-US', options)} - ${end.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'})}</p>
                 <p><strong>Status:</strong> <span class="badge bg-${event.extendedProps.status === 'scheduled' ? 'success' : 'warning'}">

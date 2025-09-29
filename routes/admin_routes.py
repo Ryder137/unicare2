@@ -1166,7 +1166,7 @@ def manage_appointments():
         # Convert appointments to JSON string for template
         appointments_json = json.dumps(appointments_data, default=str)
         
-        return render_template('admin/appointments.html', 
+        return render_template('staff/appointments.html', 
                              appointments=appointments_json,
                              students=students,
                              appointment_count=appointment_count)

@@ -83,11 +83,15 @@ def create_app():
         appointment
     )
     
-    # Register blueprints
-    from routes import admin_bp, auth_bp, appointment_bp
+    # Import and register blueprints
+    from routes import admin_bp, auth_bp, appointment_bp, guidance_bp, psychologist_bp, assessments_bp
+    
+    app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(appointment_bp, url_prefix='')
+    app.register_blueprint(appointment_bp, url_prefix='/appointments')
+    app.register_blueprint(guidance_bp, url_prefix='/guidance')
+    app.register_blueprint(psychologist_bp, url_prefix='/psychologist')
+    app.register_blueprint(assessments_bp, url_prefix='/assessments')
     
     # Register filters
     from utils.filters import time_ago
