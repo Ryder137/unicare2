@@ -105,9 +105,37 @@ def management():
     #   traceback.print_exc()
     #   flash('An error occurred while loading user data. Please check the logs for details.', 'error')
     #   return redirect(url_for('admin.dashboard'))
-      
-      
-     
 
+@accounts_bp.route('/user/<id>',methods=['GET'])
+@login_required
+def get_user(id):
+  data = request.get_json()
+  print("\n[DEBUG] ====== get_user route called ======")
+  print(f"[DEBUG] Request Data: {data}")
+  return jsonify({'message': 'User data fetched successfully.'}), 200
+      
+@accounts_bp.route('/user/create',methods=['POST'])
+@login_required
+def create_user():
+  print("\n[DEBUG] ====== create_user route called ======")
+  data = request.get_json()
+  print(f"[DEBUG] Request Data:",data)
+  return jsonify({'message': 'User created successfully.'}), 201
+  
+@accounts_bp.route('/user/update/<id>',methods=['PUT'])  
+@login_required
+def update_user(id):
+  data = request.get_json()
+  print("\n[DEBUG] ====== update_user route called ======")
+  print(f"[DEBUG] Request Data: {data}")
+  return jsonify({'message': 'User updated successfully.'}), 200
+     
+@accounts_bp.route('/user/delete/<id>',methods=['PUT'])  
+@login_required
+def delete_user(id):
+  data = request.get_json()
+  print("\n[DEBUG] ====== delete_user route called ======")
+  print(f"[DEBUG] Request Data: {data}")
+  return jsonify({'message': 'User deleted successfully.'}), 200
 
 
