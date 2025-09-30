@@ -1112,72 +1112,80 @@ def manage_user_api(user_id=None):
         current_app.logger.error(f"Unexpected error in manage_user_api: {str(e)}")
         return jsonify({'success': False, 'message': 'An unexpected error occurred'}), 500
 
-@admin_bp.route('/appointments')
+@admin_bp.route('/manage_appointments')
 @login_required
-@admin_required
 def manage_appointments():
-    """Manage appointments in the admin panel."""
-    try:
-        print("\n[DEBUG] ====== manage_appointments called ======")
-        print(f"[DEBUG] Current user: {current_user}")
-        print(f"[DEBUG] is_authenticated: {current_user.is_authenticated}")
-        print(f"[DEBUG] is_admin: {getattr(current_user, 'is_admin', False)}")
-        print(f"[DEBUG] User attributes: {dir(current_user)}")
-        from models.appointment import Appointment
-        from models.client import Client
-        from sqlalchemy.orm import joinedload
-        import json
+    if not current_user.is_authenticated:
+        abort(403)
         
-        # Get all appointments with related data
-        appointments = (Appointment.query
-                      .options(joinedload(Appointment.student))
-                      .order_by(Appointment.start_time.desc())
-                      .all())
-        
-        # Convert appointments to a list of dictionaries for JSON serialization
-        appointments_data = []
-        for appt in appointments:
-            student_data = None
-            if appt.student:
-                student_data = {
-                    'id': appt.student.id,
-                    'full_name': f"{appt.student.first_name} {appt.student.last_name}"
-                }
-            
-            appt_data = {
-                'id': appt.id,
-                'title': appt.title or 'Appointment',
-                'description': appt.description or '',
-                'start_time': appt.start_time.isoformat() if appt.start_time else None,
-                'end_time': appt.end_time.isoformat() if appt.end_time else None,
-                'status': appt.status or 'pending',
-                'appointment_type': appt.appointment_type or '',
-                'professional_type': appt.professional_type or '',
-                'student': student_data
+    from models.appointment import Appointment
+    from models.client import Client
+    from sqlalchemy.orm import joinedload
+    import json
+    
+    # Base query for appointments
+    query = Appointment.query.options(joinedload(Appointment.client))
+    
+    # If user is admin, show all appointments
+    # If user is staff, show only their appointments
+    if not getattr(current_user, 'is_admin', False):
+        query = query.filter(Appointment.staff_id == current_user.id)
+    
+    # Order by start time
+    appointments = query.order_by(Appointment.start_time.desc()).all()
+    
+    # Convert appointments to a list of dictionaries for JSON serialization
+    appointments_data = []
+    for appt in appointments:
+        client_data = None
+        if appt.client:
+            client_data = {
+                'id': appt.client.id,
+                'full_name': f"{appt.client.first_name} {appt.client.last_name}",
+                'first_name': appt.client.first_name,
+                'last_name': appt.client.last_name
             }
-            appointments_data.append(appt_data)
         
-        # Get all students for the dropdown
-        students = Client.query.order_by(Client.last_name, Client.first_name).all()
+        appt_data = {
+            'id': appt.id,
+            'title': appt.title or 'Appointment',
+            'description': appt.description or '',
+            'start_time': appt.start_time.isoformat() if appt.start_time else None,
+            'end_time': appt.end_time.isoformat() if appt.end_time else None,
+            'status': appt.status or 'pending',
+            'appointment_type': appt.appointment_type or '',
+            'professional_type': appt.professional_type or '',
+            'client': client_data,
+            'user_id': appt.user_id
+        }
+        appointments_data.append(appt_data)
+    
+    # Get all clients for the dropdown
+    clients = [{
+        'id': c.id,
+        'first_name': c.first_name,
+        'last_name': c.last_name,
+        'full_name': f"{c.first_name} {c.last_name}"
+    } for c in Client.query.order_by(Client.last_name, Client.first_name).all()]
+    
+    # Get appointment count for the badge
+    appointment_count = len(appointments)
+    
+    # Convert appointments to JSON string for the template
+    appointments_json = json.dumps(appointments_data, default=str)
+    
+    return render_template('admin/appointments.html', 
+                         appointments=appointments_json,
+                         clients=clients,
+                         appointment_count=appointment_count)
         
-        # Get appointment count for the badge
-        appointment_count = len(appointments)
-        
-        # Convert appointments to JSON string for template
-        appointments_json = json.dumps(appointments_data, default=str)
-        
-        return render_template('staff/appointments.html', 
-                             appointments=appointments_json,
-                             students=students,
-                             appointment_count=appointment_count)
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        logger.error(f"Error in manage_appointments: {str(e)}\n{error_details}")
-        current_app.logger.error(f"Error details: {error_details}")
-        flash(f'An error occurred while loading appointments: {str(e)}', 'danger')
-        return redirect(url_for('admin.dashboard'))
+    # except Exception as e:
+    #     import traceback
+    #     error_details = traceback.format_exc()
+    #     logger.error(f"Error in manage_appointments: {str(e)}\n{error_details}")
+    #     current_app.logger.error(f"Error details: {error_details}")
+    #     flash(f'An error occurred while loading appointments: {str(e)}', 'danger')
+    #     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/logout')
 @login_required

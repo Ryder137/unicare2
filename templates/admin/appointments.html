@@ -1,0 +1,448 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Manage Appointments - Admin Panel - UniCare{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Appointment Management</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newAppointmentModal">
+                <i class="bi bi-plus-circle me-1"></i> New Appointment
+            </button>
+        </div>
+    </div>
+
+    <!-- Calendar View -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" id="calendar-tab" data-bs-toggle="tab" href="#calendar-view">
+                        <i class="bi bi-calendar-week"></i> Calendar
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="list-tab" data-bs-toggle="tab" href="#list-view">
+                        <i class="bi bi-list-ul"></i> List View
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <!-- Calendar View -->
+                <div class="tab-pane fade show active" id="calendar-view">
+                    <div id='calendar'></div>
+                </div>
+                
+                <!-- List View -->
+                <div class="tab-pane fade" id="list-view">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="appointmentsTable">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Client</th>
+                                    <th>Professional</th>
+                                    <th>Date & Time</th>
+                                    <th>Status</th>
+                                    <th>Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appt in appointments %}
+                                <tr>
+                                    <td>{{ appt.title }}</td>
+                                    <td>{{ appt.client.full_name if appt.client else 'N/A' }}</td>
+                                    <td>
+                                        {% if appt.professional_type == 'guidance' %}
+                                            Guidance Counselor
+                                        {% else %}
+                                            Psychologist
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ appt.start_time|datetimeformat('%b %d, %Y %I:%M %p') }} - 
+                                        {{ appt.end_time|datetimeformat('%I:%M %p') }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if appt.status == 'scheduled' else 'warning' if appt.status == 'pending' else 'danger' }}">
+                                            {{ appt.status|title }}
+                                        </span>
+                                    </td>
+                                    <td>{{ appt.appointment_type|title if appt.appointment_type else 'N/A' }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-sm btn-outline-primary view-appt" 
+                                                    data-id="{{ appt.id }}">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary edit-appt" 
+                                                    data-id="{{ appt.id }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-appt" 
+                                                    data-id="{{ appt.id }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center">No appointments found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Appointment Modal -->
+<div class="modal fade" id="newAppointmentModal" tabindex="-1" aria-labelledby="newAppointmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newAppointmentModalLabel">New Appointment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="appointmentForm" method="POST" action="{{ url_for('appointment.create_appointment') }}">
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="appointment_type" class="form-label">Appointment Type</label>
+                            <select class="form-select" id="appointment_type" name="appointment_type" required>
+                                <option value="">Select type</option>
+                                <option value="initial">Initial Consultation</option>
+                                <option value="follow-up">Follow-up</option>
+                                <option value="emergency">Emergency</option>
+                                <option value="routine">Routine Check</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="professional_type" class="form-label">Professional Type</label>
+                            <select class="form-select" id="professional_type" name="professional_type" required>
+                                <option value="">Select professional type</option>
+                                <option value="guidance">Guidance Counselor</option>
+                                <option value="psychologist">Psychologist</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="professional_id" class="form-label">Professional</label>
+                            <select class="form-select" id="professional_id" name="professional_id" required>
+                                <option value="">Select professional</option>
+                                <!-- Will be populated via JavaScript -->
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="user_id" class="form-label">Client</label>
+                            <select class="form-select" id="user_id" name="user_id" required>
+                                <option value="">Select client</option>
+                                {% for client in clients %}
+                                <option value="{{ client.id }}">{{ client.first_name }} {{ client.last_name }} ({{ client.id }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="scheduled">Scheduled</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="no-show">No Show</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="start_time" class="form-label">Start Time</label>
+                            <input type="datetime-local" class="form-control" id="start_time" name="start_time" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="end_time" class="form-label">End Time</label>
+                            <input type="datetime-local" class="form-control" id="end_time" name="end_time" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Appointment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View/Edit Appointment Modal -->
+<div class="modal fade" id="appointmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Appointment Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="appointmentDetails">
+                <!-- Will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="editAppointmentBtn">Edit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteAppointmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this appointment? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- FullCalendar CSS -->
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+<!-- FullCalendar JS -->
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Initialize FullCalendar
+        var calendarEl = document.getElementById('calendar');
+        
+        // Get the appointments data from the template
+        var appointmentsData = JSON.parse('{{ appointments|tojson|safe }}');
+        
+        // Process each appointment
+        var eventsData = appointmentsData.map(function(appt) {
+            // Get client name
+            var clientName = 'N/A';
+            if (appt.client) {
+                clientName = appt.client.full_name || 
+                            ((appt.client.first_name || '') + ' ' + (appt.client.last_name || '')).trim() || 
+                            'Client #' + (appt.user_id || 'N/A');
+            }
+            
+            // Format professional type
+            var professional = '';
+            if (appt.professional_type) {
+                professional = appt.professional_type === 'guidance' ? 'Guidance Counselor' : 'Psychologist';
+            }
+            
+            // Set color based on status
+            var className = 'bg-danger';
+            if (appt.status === 'scheduled') {
+                className = 'bg-success';
+            } else if (appt.status === 'pending') {
+                className = 'bg-warning';
+            }
+            
+            // Format dates for FullCalendar
+            var start = appt.start_time ? new Date(appt.start_time) : new Date();
+            var end = appt.end_time ? new Date(appt.end_time) : new Date(start.getTime() + 60 * 60 * 1000);
+            
+            // Return formatted event data
+            return {
+                id: appt.id,
+                title: appt.title || 'Appointment',
+                start: start,
+                end: end,
+                className: className,
+                extendedProps: {
+                    description: appt.description || '',
+                    status: appt.status || 'pending',
+                    type: appt.appointment_type || '',
+                    client: clientName,
+                    professional: professional
+                }
+            };
+        });
+
+        // Initialize calendar
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: eventsData,
+            eventClick: function(info) {
+                const event = info.event;
+                const modal = new bootstrap.Modal(document.getElementById('appointmentModal'));
+                
+                // Format date and time
+                const start = new Date(event.start);
+                const end = new Date(event.end);
+                const options = { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                };
+                
+                let details = `
+                    <h5>${event.title}</h5>
+                    <p><strong>Client:</strong> ${event.extendedProps.client}</p>
+                    <p><strong>Professional:</strong> ${event.extendedProps.professional}</p>
+                    <p><strong>Date & Time:</strong> ${start.toLocaleDateString('en-US', options)} - ${end.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'})}</p>
+                    <p><strong>Status:</strong> <span class="badge bg-${event.extendedProps.status === 'scheduled' ? 'success' : 'warning'}">
+                        ${event.extendedProps.status.charAt(0).toUpperCase() + event.extendedProps.status.slice(1)}
+                    </span></p>
+                    <p><strong>Type:</strong> ${event.extendedProps.type || 'N/A'}</p>
+                    <p><strong>Description:</strong><br>${event.extendedProps.description || 'No description provided.'}</p>
+                `;
+                
+                document.getElementById('appointmentDetails').innerHTML = details;
+                document.getElementById('editAppointmentBtn').setAttribute('data-id', event.id);
+                modal.show();
+            }
+        });
+        
+        calendar.render();
+        
+    } catch (error) {
+        console.error('Error initializing calendar:', error);
+    }
+    
+    // Handle new appointment button
+    $('#newAppointmentModal').on('shown.bs.modal', function () {
+        $('#title').focus();
+    });
+    
+    // Handle professional type change
+    $('#professional_type').change(function() {
+        const type = $(this).val();
+        const $select = $('#professional_id');
+        
+        $select.empty().append('<option value="">Loading...</option>');
+        
+        if (type) {
+            // In a real app, you would fetch professionals based on type via AJAX
+            // This is a simplified example
+            let professionals = [];
+            
+            if (type === 'guidance') {
+                professionals = [
+                    {id: 1, name: 'John Smith'},
+                    {id: 2, name: 'Jane Doe'}
+                ];
+            } else if (type === 'psychologist') {
+                professionals = [
+                    {id: 3, name: 'Dr. Robert Johnson'},
+                    {id: 4, name: 'Dr. Sarah Williams'}
+                ];
+            }
+            
+            $select.empty().append('<option value="">Select professional</option>');
+            
+            professionals.forEach(function(professional) {
+                $select.append(`<option value="${professional.id}">${professional.name}</option>`);
+            });
+        } else {
+            $select.empty().append('<option value="">Select professional type first</option>');
+        }
+    });
+    
+    // Handle form submission
+    $('#appointmentForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        // In a real app, you would submit the form via AJAX
+        // and handle the response appropriately
+        
+        // For demo purposes, just close the modal and show a success message
+        $('#newAppointmentModal').modal('hide');
+        alert('Appointment created successfully!');
+        // Reload the page to see the new appointment
+        location.reload();
+    });
+    
+    // Handle edit button click
+    $('#editAppointmentBtn').on('click', function() {
+        const appointmentId = $(this).data('id');
+        // In a real app, you would fetch the appointment details
+        // and populate the form for editing
+        alert('Edit appointment ' + appointmentId);
+    });
+    
+    // Handle delete button click
+    $('.delete-appt').on('click', function() {
+        const appointmentId = $(this).data('id');
+        const modal = new bootstrap.Modal(document.getElementById('deleteAppointmentModal'));
+        
+        $('#confirmDeleteBtn').off('click').on('click', function() {
+            // In a real app, you would delete the appointment via AJAX
+            // and handle the response appropriately
+            
+            // For demo purposes, just close the modal and show a success message
+            modal.hide();
+            alert('Appointment deleted successfully!');
+            // Reload the page to see the changes
+            location.reload();
+        });
+        
+        modal.show();
+    });
+    
+    // Set minimum date/time for start and end time fields
+    const now = new Date();
+    const timezoneOffset = now.getTimezoneOffset() * 60000; // Convert to milliseconds
+    const localISOTime = (new Date(now - timezoneOffset)).toISOString().slice(0, 16);
+    
+    $('#start_time').attr('min', localISOTime);
+    $('#end_time').attr('min', localISOTime);
+    
+    // Set end time when start time changes
+    $('#start_time').on('change', function() {
+        const startTime = new Date($(this).val());
+        if (!isNaN(startTime.getTime())) {
+            const endTime = new Date(startTime.getTime() + 30 * 60000); // Default 30 minutes
+            const endTimeISO = endTime.toISOString().slice(0, 16);
+            $('#end_time').val(endTimeISO);
+        }
+    });
+});
+</script>
+{% endblock %}

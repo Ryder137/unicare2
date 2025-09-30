@@ -303,18 +303,13 @@ def register_blueprints(app):
     from routes.admin_routes import admin_bp
     from routes.guidance_routes import guidance_bp
     from routes.accounts_routes import accounts_bp
+    from routes.assessments import assessments_bp
     
     # Register blueprints with URL prefixes
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(guidance_bp, url_prefix='/guidance')
     app.register_blueprint(accounts_bp, url_prefix='/accounts')
-    
-    # Import and register other blueprints when they're available
-    # from routes.auth import auth_bp
-    # app.register_blueprint(auth_bp, url_prefix='/auth')
-    
-    # from routes.assessments import assessment_bp
-    # app.register_blueprint(assessment_bp, url_prefix='/assessments')
+    app.register_blueprint(assessments_bp, url_prefix='/assessments')
     
     # Register custom filters
     app.jinja_env.filters['time_ago'] = time_ago

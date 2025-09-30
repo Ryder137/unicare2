@@ -22,22 +22,102 @@ def staff_required(f):
 @login_required
 @staff_required
 def manage_appointments():
-    """View all appointments for the current staff member."""
+    """
+    View all appointments for the current staff member with pagination and filtering.
+    
+    Query Parameters:
+        page: Page number for pagination (default: 1)
+        status: Filter by appointment status (scheduled, completed, cancelled)
+        date_from: Filter appointments from this date (YYYY-MM-DD)
+        date_to: Filter appointments up to this date (YYYY-MM-DD)
+        
+    Returns:
+        Renders the staff appointments template with paginated and filtered
+        list of appointments and available students.
+    """
     try:
-        # Get all appointments for the current staff member
-        appointments = Appointment.query.filter_by(staff_id=current_user.id).order_by(Appointment.start_time.desc()).all()
+        # Get query parameters
+        page = request.args.get('page', 1, type=int)
+        status_filter = request.args.get('status', '')
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
         
-        # Get list of students for the appointment form
-        students = User.query.filter_by(is_student=True).all()
+        # Base query
+        query = Appointment.query.filter_by(staff_id=current_user.id)
         
-        return render_template('admin/staff/appointments.html', 
-                            appointments=appointments,
+        # Apply filters
+        if status_filter:
+            query = query.filter(Appointment.status == status_filter)
+            
+        if date_from:
+            try:
+                from_date = datetime.strptime(date_from, '%Y-%m-%d')
+                query = query.filter(Appointment.start_time >= from_date)
+            except ValueError:
+                pass  # Ignore invalid date format
+                
+        if date_to:
+            try:
+                to_date = datetime.strptime(date_to + ' 23:59:59', '%Y-%m-%d %H:%M:%S')
+                query = query.filter(Appointment.start_time <= to_date)
+            except ValueError:
+                pass  # Ignore invalid date format
+        
+        # Pagination
+        per_page = 10  # Items per page
+        pagination = query.order_by(
+            Appointment.start_time.desc()
+        ).paginate(page=page, per_page=per_page, error_out=False)
+        appointments = pagination.items
+        
+        
+        # Get list of active students for the appointment form
+        students = User.query.filter_by(
+            is_student=True,
+            is_active=True
+        ).order_by(User.last_name, User.first_name).all()
+        
+        # Get available statuses for filter
+        statuses = ['scheduled', 'completed', 'cancelled']
+        
+        # Get current filter values
+        current_filters = {
+            'status': status_filter,
+            'date_from': date_from,
+            'date_to': date_to
+        }
+        
+        # Convert appointments to a format suitable for the template
+        appointments_data = []
+        for appt in appointments:
+            appt_data = {
+                'id': appt.id,
+                'title': appt.title or 'Appointment',
+                'start_time': appt.start_time.isoformat() if appt.start_time else None,
+                'end_time': appt.end_time.isoformat() if appt.end_time else None,
+                'status': appt.status or 'scheduled',
+                'appointment_type': appt.appointment_type or '',
+                'client': {
+                    'id': appt.client.id,
+                    'full_name': f"{appt.client.first_name} {appt.client.last_name}"
+                } if appt.client else None
+            }
+            appointments_data.append(appt_data)
+        
+        return render_template('admin/staff/appointments.html',
+                            appointments=appointments_data,
                             students=students,
-                            active_page='appointments')
+                            active_page='appointments',
+                            pagination=pagination,
+                            statuses=statuses,
+                            filters=current_filters)
+                            
     except Exception as e:
-        current_app.logger.error(f"Error fetching appointments: {str(e)}")
-        flash('An error occurred while fetching appointments.', 'danger')
-        return redirect(url_for('main.dashboard'))
+        import traceback
+        error_details = traceback.format_exc()
+        current_app.logger.error(f"Error in manage_appointments: {str(e)}\n{error_details}")
+        flash('An error occurred while loading appointments. Please try again.', 'danger')
+        return redirect(url_for('appointment.dashboard'))
 
 @appointment_bp.route('/api/appointments', methods=['POST'])
 @login_required
@@ -48,7 +128,7 @@ def create_appointment():
         data = request.get_json()
         
         # Validate required fields
-        required_fields = ['title', 'start_time', 'end_time', 'student_id', 'appointment_type', 'professional_type']
+        required_fields = ['title', 'start_time', 'end_time', 'user_id', 'appointment_type', 'professional_type']
         for field in required_fields:
             if field not in data or not data[field]:
                 return jsonify({
@@ -95,7 +175,7 @@ def create_appointment():
             description=data.get('description', ''),
             start_time=start_time,
             end_time=end_time,
-            student_id=data['student_id'],
+            #student_id=data['student_id'],
             staff_id=current_user.id,
             appointment_type=data['appointment_type'],
             professional_type=data['professional_type'],
@@ -143,7 +223,7 @@ def manage_appointment(appointment_id):
                 'status': appointment.status,
                 'appointment_type': appointment.appointment_type,
                 'professional_type': appointment.professional_type,
-                'student_id': appointment.student_id,
+                'user_id': appointment.user_id,
                 'created_at': appointment.created_at.isoformat(),
                 'updated_at': appointment.updated_at.isoformat()
             }

@@ -1,8 +1,7 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, current_app
 from flask_login import login_required, current_user
 from datetime import datetime
-from models.cdrisc_assessment import CDRISCAssessment
-from app import db
+from models import db, CDRISCAssessment
 
 assessments_bp = Blueprint('assessments', __name__)
 
