@@ -257,14 +257,16 @@ from routes.admin_routes import admin_bp
 # Import other blueprints as needed
 
 def parse_iso_datetime(value):
-  print(f"entry point parse_iso_datetime value: {value}")
-  if isinstance(value, str):
-    try:
-      return datetime.fromisoformat(value)
-    except Exception:
-      print(f"parse_iso_datetime error: {e}, value: {value}")
-      return None
-  return value
+    print(f"entry point parse_iso_datetime value: {value}")
+    if isinstance(value, str):
+        try:
+            # Try parsing ISO format string to datetime
+            # Handles formats like '2025-10-02T13:00:44.41363'
+            return datetime.fromisoformat(value)
+        except Exception as e:
+            print(f"parse_iso_datetime error: {e}, value: {value}")
+            return None
+    return value
 
 app.jinja_env.filters['parse_iso_datetime'] = parse_iso_datetime
 
