@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    .card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+    
+    .card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-body {
+        padding: 3rem;
+    }
+</style>
+
+<div class="min-vh-100 d-flex align-items-center py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-10">
+                <div class="card shadow-lg">
+                    <div class="card-body p-4 p-md-5">
+                    <h2 class="text-center mb-5">Create Your Account</h2>
+                    
+                    {% if message %}
+                        <div class="alert alert-{{ message_type or 'danger' }} text-center">{{ message }}</div>
+                    {% endif %}
+                    
+                    <form id="registerForm" method="POST" action="{{ url_for('register') }}" class="needs-validation" novalidate>
+                        {{ form.csrf_token }}
+                        
+                        <div class="row g-4">
+                            <!-- Left Column -->
+                            <div class="col-md-6">
+                                <h5 class="mb-4">Personal Information</h5>
+                                <div class="mb-3">
+                                    {{ form.username.label(class="form-label") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                                        {{ form.username(class="form-control form-control-lg form-username" + (' is-invalid' if form.username.errors else '')) }}
+                                    </div>
+                                    <small class="form-text text-muted username-help" style="display: none; transition: opacity 0.2s ease; background: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem; margin-top: 0.25rem; border: 1px solid #dee2e6;">3-20 characters, letters, numbers, dots, or underscores</small>
+                                    {% for error in form.username.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    {{ form.first_name.label(class="form-label") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                        {{ form.first_name(class="form-control form-control-lg" + (' is-invalid' if form.first_name.errors else '')) }}
+                                    </div>
+                                    {% for error in form.first_name.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    {{ form.last_name.label(class="form-label") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                        {{ form.last_name(class="form-control form-control-lg" + (' is-invalid' if form.last_name.errors else '')) }}
+                                    </div>
+                                    {% for error in form.last_name.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    {{ form.gender.label(class="form-label") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-gender-ambiguous"></i></span>
+                                        {{ form.gender(class="form-select form-select-lg" + (' is-invalid' if form.gender.errors else '')) }}
+                                    </div>
+                                    {% for error in form.gender.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    {{ form.birthdate.label(class="form-label") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                                        {{ form.birthdate(class="form-control form-control-lg" + (' is-invalid' if form.birthdate.errors else '')) }}
+                                    </div>
+                                    {% for error in form.birthdate.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <!-- Right Column -->
+                            <div class="col-md-6">
+                                <h5 class="mb-4">Account Details</h5>
+                                
+                                <div class="mb-3">
+                                    {{ form.email.label(class="form-label") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                        {{ form.email(class="form-control form-control-lg" + (' is-invalid' if form.email.errors else '')) }}
+                                    </div>
+                                    {% for error in form.email.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    {{ form.password.label(class="form-label") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                        {{ form.password(class="form-control form-control-lg form-password" + (' is-invalid' if form.password.errors else '')) }}
+                                        <button class="btn btn-outline-secondary toggle-password" type="button">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <small class="form-text text-muted password-help" style="display: none; transition: opacity 0.2s ease; background: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem; margin-top: 0.25rem; border: 1px solid #dee2e6;">At least 8 characters, with uppercase, lowercase, number, and special character</small>
+                                    {% for error in form.password.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="mb-4">
+                                    {{ form.confirm_password.label(class="form-label") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
+                                        {{ form.confirm_password(class="form-control form-control-lg" + (' is-invalid' if form.confirm_password.errors else '')) }}
+                                        <button class="btn btn-outline-secondary toggle-password" type="button">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    {% for error in form.confirm_password.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-person-plus me-2"></i>Create Account
+                            </button>
+                        </div>
+                        
+                        <p class="text-center mt-4 mb-0">
+                            Already have an account? <a href="{{ url_for('user_login') }}">Sign in here</a>
+                        </p>
+                    </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+
+<!-- Custom CSS -->
+<style>
+    /* Error message styling */
+    .invalid-feedback {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875em;
+        color: #dc3545;
+        padding: 0.25rem 0.5rem;
+        background-color: rgba(220, 53, 69, 0.1);
+        border-radius: 0.25rem;
+    }
+    
+    /* Form field error state */
+    .is-invalid {
+        border-color: #dc3545 !important;
+        padding-right: calc(1.5em + 0.75rem);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+    
+    /* Alert message styling */
+    .alert {
+        position: relative;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+        border-radius: 0.5rem;
+    }
+    
+    .alert-danger {
+        color: #842029;
+        background-color: #f8d7da;
+        border-color: #f5c2c7;
+    }
+    
+    .alert-success {
+        color: #0f5132;
+        background-color: #d1e7dd;
+        border-color: #badbcc;
+    }
+    
+    .alert-warning {
+        color: #664d03;
+        background-color: #fff3cd;
+        border-color: #ffecb5;
+    }
+    
+    .alert-info {
+        color: #055160;
+        background-color: #cff4fc;
+        border-color: #b6effb;
+    }
+    
+    /* Form controls */
+    .toggle-password {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .toggle-password:hover {
+        background-color: #e9ecef;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .form-control, .form-select {
+        padding: 0.75rem 1rem;
+        transition: all 0.2s;
+    }
+    
+    .input-group-text {
+        background-color: #f8f9fa;
+        transition: all 0.2s;
+    }
+    
+    /* Only show validation feedback after form submission */
+    .form-control.is-invalid ~ .invalid-feedback,
+    .form-select.is-invalid ~ .invalid-feedback {
+        display: none;
+    }
+    
+    .was-validated .form-control:invalid ~ .invalid-feedback,
+    .was-validated .form-select:invalid ~ .invalid-feedback,
+    .form-control.is-invalid ~ .invalid-feedback,
+    .form-select.is-invalid ~ .invalid-feedback {
+        display: block;
+    }
+    
+    /* Username help text on hover */
+    /* Help text hover effects */
+    .form-username:hover + .username-help,
+    .username-help:hover,
+    .form-password:hover + .password-help,
+    .password-help:hover {
+        display: block !important;
+    }
+</style>
+
+<!-- Toggle Password Visibility -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle password visibility
+        const toggleButtons = document.querySelectorAll('.toggle-password');
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const input = this.previousElementSibling;
+                const icon = this.querySelector('i');
+                
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            });
+        });
+        
+        // Enable Bootstrap form validation
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    });
+</script>
+{% endblock %}

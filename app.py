@@ -36,6 +36,12 @@ import socketio
 from bson.objectid import ObjectId
 from flask_mail import Mail, Message
 
+# Now import the accounts repository service
+from services.accounts_reposervice import account_repo_service
+
+# Import models
+from models.accounts import AccountsModelDto
+
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -250,6 +256,25 @@ from utils.filters import time_ago
 from routes.admin_routes import admin_bp
 # Import other blueprints as needed
 
+def parse_iso_datetime(value):
+  print(f"entry point parse_iso_datetime value: {value}")
+  if isinstance(value, str):
+    try:
+      return datetime.fromisoformat(value)
+    except Exception:
+      print(f"parse_iso_datetime error: {e}, value: {value}")
+      return None
+  return value
+
+app.jinja_env.filters['parse_iso_datetime'] = parse_iso_datetime
+
+def datetimeformat(value, format='%m/%d/%Y %I:%M %p'):
+    if value is None:
+        return ''
+    return value.strftime(format)
+
+app.jinja_env.filters['datetimeformat'] = datetimeformat
+
 # Register blueprints
 def register_blueprints(app):
     # Import blueprints here to avoid circular imports
@@ -278,6 +303,8 @@ from services.admin_service import create_admin_user, get_admin_user, update_adm
 def create_default_admin():
     """Create a default admin user if it doesn't exist."""
     try:
+        print("[DEBUG] ... create_default_admin ...")
+        
         # Always run this in development, or if explicitly enabled in production
         if app.config.get('FLASK_ENV') != 'development' and not app.config.get('CREATE_DEFAULT_ADMIN', False):
             print("[INFO] Skipping default admin creation - not in development mode")
@@ -286,11 +313,10 @@ def create_default_admin():
         from werkzeug.security import generate_password_hash
         from services.database_service import db_service
         from models import Admin
+        from models.accounts import AccountsModel
         
-        admin_email = 'enjhaym1@gmail.com'  # Change this to your desired admin email
+        admin_email = 'admin123@gmail.com'  # Change this to your desired admin email
         admin_password = 'admin123'  # Change this to a secure password in production
-        
-        print(f"[DEBUG] Attempting to create default admin: {admin_email}")
         
         # Get Supabase client with service role to bypass RLS if needed
         supabase = db_service.get_supabase_client(use_service_role=True)
@@ -302,34 +328,36 @@ def create_default_admin():
         # Check if admin already exists
         try:
             print("[DEBUG] Checking if admin user exists...")
-            response = supabase.table('admin_users') \
+            response = supabase.table('user_accounts') \
                 .select('*') \
                 .eq('email', admin_email) \
+                .eq('role', 'admin') \
                 .execute()
             
             existing_admins = response.data if hasattr(response, 'data') else []
             
             if not existing_admins:
+                print(f"[DEBUG] Attempting to create default admin: {admin_email}")
                 print("[INFO] Creating default admin user...")
                 # Create admin user
                 password_hash = generate_password_hash(admin_password)
-                admin_data = {
-                    'email': admin_email,
-                    'password_hash': password_hash,
-                    'full_name': 'Admin User',
-                    'is_active': True,
-                    'is_super_admin': True,
-                    'failed_login_attempts': 0,
-                    'created_at': datetime.utcnow().isoformat(),
-                    'updated_at': datetime.utcnow().isoformat()
-                }
+                
+                admin_data = AccountsModel(
+                    first_name='System',
+                    last_name='Admin',
+                    middle_name='',
+                    role='admin',
+                    email=admin_email,
+                    password=password_hash,
+                    is_verified=True
+                )
                 
                 # Insert into admin_users table
                 print("[DEBUG] Inserting admin user into database...")
-                result = supabase.table('admin_users').insert(admin_data).execute()
+                result = account_repo_service.create_account(admin_data)
                 
-                if hasattr(result, 'error') and result.error:
-                    print(f"[ERROR] Failed to create default admin: {result.error}")
+                if(result is None):
+                    print(f"[ERROR] Failed to create default admin user: {admin_email}")
                     return False
                 else:
                     print(f"[SUCCESS] Created default admin user: {admin_email}")
@@ -359,163 +387,24 @@ from models import User
 
 @login_manager.user_loader
 def load_user(user_id):
-    """Load user by ID from the database.
+    print(f"\n[DEBUG] ====== load_user called ======")
+    print(f"[DEBUG] Provided User Id:{user_id} ")
+    print(f"[DEBUG] Current session: {dict(session)}")
     
-    Args:
-        user_id: The user ID to load, which could be a UUID, email, or prefixed ID (admin_/user_)
-        
-    Returns:
-        User: The user object if found, None otherwise
-    """
-    from services.database_service import db_service
-    
-    try:
-        print(f"\n[DEBUG] ====== load_user called ======")
-        print(f"[DEBUG] Input user_id: {user_id} (type: {type(user_id)})")
-        print(f"[DEBUG] Current session: {dict(session)}")
-        
+    try:    
         if not user_id:
             print("[DEBUG] Empty user_id provided")
             return None
-            
-        supabase = db_service.get_supabase_client()
         
-        # Check if the user_id has a prefix (admin_ or user_)
-        has_prefix = isinstance(user_id, str) and ('admin_' in user_id or 'user_' in user_id)
-        prefix = None
-        clean_user_id = user_id
-        
-        if has_prefix:
-            if 'admin_' in user_id:
-                prefix = 'admin_'
-                clean_user_id = user_id.replace('admin_', '', 1)
-                print(f"[DEBUG] Detected admin prefix, clean ID: {clean_user_id}")
-                
-                # Try to get admin user
-                try:
-                    admin_result = supabase.table('admin_users').select('*').eq('id', clean_user_id).execute()
-                    if admin_result.data and len(admin_result.data) > 0:
-                        admin_data = admin_result.data[0]
-                        print(f"[DEBUG] Found admin in admin_users table: {admin_data.get('email')}")
-                        user_obj = User.from_dict(admin_data)
-                        user_obj.is_admin = True
-                        # Ensure the session reflects admin status
-                        session['is_admin'] = True
-                        return user_obj
-                except Exception as e:
-                    print(f"[DEBUG] Error querying admin_users table: {str(e)}")
-                    
-            elif 'user_' in user_id:
-                prefix = 'user_'
-                clean_user_id = user_id.replace('user_', '', 1)
-                print(f"[DEBUG] Detected user prefix, clean ID: {clean_user_id}")
-        
-        # Check if we have an admin flag in the session
-        if session.get('is_admin'):
-            print("[DEBUG] Found is_admin flag in session, checking admin_users table")
-            try:
-                admin_result = supabase.table('admin_users').select('*').eq('id', clean_user_id).execute()
-                if admin_result.data and len(admin_result.data) > 0:
-                    admin_data = admin_result.data[0]
-                    print(f"[DEBUG] Found admin in admin_users table (from session flag): {admin_data.get('email')}")
-                    user_obj = User.from_dict(admin_data)
-                    user_obj.is_admin = True
-                    return user_obj
-            except Exception as e:
-                print(f"[DEBUG] Error querying admin_users table (from session flag): {str(e)}")
-        
-        # Try to get the user by ID from the clients table
-        try:
-            result = supabase.table('clients').select('*').eq('id', clean_user_id).execute()
-            if result.data and len(result.data) > 0:
-                user_data = result.data[0]
-                print(f"[DEBUG] Found user in clients table by ID: {user_data.get('email')}")
-                user_obj = User.from_dict(user_data)
-                user_obj.is_admin = False
-                return user_obj
-        except Exception as e:
-            print(f"[DEBUG] Error querying clients table by ID: {str(e)}")
-            
-        # If we still don't have a user, try by email
-        try:
-            result = supabase.table('clients').select('*').ilike('email', clean_user_id).execute()
-            if result.data and len(result.data) > 0:
-                user_data = result.data[0]
-                print(f"[DEBUG] Found user in clients table by email: {user_data.get('email')}")
-                user_obj = User.from_dict(user_data)
-                user_obj.is_admin = False
-                return user_obj
-        except Exception as e:
-            print(f"[DEBUG] Error querying clients table by email: {str(e)}")
-            
-        # If not found and we have a prefix, try the admin_users table
-        if has_prefix and prefix == 'admin_':
-            try:
-                print(f"[DEBUG] Checking admin_users table for ID: {clean_user_id}")
-                result = supabase.table('admin_users').select('*').eq('id', clean_user_id).execute()
-                print(f"[DEBUG] Admin users table query result: {result.data}")
-                if result.data and len(result.data) > 0:
-                    user_data = result.data[0]
-                    print(f"[DEBUG] Found admin user in admin_users table: {user_data.get('email')}")
-                    user_obj = User.from_dict(user_data)
-                    user_obj.is_admin = True
-                    return user_obj
-            except Exception as e:
-                print(f"[ERROR] Error querying admin_users table: {str(e)}")
-        
-        # If still not found, try to get the user from Supabase Auth
-        try:
-            auth_client = db_service.get_supabase_client(use_service_role=True)
-            auth_resp = auth_client.auth.admin.get_user_by_id(clean_user_id)
-            
-            if getattr(auth_resp, 'user', None):
-                u = auth_resp.user
-                print(f"[DEBUG] Found user in Supabase Auth: {u.email}")
-                
-                # Create user data from Auth response
-                user_data = {
-                    'id': u.id,
-                    'email': u.email,
-                    'username': (u.user_metadata or {}).get('username') or (u.email or '').split('@')[0],
-                    'first_name': (u.user_metadata or {}).get('first_name'),
-                    'last_name': (u.user_metadata or {}).get('last_name'),
-                    'is_active': True,
-                    'is_verified': getattr(u, 'email_confirmed_at', None) is not None,
-                }
-                
-                # Create the user object
-                user_obj = User.from_dict(user_data)
-                user_obj.is_admin = False
-                
-                # Try to save this user to the public.users table for future lookups
-                try:
-                    profile_data = {
-                        'id': u.id,
-                        'email': u.email,
-                        'username': user_data['username'],
-                        'first_name': user_data.get('first_name'),
-                        'last_name': user_data.get('last_name'),
-                        'is_active': True,
-                        'created_at': datetime.now(timezone.utc).isoformat()
-                    }
-                    # Remove None values
-                    profile_data = {k: v for k, v in profile_data.items() if v is not None}
-                    
-                    # Upsert the user profile
-                    supabase.table('clients').upsert(profile_data, on_conflict='id').execute()
-                    print(f"[DEBUG] Synced Auth user to public.users table: {u.email}")
-                except Exception as sync_error:
-                    print(f"[WARNING] Could not sync Auth user to public.users: {str(sync_error)}")
-                
-                return user_obj
-                
-        except Exception as e:
-            print(f"[ERROR] Error querying Supabase Auth: {str(e)}")
+        result = account_repo_service.get_account_by_id(user_id)
+        result_data = result.data[0] if result and result.data else None
+        if result_data and len(result_data) > 0:
+          user_obj = User.to_user_dto_obj(result_data)
+          return user_obj
         
         # If we get here, no user was found
         print(f"[DEBUG] No user found with id: {user_id}")
-        return None
-            
+        return None   
     except Exception as e:
         print(f"[ERROR] Error in load_user: {str(e)}")
         import traceback
@@ -935,7 +824,7 @@ def login_selector():
 @app.route('/user/login', methods=['GET'])
 def user_login():
     """Render the user login page."""
-    if current_user.is_authenticated and not current_user.is_admin:
+    if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     form = LoginForm()
     return render_template('auth/login.html', form=form)
@@ -944,7 +833,7 @@ def user_login():
 @login_limiter
 def handle_user_login():
     """Handle user login form submission."""
-    if current_user.is_authenticated and not current_user.is_admin:
+    if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     form = LoginForm()
     if form.validate_on_submit():
@@ -971,318 +860,147 @@ def handle_admin_login():
     
     return render_template('admin/login.html', form=form)
 
+
+"""Process login for both users and admins."""
 def process_login(form, is_admin=False):
-    """Process login for both users and admins."""
+    print(f"[DEBUG] ***app.py_process_login ***")
+    print(f"[DEBUG] is_admin flag: {is_admin}")
+    
+    # try:
     email = form.email.data.lower().strip()
     password = form.password.data
     remember_me = form.remember_me.data
     
     print(f"\n[LOGIN] {'Admin' if is_admin else 'User'} login attempt - Email: {email}")
-    print(f"[DEBUG] is_admin flag: {is_admin}")
     print(f"[DEBUG] Remember me: {remember_me}")
     
-    user = None
-    user_type = None
+    response_data = account_repo_service.get_account_by_email(email) 
+    user = response_data.data[0] if response_data and response_data.data else None
     
-    try:
-        supabase = db_service.get_supabase_client()
-        
-        if is_admin:
-            print(f"[DEBUG] Checking admin_users table for email: {email}")
-            try:
-                # First try to find admin by email (case-insensitive)
-                result = supabase.table('admin_users') \
-                    .select('*') \
-                    .ilike('email', email) \
-                    .execute()
-                
-                print(f"[DEBUG] Admin query result: {result}")
-                print(f"[DEBUG] Raw data: {result.data}")
-                print(f"[DEBUG] Data length: {len(result.data) if result.data else 0}")
-                
-                # If no results, try direct match in case ilike isn't supported
-                if not result.data or len(result.data) == 0:
-                    print("[DEBUG] No results with ilike, trying direct match")
-                    result = supabase.table('admin_users') \
-                        .select('*') \
-                        .eq('email', email) \
-                        .execute()
-                    print(f"[DEBUG] Direct match result: {result}")
-                    print(f"[DEBUG] Raw direct match data: {result.data}")
-                
-                if not result.data or len(result.data) == 0:
-                    print(f"[DEBUG] No admin user found with email: {email}")
-                    flash('Invalid email or password.', 'error')
-                    return render_template('admin/login.html', form=form)
-                    
-                user = result.data[0]
-                print(f"[DEBUG] Found admin user: {user}")
-                
-                # Check if admin is active
-                is_active = user.get('is_active', True)
-                if isinstance(is_active, str):
-                    is_active = is_active.lower() == 'true' or is_active == '1'
-                
-                if not is_active:
-                    print(f"[LOGIN] Admin account is not active: {email}")
-                    flash('This admin account is not active. Please contact support.', 'error')
-                    return render_template('admin/login.html', form=form)
-                
-                # Check for too many failed login attempts
-                failed_attempts = user.get('failed_login_attempts', 0)
-                if failed_attempts >= 5:  # Lock account after 5 failed attempts
-                    print(f"[LOGIN] Account locked due to too many failed attempts: {email}")
-                    flash('This account is temporarily locked. Please try again later or contact support.', 'error')
-                    return render_template('admin/login.html', form=form)
-                
-                # Verify the password - handle multiple hashing formats
-                from werkzeug.security import check_password_hash
-                from passlib.hash import pbkdf2_sha256, scrypt
-                
-                password_hash = user.get('password_hash', '')
-                is_password_valid = False
-                
-                print(f"[DEBUG] Verifying password for email: {email}")
-                print(f"[DEBUG] Stored hash: {password_hash}")
-                
-                # Check password hash format and verify accordingly
-                if password_hash.startswith('$scrypt$'):
-                    # scrypt format (e.g., from Supabase Auth)
-                    try:
-                        print("[DEBUG] Using scrypt verification")
-                        is_password_valid = scrypt.verify(password, password_hash)
-                    except Exception as e:
-                        print(f"[ERROR] scrypt verification failed: {str(e)}")
-                        is_password_valid = False
-                elif password_hash.startswith('$pbkdf2-sha256$'):
-                    # passlib pbkdf2_sha256 format
-                    print("[DEBUG] Using pbkdf2_sha256 verification")
-                    is_password_valid = pbkdf2_sha256.verify(password, password_hash)
-                else:
-                    # werkzeug format
-                    print("[DEBUG] Using werkzeug check_password_hash")
-                    is_password_valid = check_password_hash(password_hash, password)
-                
-                print(f"[DEBUG] Password verification result: {is_password_valid}")
-                
-                if not is_password_valid:
-                    # Update failed login attempts
-                    supabase.table('admin_users') \
-                        .update({'failed_login_attempts': failed_attempts + 1}) \
-                        .eq('email', email) \
-                        .execute()
-                    
-                    remaining_attempts = 5 - (failed_attempts + 1)
-                    if remaining_attempts > 0:
-                        flash(f'Invalid email or password. {remaining_attempts} attempts remaining.', 'error')
-                    else:
-                        flash('Account locked due to too many failed attempts. Please contact support.', 'error')
-                    
-                    print(f"[LOGIN] Invalid password for admin: {email}")
-                    return render_template('admin/login.html', form=form)
-                
-                # Reset failed login attempts on successful login
-                supabase.table('admin_users') \
-                    .update({
-                        'failed_login_attempts': 0,
-                        'last_login_at': 'now()'
-                    }) \
-                    .eq('email', email) \
-                    .execute()
-                
-                user_type = 'admin'
-                print(f"[LOGIN] Successfully authenticated admin user: {user.get('email')}")
-                
-                # If we reach here, login was successful
-                # The rest of the code is now properly handled in the main try block
-                user_type = 'admin'
-                print(f"[LOGIN] Found and authenticated admin user: {user.get('email')}")
-                print(f"[DEBUG] Admin user data: {user}")
-                
-            except Exception as e:
-                print(f"[ERROR] Error during admin login: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                flash('An error occurred while trying to log in. Please try again.', 'error')
-                return render_template('admin/login.html', form=form)
-        else:
-            # Authenticate regular users via Supabase Auth
-            try:
-                auth_client = db_service.get_supabase_client(use_service_role=True)
-                auth_resp = auth_client.auth.sign_in_with_password({
-                    'email': email,
-                    'password': password
-                })
+    print("[DEBUG] get_account_by_email result : ", user)
+    
+    if not user and len(user) == 0:
+        flash('Invalid email or password.', 'danger')
+        print("[DEBUG] Login failed - email not found : ", email)
+        return render_template('admin/login.html', form=form)
+    
+    print("[DEBUG] Login Success - user data : ", user)
+    
+    user_id = user.get('id')
+    user_role = user.get('role')
+    user_role_id = f'{user_role}_{user_id}'
+    
+    redirect_url = 'auth/login.html' if user_role == 'client' else 'admin/login.html'
 
-                # Successful auth returns a session and user
-                if getattr(auth_resp, 'user', None):
-                    auth_user = auth_resp.user
-                    user = {
-                        'id': auth_user.id,
-                        'email': auth_user.email,
-                        'username': (auth_user.user_metadata or {}).get('username', (auth_user.email or '').split('@')[0]),
-                        'first_name': (auth_user.user_metadata or {}).get('first_name'),
-                        'last_name': (auth_user.user_metadata or {}).get('last_name'),
-                        'is_active': True,
-                        'is_verified': getattr(auth_user, 'email_confirmed_at', None) is not None,
-                    }
-                    user_type = 'user'
-                    print(f"[LOGIN] Authenticated regular user via Supabase Auth: {user.get('email')}")
-                else:
-                    print(f"[LOGIN] No user returned from Supabase Auth for: {email}")
-            except Exception as e:
-                print(f"[ERROR] Supabase Auth sign-in failed: {str(e)}")
+    # Check if User login is active
+    is_active = user.get('is_active', True)
+    if not is_active:
+      print(f"[LOGIN] User account is not active: {email}")
+      flash('This user account is disabled. Please contact support.', 'error')
+      return render_template(redirect_url, form=form)
         
-        # Check if user exists and is active
-        if not user:
-            print(f"[LOGIN] No user found for email: {email}")
-            flash('Invalid email or password', 'danger')
-            return redirect(url_for('admin.admin_login' if is_admin else 'user_login'))
-            
-        # For admin users, check if account is active
-        if user_type == 'admin' and not user.get('is_active', True):
-            print(f"[LOGIN] Admin account is not active: {email}")
-            flash('This admin account is not active. Please contact support.', 'error')
-            return redirect(url_for('admin.admin_login'))
-        
-        # Check if account is locked (for regular users)
-        if user_type == 'user' and user.get('is_locked', False):
-            lockout_time = user.get('lockout_until')
-            if lockout_time and datetime.fromisoformat(lockout_time) > datetime.utcnow():
-                print(f"[LOGIN] Account locked for email: {email}")
-                flash('This account is temporarily locked. Please try again later or reset your password.', 'danger')
-                return redirect(url_for('user_login'))
-            else:
-                # Reset lockout if time has passed
-                supabase.table('clients') \
-                    .update({
-                        'is_locked': False,
-                        'failed_login_attempts': 0,
-                        'lockout_until': None
-                    }) \
-                    .eq('id', user['id']) \
-                    .execute()
-        
-        # Password verification:
-        # - Admins: verify locally against stored hash in admin_users
-        # - Regular users: already verified by Supabase Auth above, so skip
-        if user_type == 'admin':
-            stored_password = user.get('password_hash') or user.get('password')
-            if not stored_password:
-                flash('Invalid email or password', 'danger')
-                return redirect(url_for('admin.admin_login'))
-            from werkzeug.security import check_password_hash as _check_hash
-            if not _check_hash(stored_password, password):
-                flash('Invalid email or password', 'danger')
-                return redirect(url_for('admin.admin_login'))
-        
-        # Determine user type and admin status
-        is_admin = (user_type == 'admin')
-        
-        # Get the user's email and username
-        user_email = user.get('email', '')
-        username = user.get('username', user_email.split('@')[0] if user_email else 'user')
-        
-        # Create the user object with admin status
-        
-        # Get the user ID and ensure it's a string
-        user_id = str(user.get('id') or user.get('_id', ''))
-        
-        # For admin users, ensure we use the prefixed ID
-        if user_type == 'admin' and not user_id.startswith('admin_'):
-            user_id = f"admin_{user_id}"
-        # For regular users, ensure we use a consistent ID format
-        elif user_type == 'user' and not user_id.startswith('user_') and user_id:
-            user_id = f"user_{user_id}"
-        
-        # Create a user object with the appropriate attributes
-        print(f"[DEBUG] Creating User object with ID: {user_id}")
-        user_obj = User(
-            id=user_id,  # Use the possibly prefixed ID
-            email=user['email'],
-            username=user.get('username', user['email'].split('@')[0]),
-            is_admin=(user_type == 'admin'),
+    # Check for too many failed login attempts
+    failed_attempts = user.get('failed_attempt', 0)
+    if failed_attempts >= 5:  # Lock account after 5 failed attempts
+      print(f"[LOGIN] Account locked due to too many failed {failed_attempts} attempts: {email}")
+      flash('This account is temporarily locked. Please try again later or contact support.', 'error')
+      return render_template(redirect_url, form=form)
+    
+    # Password Verification Area
+    from werkzeug.security import check_password_hash
+    from passlib.hash import pbkdf2_sha256, scrypt
+    
+    password_hash = user.get('password', '')
+    is_password_valid = False
+    
+    # Check password hash format and verify accordingly
+    if password_hash.startswith('$scrypt$'):
+        # scrypt format (e.g., from Supabase Auth)
+        try:
+            print("[DEBUG] Using scrypt verification")
+            is_password_valid = scrypt.verify(password, password_hash)
+        except Exception as e:
+            print(f"[ERROR] scrypt verification failed: {str(e)}")
+            is_password_valid = False
+    elif password_hash.startswith('$pbkdf2-sha256$'):
+        # passlib pbkdf2_sha256 format
+        print("[DEBUG] Using pbkdf2_sha256 verification")
+        is_password_valid = pbkdf2_sha256.verify(password, password_hash)
+    else:
+        # werkzeug format
+        print("[DEBUG] Using werkzeug check_password_hash")
+        is_password_valid = check_password_hash(password_hash, password)
+    
+    print(f"[DEBUG] Password verification result: {is_password_valid}")
+    
+    if not is_password_valid:
+      # Update failed login attempts
+      account_repo_service.update_attempts(email, user_role, failed_attempts + 1)
+      remaining_attempts = 5 - (failed_attempts + 1)
+      if remaining_attempts > 0:
+          flash(f'Invalid email or password. {remaining_attempts} attempts remaining.', 'error')
+      else:
+          flash('Account locked due to too many failed attempts. Please contact support.', 'error')
+          
+      return render_template(redirect_url , form=form)
+      
+    print(f"[LOGIN] User account found and authenticated {user_role} user: {email}")
+    
+    fname = user.get('first_name') or ''
+    lname = user.get('last_name') or ''
+    full_name = f'{fname} {lname}'
+    username = email.split('@')[0]
+    
+    session['user_role_id'] = user_role_id
+    session['user_role'] = user_role
+    session['user_id'] = user_id
+    
+    # Create a user object for flask login.
+    user_obj = User(
+            id=user_id,
+            email=email,
+            username=username,
+            is_admin=(user_role != 'client'),
             is_active=True
         )
-        print(f"[DEBUG] User object created - ID: {user_obj.id}, get_id(): {user_obj.get_id()}")
+    
+    # Assign user object to flask login user for authenthication purposes in admin route
+    login_user(user_obj, remember=remember_me)
+    
+    print(f"[DEBUG] user_role: {user_role}, is_admin: {current_user.is_admin}")
+    print(f"[DEBUG] Redirecting to: {url_for('admin.dashboard') if user_role != 'client' else url_for('dashboard')}")
+    print(f"[DEBUG] current_user: {current_user}, id: {current_user.id}, is_admin: {current_user.is_admin}")
+    print(f"[DEBUG] url_for('admin.dashboard'): {url_for('admin.dashboard')}")
+    
+    flash(f'Welcome back, {full_name}!', 'success')
+    
+    # Reset failed attempts and Update the last_login_at
+    account_repo_service.reset_attempts(email, user_role)    
+    
+    if user_role != 'client':
+      # For Admin dashboard users
+      print("[DEBUG] Redirecting to admin dashboard", url_for('admin.dashboard'))
+      return redirect(url_for('admin.dashboard'))
+    else:
+      # For regular users, check for next parameter or go to dashboard
+      next_page = request.args.get('next')
+      if next_page and is_safe_url(next_page, request.host_url):
+        print(f"[DEBUG] Redirecting to next page: {next_page}")
+        return redirect(next_page)
+    
+    
+    
+    
+    print("[DEBUG] Redirecting to user dashboard")
+    return redirect(url_for('dashboard'))
+    
+    # End of Password Verification
         
-        # Set additional attributes
-        for attr in ['first_name', 'last_name', 'profile_image', 'is_super_admin']:
-            if attr in user:
-                setattr(user_obj, attr, user[attr])
-        
-        # Log the user in
-        print(f"[DEBUG] About to call login_user with user_obj.id: {user_obj.id}")
-        print(f"[DEBUG] User object get_id() returns: {user_obj.get_id()}")
-        login_user(user_obj, remember=remember_me)
-        
-        # Update last login time
-        try:
-            if user_type == 'admin':
-                supabase.table('admin_users') \
-                    .update({'last_login': datetime.utcnow().isoformat()}) \
-                    .eq('id', user['id']) \
-                    .execute()
-            else:
-                # For regular users, update last login and reset failed attempts
-                update_data = {'last_login': datetime.utcnow().isoformat()}
-                if user.get('failed_login_attempts', 0) > 0:
-                    update_data.update({
-                        'failed_login_attempts': 0,
-                        'is_locked': False,
-                        'lockout_until': None
-                    })
-                supabase.table('clients') \
-                    .update(update_data) \
-                    .eq('id', user['id']) \
-                    .execute()
-                    
-                # Also update the local user object with the latest data
-                result = supabase.table('clients') \
-                    .select('*') \
-                    .eq('id', user['id']) \
-                    .single() \
-                    .execute()
-                    
-                if result and hasattr(result, 'data') and result.data:
-                    user = result.data
-        except Exception as e:
-            print(f"[WARNING] Could not update user data: {str(e)}")
-        
-        print(f"[LOGIN] {'Admin' if is_admin else 'User'} logged in successfully: {user['email']}")
-        
-        # Set session variables
-        session['user_id'] = user_id  # Use the prefixed ID for admin users
-        session['is_admin'] = (user_type == 'admin')
-        session.permanent = remember_me
-        
-        # Debug logging
-        print(f"[DEBUG] User logged in - ID: {user_id}, Admin: {is_admin}, Email: {user['email']}")
-        print(f"[DEBUG] Current user authenticated: {current_user.is_authenticated}")
-        print(f"[DEBUG] Current user is admin: {current_user.is_admin if current_user.is_authenticated else 'Not authenticated'}")
-        
-        # Prepare success message
-        flash(f'Welcome back, {user_obj.username}!', 'success')
-        
-        # For admin, always redirect to admin dashboard
-        if is_admin:
-            print("[DEBUG] Redirecting to admin dashboard")
-            return redirect(url_for('admin.dashboard'))
-            
-        # For regular users, check for next parameter or go to dashboard
-        next_page = request.args.get('next')
-        if next_page and is_safe_url(next_page, request.host_url):
-            print(f"[DEBUG] Redirecting to next page: {next_page}")
-            return redirect(next_page)
-            
-        print("[DEBUG] Redirecting to user dashboard")
-        return redirect(url_for('dashboard'))
-        
-    except Exception as e:
-        print(f"[ERROR] Login error: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        flash('An error occurred during login. Please try again.', 'danger')
+    # except Exception as e:
+    #     print(f"[ERROR] Login error: {str(e)}")
+    #     import traceback
+    #     traceback.print_exc()
+    #     flash('An error occurred during login. Please try again.', 'danger')
     
     return render_template('admin/login.html' if is_admin else 'auth/login.html', form=form)
 
@@ -1350,7 +1068,6 @@ def register():
             print("[DEBUG] Creating new user...")
             # Prepare user data with all form fields
             user_data = {
-                'username': form.username.data.strip(),
                 'email': form.email.data.lower().strip(),
                 'password': form.password.data,  # This will be hashed in create_user
                 'first_name': form.first_name.data.strip() if form.first_name.data else None,
@@ -1584,9 +1301,6 @@ def print_startup_info():
             print("\n" + "="*50)
             print("Application is running!")
             print("="*50)
-            print("\nAdmin Interface:")
-            print(f"- Login URL: {url_for('admin.admin_login', _external=True)}")
-            print("\n" + "="*50 + "\n")
         except Exception as e:
             print("\n[WARNING] Could not print startup URLs:", str(e))
 
@@ -1618,7 +1332,7 @@ if __name__ == '__main__':
         
         def open_browser():
             with app.app_context():
-                url = url_for('admin.admin_login', _external=True)
+                url = url_for('index', _external=True)
                 webbrowser.open(url)
         
         # Print startup info after a short delay to ensure app is running

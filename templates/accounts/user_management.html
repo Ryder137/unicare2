@@ -120,6 +120,8 @@
                             <th>Status</th>
                             <th>Last Active</th>
                             <th>Actions</th>
+                            <th class="d-none">hidden_role</th>
+                            <th class="d-none">hidden_status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -132,6 +134,11 @@
                             </td>
                             <td>
                                 <div class="d-flex align-items-center">
+                                   {% if user.image %}
+                                        <img src="{{ user.profile_image }}" class="rounded-circle me-2" width="32" height="32" alt="{{ user.first_name }} {{ user.last_name }}">
+                                    {% else %}
+                                        <img src="{{ url_for('static', filename='img/avatars/user.png') }}" class="rounded-circle me-2" width="32" height="32" alt="Default Avatar">
+                                    {% endif %}
                                     <div>
                                         <div class="fw-bold">{{ user.first_name|title }} {{ user.last_name|title }}</div>
                                         <small class="text-muted">{{ user.id[:15] }}...</small>
@@ -139,9 +146,23 @@
                                 </div>
                             </td>
                             <td>{{ user.email }}</td>
-                            <td>{{user.role|title}}</td>
-                            <td>{{ 'Active' if user.is_active else 'Inactive' }}</td>
-                            <td>{{ user.last_login|datetimeformat('%b %d, %Y %H:%M') if user.last_login else 'Never' }}</td>
+                            <td>
+                                {% set role_colors = {
+                                    'admin': 'primary',
+                                    'psychologist': 'success',
+                                    'staff': 'info',
+                                    'client': 'secondary'
+                                } %}
+                                <span class="badge bg-{{ role_colors.get(user.role|lower, 'dark') }}">
+                                    {{ user.role|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if user.is_active else 'secondary' }}">
+                                    {{ 'Active' if user.is_active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>{{ user.last_login_at|parse_iso_datetime|datetimeformat('%m/%d/%Y %I:%M %p') if user.last_login_at else 'Never' }}</td>
                             <td>
                                 <div class="d-flex justify-content-center align-items-center gap-1">
                                     <button class="btn btn-info btn-sm view-user" 
@@ -163,6 +184,8 @@
                                     </button>
                                 </div>
                             </td>
+                            <td class="d-none">{{ user.role|lower }}</td>
+                            <td class="d-none">{{ 'active' if user.is_active else 'inactive' }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -225,8 +248,8 @@
 </div>
 
 <!-- Add/Edit User Modal -->
-<div class="modal fade" id="userFormModal" tabindex="-1" aria-labelledby="userFormModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade" id="userFormModal" tabindex="-1" aria-labelledby="userFormModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="userFormModalLabel">Add New User</h5>
@@ -234,99 +257,112 @@
             </div>
             <form id="userForm" method="POST">
                 <div class="modal-body">
-                    <div id="formErrors" class="alert alert-danger d-none"></div>
-                    <input type="hidden" name="user_id" id="userId">
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6 mb-3">
-                            <label for="firstName" class="form-label">First Name</label>
-                            <input type="text" class="form-control" id="firstName" name="first_name" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="lastName" class="form-label">Last Name</label>
-                            <input type="text" class="form-control" id="lastName" name="last_name" required>
-                        </div>
+                  <div id="formErrors" class="alert alert-danger d-none"></div>
+                  <input type="hidden" name="user_id" id="userId">
+                      
+                  <div class="row mb-2">
+                    <div class="col-md-6 mb-2">
+                        <label for="firstName" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="firstName" name="first_name" required>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email Address</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
+                    <div class="col-md-6 mb-2">
+                        <label for="lastName" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="lastName" name="last_name" required>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="role" class="form-label">Role</label>
-                        <select class="form-select" id="role" name="role" required>
-                            <option value="" selected disabled>Select Role</option>
-                            <option value="admin">Admin</option>
-                            <option value="psychologist">Psychologist</option>
-                            <option value="staff">Staff</option>
-                        </select>
+                  </div>
+                  
+                  <div class="row">
+                    <div class="col-md-6 mb-2">
+                      <label for="email" class="form-label">Email Address</label>
+                      <input type="email" class="form-control" id="email" name="email" required>
                     </div>
-                    
-                    <div id="passwordFields">
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" minlength="8">
-                            <div class="form-text">Leave blank to keep current password</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="confirmPassword" class="form-label">Confirm Password</label>
-                            <input type="password" class="form-control" id="confirmPassword" name="confirm_password">
-                        </div>
+                      
+                    <div class="col-md-6 mb-2">
+                      <label for="role" class="form-label">Role</label>
+                      <select class="form-select" id="role" name="role" required>
+                          <option value="" selected disabled>Select Role</option>
+                          <option value="admin">Admin</option>
+                          <option value="psychologist">Psychologist</option>
+                          <option value="staff">Staff</option>
+                      </select>
                     </div>
+                  </div>
                     
-                    <!-- Psychologist Specific Fields -->
-                    <div id="psychologistFields" class="mt-4 border-top pt-3" style="display: none;">
-                        <h6 class="mb-3">Psychologist Information</h6>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="licenseNumber" class="form-label">License Number</label>
-                                <input type="text" class="form-control" id="licenseNumber" name="license_number">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="specialization" class="form-label">Specialization</label>
-                                <input type="text" class="form-control" id="specialization" name="specialization">
-                            </div>
-                            <div class="col-12 mb-3">
-                                <label for="education" class="form-label">Education</label>
-                                <textarea class="form-control" id="education" name="education" rows="2"></textarea>
-                            </div>
-                            <div class="col-12 mb-3">
-                                <label for="bio" class="form-label">Professional Bio</label>
-                                <textarea class="form-control" id="bio" name="bio" rows="3"></textarea>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="yearsExperience" class="form-label">Years of Experience</label>
-                                <input type="number" class="form-control" id="yearsExperience" name="years_experience" min="0">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="hourlyRate" class="form-label">Hourly Rate (₱)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">₱</span>
-                                    <input type="number" class="form-control" id="hourlyRate" name="hourly_rate" min="0" step="0.01">
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="isAvailable" name="is_available" checked>
-                                    <label class="form-check-label" for="isAvailable">Available for new clients</label>
-                                </div>
-                            </div>
-                        </div>
+                  <div id="passwordFields" class="row mb-2">
+                    <div class="col-md-6 mb-2">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" minlength="8">
+                        <div class="form-text" 
+                            id="passwordHelperText" 
+                            style="display: none;">Leave blank to keep current password</div>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirm_password">
+                    </div>
+                  </div>
+
+                  <!-- Psychologist Specific Fields -->
+                  <div id="psychologistFields" class="mt-4 border-top pt-3" style="display: none;">
+
+                    <h6 class="mb-3">Psychologist Information</h6>
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="licenseNumber" class="form-label">License Number</label>
+                        <input type="text" class="form-control" id="licenseNumber" name="license_number">
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="specialization" class="form-label">Specialization</label>
+                        <input type="text" class="form-control" id="specialization" name="specialization">
+                      </div>
                     </div>
 
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="isActive" name="is_active" checked>
-                        <label class="form-check-label" for="isActive">Active Account</label>
+                    <div class="col-12 mb-3">
+                      <label for="education" class="form-label">Education</label>
+                      <textarea class="form-control" id="education" name="education" rows="2"></textarea>
+                    </div>
+                    <div class="col-12 mb-3">
+                      <label for="bio" class="form-label">Professional Bio</label>
+                      <textarea class="form-control" id="bio" name="bio" rows="3"></textarea>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="yearsExperience" class="form-label">Years of Experience</label>
+                        <input type="number" class="form-control" id="yearsExperience" name="years_experience" min="0">
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="hourlyRate" class="form-label">Hourly Rate (₱)</label>
+                        <div class="input-group">
+                          <span class="input-group-text">₱</span>
+                          <input type="number" class="form-control" id="hourlyRate" name="hourly_rate" min="0" step="0.01">
+                        </div>
+                      </div>
                     </div>
                     
-                    <div id="sendInviteField" class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="sendInvite" name="send_invite" checked>
-                            <label class="form-check-label" for="sendInvite">Send account activation email</label>
-                        </div>
+                    <div class="col-12">
+                      <div class="form-check form-switch ms-1">
+                        <input class="form-check-input" type="checkbox" id="isAvailable" name="is_available" checked>
+                        <label class="form-check-label" for="isAvailable">Available for new clients</label>
+                      </div>
                     </div>
+
+                  </div>
+                  
+                  <div class="row mb-2">
+                    <div class="form-check col-md-3 form-switch mb-3 ms-3">
+                      <input class="form-check-input" type="checkbox" id="isActive" name="is_active" checked>
+                      <label class="form-check-label" for="isActive">Active Account</label>
+                    </div>
+                    
+                    <div id="sendInviteField" class="col-md-6 mb-3">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="sendInvite" name="send_invite" checked>
+                        <label class="form-check-label" for="sendInvite">Send account activation email</label>
+                      </div>
+                    </div>
+                  </div>  
+                  
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -429,18 +465,16 @@ $(document).ready(function() {
         $('[data-filter]').removeClass('active');
         $(this).addClass('active');
 
+        console.log('Selected filter : ', filter);
         // Clear all column filters
         usersTable.columns().search("");
-
         if (filter === 'all') {
             console.log('Filter: all (show all users)');
             usersTable.draw();
         } else if (filter === 'active' || filter === 'inactive') {
-            // Status column is index 4, text is 'Active'/'Inactive'
-            console.log('Filter: status', filter, 'on column 4');
-            usersTable.column(4).search('^' + filter + '$', true, false).draw();
+            console.log('Filter: status', filter, 'on column 7');
+            usersTable.column(8).search('^' + filter + '$', true, false).draw();
         } else if (["admin", "psychologist", "staff", "client", "therapist"].includes(filter)) {
-            // Role column is index 3, text is 'Admin', 'Psychologist', 'Staff', 'Client'
             const roleMap = {
                 'admin': 'Admin',
                 'psychologist': 'Psychologist',
@@ -448,8 +482,7 @@ $(document).ready(function() {
                 'client': 'Client', // for the filter dropdown
             };
             const roleText = roleMap[filter] || '';
-            console.log('Filter: role', roleText, 'on column 3');
-            usersTable.column(3).search('^' + roleText + '$', true, false).draw();
+            usersTable.column(7).search('^' + roleText + '$', true, false).draw();
         } else {
             console.log('Unknown filter:', filter);
         }
@@ -598,6 +631,8 @@ $(document).ready(function() {
         $('#password').prop('required', true);
         $('#confirmPassword').prop('required', true);
         $('#sendInviteField').show();
+        $('#psychologistFields').hide();
+        $('#passwordHelperText').hide();
         modal.show();
     });
 
@@ -612,7 +647,11 @@ $(document).ready(function() {
         $('#userId').val(userId);
         $('#password, #confirmPassword').prop('required', false);
         $('#sendInviteField').hide();
-        
+        $('#passwordHelperText').show();
+
+        // Check if Role is Psychologist show this fiels
+        $('#psychologistFields').hide();
+
         // Simulate loading user data
         setTimeout(() => {
             // This would be replaced with actual data from your API

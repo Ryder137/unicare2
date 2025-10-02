@@ -2,6 +2,7 @@ import os
 from config import init_supabase
 from supabase import Client
 from models.accounts import AccountsModel
+from datetime import datetime, timezone
 
 class AccountRepoService:
   def __init__(self):
@@ -80,6 +81,35 @@ class AccountRepoService:
   
   def get_account_by_role(self, role: str):
     return self.supabase.table('user_accounts').select("*").eq('role', role).execute()
+  
+  def get_account_by_email(self, email: str):
+    return self.supabase.table('user_accounts').select('*').eq('email', email.lower().strip()).execute()
+  
+  def update_attempts(self, email: str, role: str, attempts: int):
+    return (self.supabase.table('user_accounts')
+                .update({'failed_attempt': attempts})
+                .eq('email', email)
+                .eq('role', role)
+                .execute()
+    )
+  
+  def reset_attempts(self, email: str, role: str):
+    print(f"[DEBUG] Reset attempts update Email: {email} Role: {role}")
+    now = datetime.now(timezone.utc).isoformat()
+    print(f"[DEBUG] Resetting attempts at: {now}")
+    results = (self.supabase.table('user_accounts')
+                .update({'failed_attempt': 0,
+                         'last_login_at': now})
+                .eq('email', email)
+                .eq('role', role)
+                .execute()
+    )
+    
+    print(f"[DEBUG] Reset attempts for {email} with role {role}: {results}")
+    
+    return results
+    
+    
 
 # Singleton instance
-db_service = AccountRepoService()
+account_repo_service = AccountRepoService()

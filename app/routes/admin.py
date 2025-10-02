@@ -15,12 +15,15 @@ bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 def admin_required(f):
     """Decorator to require admin access."""
+    print(f"[DEBUG] Check for user role: {current_user}")
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
+        if not current_user.is_authenticated or current_user.role == 'client':
             flash('You do not have permission to access this page.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
+      
+    print(f"[DEBUG] decorated_function value: {decorated_function}")
     return decorated_function
 
 @bp.route('/')

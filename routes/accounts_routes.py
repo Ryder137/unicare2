@@ -9,10 +9,10 @@ from datetime import datetime, timedelta
 from functools import wraps
 from typing import Counter
 
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, abort, session
+from flask import Blueprint, app, render_template, redirect, url_for, flash, request, jsonify, current_app, abort, session
 from flask_login import current_user, login_required, login_url, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
-from services import database_service as db_service
+from forms import RegisterForm
 from models.accounts import AccountsModel,PsychologistDetailModel
 
 # Add the project root to the Python path first
@@ -20,8 +20,8 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# Now import the models and other project modules
-from services.accounts_reposervice import db_service
+# Now import the accounts repository service
+from services.accounts_reposervice import account_repo_service
 
 # Import forms from the forms package
 from forms.base_forms import (
@@ -61,48 +61,57 @@ def management():
     print(f"[DEBUG] is_authenticated: {current_user.is_authenticated}")
     print(f"[DEBUG] is_admin: {getattr(current_user, 'is_admin', False)}")
     
-    # try:
-    
-    users_result = db_service.get_all_accounts();
-    users_data = users_result.data if hasattr(users_result, "data") else []
-    
-    # Count users created in the current month
-    # Get current year and month
-    now = datetime.now()
-    current_year = now.year
-    current_month = now.month
-    
-    new_users_count = len([
-        user for user in users_data
-        if user.get('created_at') and
-          datetime.fromisoformat(user['created_at']).year == current_year and
-          datetime.fromisoformat(user['created_at']).month == current_month
-    ])
-    
-    user_counts = len(users_data)
-    active_counts = sum(1 for user in users_data if user.get('is_active', True))
-    pending_counts = sum(1 for user in users_data if not user.get('is_verified', True))
-    
-    # Count users object
-    user_counts = {
-      'total_users': user_counts,
-      'active_counts': active_counts,
-      'new_users_count': new_users_count,
-      'pending_counts': pending_counts
-    }
-  
-    return render_template('accounts/user_management.html',
-      users= users_data,
-      user_counts=user_counts,
-      current_user=current_user)
+    try:
+      users_result = account_repo_service.get_all_accounts();
+      users_data = users_result.data if hasattr(users_result, "data") else []
       
-    # except Exception as e:
-    #   error_msg = f"[CRITICAL] Unhandled exception in manage_users: {str(e)}"
-    #   print(error_msg)
-    #   import traceback
-    #   traceback.print_exc()
-    #   flash('An error occurred while loading user data. Please check the logs for details.', 'error')
-    #   return redirect(url_for('admin.dashboard'))
+      # Count users created in the current month
+      # Get current year and month
+      now = datetime.now()
+      current_year = now.year
+      current_month = now.month
+      
+      new_users_count = len([
+          user for user in users_data
+          if user.get('created_at') and
+            datetime.fromisoformat(user['created_at']).year == current_year and
+            datetime.fromisoformat(user['created_at']).month == current_month
+      ])
+      
+      user_counts = len(users_data)
+      active_counts = sum(1 for user in users_data if user.get('is_active', True))
+      pending_counts = sum(1 for user in users_data if not user.get('is_verified', True))
+      
+      # Count users object
+      user_counts = {
+        'total_users': user_counts,
+        'active_counts': active_counts,
+        'new_users_count': new_users_count,
+        'pending_counts': pending_counts
+      }
+    
+      return render_template('accounts/user_management.html',
+        users= users_data,
+        user_counts=user_counts,
+        current_user=current_user)
+      
+    except Exception as e:
+      error_msg = f"[CRITICAL] Unhandled exception in manage_users: {str(e)}"
+      print(error_msg)
+      import traceback
+      traceback.print_exc()
+      flash('An error occurred while loading user data. Please check the logs for details.', 'error')
+      return redirect(url_for('admin.dashboard'))
+
+@accounts_bp.route('/register', methods=['GET', 'POST'])
+def register():
+  print("\n[DEBUG] Accounts/Register route called") 
+  form = RegisterForm()
+  
+  
+  return render_template('accounts/register_client.html',form=form)
+
+# API AJAX URL CALLS
 
 @accounts_bp.route('/user/<string:id>',methods=['GET'])
 @login_required
@@ -117,8 +126,6 @@ def get_user(id):
     
   return jsonify({'user': user_result}), 200
   
-      
-      
 # CREATE USER ACCOUNT
 @accounts_bp.route('/user/create',methods=['POST'])
 @login_required
@@ -162,7 +169,7 @@ def create_user():
     
     print(f"[DEBUG] Prepared Account Data: {reqAccounts}")
       
-    new_user = db_service.create_account(reqAccounts)
+    new_user = account_repo_service.create_account(reqAccounts)
     print(f"[DEBUG] New User Created: {new_user}")
     
     # If the new user is a psychologist, create a corresponding psychologist detail record
@@ -184,7 +191,7 @@ def create_user():
       
       print(f"[DEBUG] Prepared Psychologist Detail Data: {reqPsychologistDetail}")
       
-      psychologist_detail_result = db_service.create_psychologist_detail(reqPsychologistDetail)
+      psychologist_detail_result = account_repo_service.create_psychologist_detail(reqPsychologistDetail)
       print(f"[DEBUG] Psychologist Detail Created: {psychologist_detail_result}")
     
     return jsonify({'message': 'User created successfully.'}), 201
