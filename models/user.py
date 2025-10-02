@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional, Any, Dict
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from models.accounts import AccountsModelDto
 
 class User(UserMixin):
     def __init__(self, **kwargs):
@@ -76,32 +77,31 @@ class User(UserMixin):
             return False
         return check_password_hash(self.password_hash, password)
     
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]):
-        """Create a User instance from a dictionary (e.g., from database)."""
+    def to_user_dto_obj(data: Dict[str, Any]):
+        """ Convert database response to user data transfer object """
         if not data:
             return None
-            
         # Map database fields to User attributes
-        user_data = {
-            'id': data.get('id'),
-            'email': data.get('email', ''),
-            'username': data.get('username', data.get('email', '').split('@')[0]),
-            'password_hash': data.get('password_hash') or data.get('password'),
-            'is_active': data.get('is_active', True),
-            'is_verified': data.get('is_verified', False),
-            'created_at': data.get('created_at'),
-            'last_login': data.get('last_login'),
-            'account_locked_until': data.get('account_locked_until'),
-            'full_name': data.get('full_name', ''),
-            'first_name': data.get('first_name', ''),
-            'last_name': data.get('last_name', ''),
-            'avatar_url': data.get('avatar_url'),
-            'is_admin': data.get('is_admin', False),
-            'is_super_admin': data.get('is_super_admin', False),
-            'profile_image': data.get('profile_image', '')
-        }
-        return cls(**user_data)
+        email = data.get('email', '')
+        user_obj = AccountsModelDto(
+            id = data.get('id'),
+            first_name = data.get('first_name', ''),
+            middle_name = data.get('middle_name', ''),
+            last_name = data.get('last_name', ''),
+            email = data.get('email', ''),
+            role = data.get('role', 'client'),
+            password = data.get('password'),
+            is_deleted = data.get('is_deleted', False),
+            is_active = data.get('is_active', True),
+            is_verified = data.get('is_verified', False),
+            image = data.get('profile_image', ''),
+            created_at = data.get('created_at'),
+            failed_attempt = data.get('failed_attempt', 0),
+            last_login_at = data.get('last_login'),
+            is_authenticated = True,
+            username= email.split('@')[0]
+        )
+        return user_obj
     
     # Flask-Login required properties with getters and setters
     @property

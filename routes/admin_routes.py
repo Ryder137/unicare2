@@ -137,26 +137,26 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         print("\n[DEBUG] ====== admin_required decorator called ======")
         print(f"[DEBUG] Request endpoint: {request.endpoint}")
-        print(f"[DEBUG] Current user: {current_user}")
+        print(f"[DEBUG] Current user: ",current_user)
         print(f"[DEBUG] is_authenticated: {current_user.is_authenticated}")
         
         # Check if user is authenticated
         if not current_user.is_authenticated:
-            print("[DEBUG] User not authenticated, redirecting to login")
             session['next'] = request.url if request.method == 'GET' else None
             return redirect(url_for('admin.admin_login', next=request.url))
             
         # Check if user is admin
-        is_admin = getattr(current_user, 'is_admin', False)
-        print(f"[DEBUG] User is_admin: {is_admin}")
+        is_client = True if current_user.role == 'client' else False
+        # getattr(current_user, 'is_admin', False)
+        print(f"[DEBUG] User current_user role: {current_user.role}")
         print(f"[DEBUG] User attributes: {dir(current_user)}")
         
-        if not is_admin:
-            print("[DEBUG] User is not an admin, redirecting to index")
+        if is_client:
+            print("[DEBUG] User is client, redirecting to index")
             flash('You do not have permission to access this page.', 'error')
             return redirect(url_for('index'))
             
-        print("[DEBUG] User is authenticated and is an admin, proceeding to route handler")
+        print("[DEBUG] User is authenticated, proceeding to route handler")
         return f(*args, **kwargs)
     return decorated_function
 
@@ -341,10 +341,16 @@ def dashboard():
     print(f"[DEBUG] Is admin: {getattr(current_user, 'is_admin', False)}")
     
     # Double-check admin status
-    if not getattr(current_user, 'is_admin', False):
+    is_client = None
+    if hasattr(current_user,'role'):
+      is_client =True if current_user.role == 'client' else False
+    
+    if is_client:
         print("[WARNING] User does not have admin privileges, logging out")
         session.clear()
         logout_user()
+        return redirect(url_for('main.index'))
+        
     total_users = 0
     new_users = 0
     total_active_users = 0

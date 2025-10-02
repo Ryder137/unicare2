@@ -5,12 +5,12 @@
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow">
-                <div class="card-header bg-dark text-white text-center">
-                    <h4 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Admin Login</h4>
+        <div class="col-md-6 col-lg-5">
+            <div class="card w-auto shadow">
+                <div class="card-header text-center p-2" style="background-color: #0a2c63ff;">
+                    <h4 class="mb-0 text-white"><i class="bi bi-shield-lock me-2"></i>Admin Login</h4>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body p-0">
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
@@ -20,20 +20,21 @@
                     {% endwith %}
 
                     <!-- Development Test Account -->
-                    {% if config.get('FLASK_ENV') == 'development' %}
-                    <div class="alert alert-info mb-4">
-                        <h5 class="alert-heading"><i class="bi bi-info-circle"></i> Development Account</h5>
-                        <p class="mb-1">Use these test credentials to log in:</p>
-                        <div class="mb-2">
-                            <strong>Email:</strong> enjhaym1@gmail.com<br>
-                            <strong>Password:</strong> admin123
+                    {% if config.get('FLASK_ENV') == 'dev_test_acct' %}
+                        <div class="alert alert-info mb-2 mt-2">
+                            <h5 class="alert-heading"><i class="bi bi-info-circle"></i> Development Account</h5>
+                            <p class="mb-1">Use these test credentials to log in:</p>
+                            <div class="mb-2">
+                                <strong>Email:</strong> admin123@gmail.com<br>
+                                <strong>Password:</strong> admin123
+                            </div>
+                            <p class="mb-0 small text-muted">Note: This message is only visible in development mode.</p>
                         </div>
-                        <p class="mb-0 small text-muted">Note: This message is only visible in development mode.</p>
-                    </div>
-                    
+                    {% endif %}
+
                     <!-- Rate Limit Information -->
                     <div id="rate-limit-info" 
-                         class="alert alert-warning mb-4"
+                        class="alert alert-warning mb-4 text-center d-flex flex-column align-items-center justify-content-center"
                          data-first-attempt="{{ session.first_attempt|default('0') }}"
                          data-max-attempts="10"
                          data-time-window="300">
@@ -53,7 +54,6 @@
                             <i class="bi bi-arrow-clockwise"></i> Reset Rate Limit
                         </a>
                     </div>
-                    {% endif %}
 
                     <form method="POST" action="{{ url_for('admin.admin_login') }}" class="needs-validation" novalidate>
                         {{ form.hidden_tag() }}
@@ -77,9 +77,6 @@
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-lock"></i></span>
                                 {{ form.password(id="admin-password", class="form-control form-control-lg form-password" + (' is-invalid' if form.password.errors else '')) }}
-                                <button class="btn btn-outline-secondary toggle-password" type="button" data-target="admin-password">
-                                    <i class="bi bi-eye"></i>
-                                </button>
                                 {% if form.password.errors %}
                                     <div class="invalid-feedback d-block">
                                         {{ form.password.errors[0] }}
@@ -94,7 +91,7 @@
                         </div>
 
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-dark">
+                            <button type="submit" class="btn" style="background-color: #0a2c63ff;">
                                 <i class="bi bi-box-arrow-in-right me-2"></i>Log in
                             </button>
                         </div>

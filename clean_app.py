@@ -25,7 +25,7 @@ def create_default_env():
             with open(env_path, 'w') as f:
                 f.write("""# Flask Configuration
 FLASK_APP=app.py
-FLASK_ENV=development
+FLASK_ENV=development1
 FLASK_DEBUG=true
 SECRET_KEY=your-very-secret-key-here-make-it-strong
 

@@ -80,6 +80,28 @@ class AccountRepoService:
   
   def get_account_by_role(self, role: str):
     return self.supabase.table('user_accounts').select("*").eq('role', role).execute()
+  
+  def get_account_by_email(self, email: str):
+    return self.supabase.table('user_accounts').select('*').eq('email', email.lower().strip()).execute()
+  
+  def update_attempts(self, email: str, role: str, attempts: int):
+    return (self.supabase.table('user_accounts')
+                .update({'failed_attempt': attempts})
+                .eq('email', email)
+                .eq('role', role)
+                .execute()
+    )
+  
+  def reset_attempts(self, email: str, role: str):
+    return (self.supabase.table('user_accounts')
+                .update({'failed_attempt': 0,
+                         'last_login_at': 'now()'})
+                .eq('email', email)
+                .eq('role', role)
+                .execute()
+    )
+    
+    
 
 # Singleton instance
-db_service = AccountRepoService()
+account_repo_service = AccountRepoService()
