@@ -256,6 +256,25 @@ from utils.filters import time_ago
 from routes.admin_routes import admin_bp
 # Import other blueprints as needed
 
+def parse_iso_datetime(value):
+  print(f"entry point parse_iso_datetime value: {value}")
+  if isinstance(value, str):
+    try:
+      return datetime.fromisoformat(value)
+    except Exception:
+      print(f"parse_iso_datetime error: {e}, value: {value}")
+      return None
+  return value
+
+app.jinja_env.filters['parse_iso_datetime'] = parse_iso_datetime
+
+def datetimeformat(value, format='%m/%d/%Y %I:%M %p'):
+    if value is None:
+        return ''
+    return value.strftime(format)
+
+app.jinja_env.filters['datetimeformat'] = datetimeformat
+
 # Register blueprints
 def register_blueprints(app):
     # Import blueprints here to avoid circular imports
@@ -381,7 +400,6 @@ def load_user(user_id):
         result_data = result.data[0] if result and result.data else None
         if result_data and len(result_data) > 0:
           user_obj = User.to_user_dto_obj(result_data)
-          print(f"[DEBUG] User Object {user_obj}")
           return user_obj
         
         # If we get here, no user was found
@@ -938,15 +956,13 @@ def process_login(form, is_admin=False):
     session['user_id'] = user_id
     
     # Create a user object for flask login.
-    print(f"[DEBUG] Creating User object with ID: {user_id}")
     user_obj = User(
-            id=user_id,  # Use the possibly prefixed ID
+            id=user_id,
             email=email,
             username=username,
             is_admin=(user_role != 'client'),
             is_active=True
         )
-    print(f"[DEBUG] User object data: {user_obj}")
     
     # Assign user object to flask login user for authenthication purposes in admin route
     login_user(user_obj, remember=remember_me)
@@ -957,6 +973,9 @@ def process_login(form, is_admin=False):
     print(f"[DEBUG] url_for('admin.dashboard'): {url_for('admin.dashboard')}")
     
     flash(f'Welcome back, {full_name}!', 'success')
+    
+    # Reset failed attempts and Update the last_login_at
+    account_repo_service.reset_attempts(email, user_role)    
     
     if user_role != 'client':
       # For Admin dashboard users

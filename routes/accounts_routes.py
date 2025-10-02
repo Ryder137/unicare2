@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from typing import Counter
 
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, abort, session
+from flask import Blueprint, app, render_template, redirect, url_for, flash, request, jsonify, current_app, abort, session
 from flask_login import current_user, login_required, login_url, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from forms import RegisterForm
@@ -102,7 +102,6 @@ def management():
       traceback.print_exc()
       flash('An error occurred while loading user data. Please check the logs for details.', 'error')
       return redirect(url_for('admin.dashboard'))
-
 
 @accounts_bp.route('/register', methods=['GET', 'POST'])
 def register():

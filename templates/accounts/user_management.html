@@ -120,6 +120,8 @@
                             <th>Status</th>
                             <th>Last Active</th>
                             <th>Actions</th>
+                            <th class="d-none">hidden_role</th>
+                            <th class="d-none">hidden_status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -132,6 +134,11 @@
                             </td>
                             <td>
                                 <div class="d-flex align-items-center">
+                                   {% if user.image %}
+                                        <img src="{{ user.profile_image }}" class="rounded-circle me-2" width="32" height="32" alt="{{ user.first_name }} {{ user.last_name }}">
+                                    {% else %}
+                                        <img src="{{ url_for('static', filename='img/avatars/user.png') }}" class="rounded-circle me-2" width="32" height="32" alt="Default Avatar">
+                                    {% endif %}
                                     <div>
                                         <div class="fw-bold">{{ user.first_name|title }} {{ user.last_name|title }}</div>
                                         <small class="text-muted">{{ user.id[:15] }}...</small>
@@ -139,9 +146,23 @@
                                 </div>
                             </td>
                             <td>{{ user.email }}</td>
-                            <td>{{user.role|title}}</td>
-                            <td>{{ 'Active' if user.is_active else 'Inactive' }}</td>
-                            <td>{{ user.last_login|datetimeformat('%b %d, %Y %H:%M') if user.last_login else 'Never' }}</td>
+                            <td>
+                                {% set role_colors = {
+                                    'admin': 'primary',
+                                    'psychologist': 'success',
+                                    'staff': 'info',
+                                    'client': 'secondary'
+                                } %}
+                                <span class="badge bg-{{ role_colors.get(user.role|lower, 'dark') }}">
+                                    {{ user.role|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if user.is_active else 'secondary' }}">
+                                    {{ 'Active' if user.is_active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>{{ user.last_login_at|parse_iso_datetime|datetimeformat('%m/%d/%Y %I:%M %p') if user.last_login_at else 'Never' }}</td>
                             <td>
                                 <div class="d-flex justify-content-center align-items-center gap-1">
                                     <button class="btn btn-info btn-sm view-user" 
@@ -163,6 +184,8 @@
                                     </button>
                                 </div>
                             </td>
+                            <td class="d-none">{{ user.role|lower }}</td>
+                            <td class="d-none">{{ 'active' if user.is_active else 'inactive' }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -442,18 +465,16 @@ $(document).ready(function() {
         $('[data-filter]').removeClass('active');
         $(this).addClass('active');
 
+        console.log('Selected filter : ', filter);
         // Clear all column filters
         usersTable.columns().search("");
-
         if (filter === 'all') {
             console.log('Filter: all (show all users)');
             usersTable.draw();
         } else if (filter === 'active' || filter === 'inactive') {
-            // Status column is index 4, text is 'Active'/'Inactive'
-            console.log('Filter: status', filter, 'on column 4');
-            usersTable.column(4).search('^' + filter + '$', true, false).draw();
+            console.log('Filter: status', filter, 'on column 7');
+            usersTable.column(8).search('^' + filter + '$', true, false).draw();
         } else if (["admin", "psychologist", "staff", "client", "therapist"].includes(filter)) {
-            // Role column is index 3, text is 'Admin', 'Psychologist', 'Staff', 'Client'
             const roleMap = {
                 'admin': 'Admin',
                 'psychologist': 'Psychologist',
@@ -461,8 +482,7 @@ $(document).ready(function() {
                 'client': 'Client', // for the filter dropdown
             };
             const roleText = roleMap[filter] || '';
-            console.log('Filter: role', roleText, 'on column 3');
-            usersTable.column(3).search('^' + roleText + '$', true, false).draw();
+            usersTable.column(7).search('^' + roleText + '$', true, false).draw();
         } else {
             console.log('Unknown filter:', filter);
         }
