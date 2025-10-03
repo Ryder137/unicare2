@@ -107,88 +107,8 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
-                    <thead>
-                        <tr>
-                            <th width="40">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="selectAll">
-                                </div>
-                            </th>
-                            <th>User</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                            <th>Last Active</th>
-                            <th>Actions</th>
-                            <th class="d-none">hidden_role</th>
-                            <th class="d-none">hidden_status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for user in users %}
-                        <tr data-user-id="{{ user.id }}" data-status="{{ 'active' if user.is_active else 'inactive' }}" data-role="{{ user.role|lower }}">
-                            <td>
-                                <div class="form-check">
-                                    <input class="form-check-input user-checkbox" type="checkbox" value="{{ user.id }}">
-                                </div>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                   {% if user.image %}
-                                        <img src="{{ user.profile_image }}" class="rounded-circle me-2" width="32" height="32" alt="{{ user.first_name }} {{ user.last_name }}">
-                                    {% else %}
-                                        <img src="{{ url_for('static', filename='img/avatars/user.png') }}" class="rounded-circle me-2" width="32" height="32" alt="Default Avatar">
-                                    {% endif %}
-                                    <div>
-                                        <div class="fw-bold">{{ user.first_name|title }} {{ user.last_name|title }}</div>
-                                        <small class="text-muted">{{ user.id[:15] }}...</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>{{ user.email }}</td>
-                            <td>
-                                {% set role_colors = {
-                                    'admin': 'primary',
-                                    'psychologist': 'success',
-                                    'staff': 'info',
-                                    'client': 'secondary'
-                                } %}
-                                <span class="badge bg-{{ role_colors.get(user.role|lower, 'dark') }}">
-                                    {{ user.role|title }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge bg-{{ 'success' if user.is_active else 'secondary' }}">
-                                    {{ 'Active' if user.is_active else 'Inactive' }}
-                                </span>
-                            </td>
-                            <td>{{ user.last_login_at|parse_iso_datetime|datetimeformat('%m/%d/%Y %I:%M %p') if user.last_login_at else 'Never' }}</td>
-                            <td>
-                                <div class="d-flex justify-content-center align-items-center gap-1">
-                                    <button class="btn btn-info btn-sm view-user" 
-                                            data-user-id="{{ user.id }}" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn btn-primary btn-sm edit-user" 
-                                            data-user-id="{{ user.id }}" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-{{ 'secondary' if user.is_active else 'success' }} btn-sm toggle-status" 
-                                            data-user-id="{{ user.id }}" 
-                                            data-status="{{ user.is_active }}"
-                                            title="{{ 'Deactivate' if user.is_active else 'Activate' }}">
-                                        <i class="fas fa-{{ 'toggle-on' if user.is_active else 'toggle-off' }}"></i>
-                                    </button>
-                                    <button class="btn btn-danger btn-sm delete-user" data-user-id="{{ user.id }}" title="Delete">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                            <td class="d-none">{{ user.role|lower }}</td>
-                            <td class="d-none">{{ 'active' if user.is_active else 'inactive' }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+                    <!-- Table content must load here -->
+                    <!-- This will be populated via AJAX and used user_table_list.html template -->
                 </table>
             </div>
         </div>
@@ -250,128 +170,14 @@
 <!-- Add/Edit User Modal -->
 <div class="modal fade" id="userFormModal" tabindex="-1" aria-labelledby="userFormModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="userFormModalLabel">Add New User</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content" id="userModalContent">
+          <!-- Content will be loaded here -->
+          <!-- user_modal_form.html -->
+          <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
             </div>
-            <form id="userForm" method="POST">
-                <div class="modal-body">
-                  <div id="formErrors" class="alert alert-danger d-none"></div>
-                  <input type="hidden" name="user_id" id="userId">
-                      
-                  <div class="row mb-2">
-                    <div class="col-md-6 mb-2">
-                        <label for="firstName" class="form-label">First Name</label>
-                        <input type="text" class="form-control" id="firstName" name="first_name" required>
-                    </div>
-                    <div class="col-md-6 mb-2">
-                        <label for="lastName" class="form-label">Last Name</label>
-                        <input type="text" class="form-control" id="lastName" name="last_name" required>
-                    </div>
-                  </div>
-                  
-                  <div class="row">
-                    <div class="col-md-6 mb-2">
-                      <label for="email" class="form-label">Email Address</label>
-                      <input type="email" class="form-control" id="email" name="email" required>
-                    </div>
-                      
-                    <div class="col-md-6 mb-2">
-                      <label for="role" class="form-label">Role</label>
-                      <select class="form-select" id="role" name="role" required>
-                          <option value="" selected disabled>Select Role</option>
-                          <option value="admin">Admin</option>
-                          <option value="psychologist">Psychologist</option>
-                          <option value="staff">Staff</option>
-                      </select>
-                    </div>
-                  </div>
-                    
-                  <div id="passwordFields" class="row mb-2">
-                    <div class="col-md-6 mb-2">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" minlength="8">
-                        <div class="form-text" 
-                            id="passwordHelperText" 
-                            style="display: none;">Leave blank to keep current password</div>
-                    </div>
-                    <div class="col-md-6 mb-2">
-                        <label for="confirmPassword" class="form-label">Confirm Password</label>
-                        <input type="password" class="form-control" id="confirmPassword" name="confirm_password">
-                    </div>
-                  </div>
-
-                  <!-- Psychologist Specific Fields -->
-                  <div id="psychologistFields" class="mt-4 border-top pt-3" style="display: none;">
-
-                    <h6 class="mb-3">Psychologist Information</h6>
-                    <div class="row">
-                      <div class="col-md-6 mb-3">
-                        <label for="licenseNumber" class="form-label">License Number</label>
-                        <input type="text" class="form-control" id="licenseNumber" name="license_number">
-                      </div>
-                      <div class="col-md-6 mb-3">
-                        <label for="specialization" class="form-label">Specialization</label>
-                        <input type="text" class="form-control" id="specialization" name="specialization">
-                      </div>
-                    </div>
-
-                    <div class="col-12 mb-3">
-                      <label for="education" class="form-label">Education</label>
-                      <textarea class="form-control" id="education" name="education" rows="2"></textarea>
-                    </div>
-                    <div class="col-12 mb-3">
-                      <label for="bio" class="form-label">Professional Bio</label>
-                      <textarea class="form-control" id="bio" name="bio" rows="3"></textarea>
-                    </div>
-
-                    <div class="row">
-                      <div class="col-md-6 mb-3">
-                        <label for="yearsExperience" class="form-label">Years of Experience</label>
-                        <input type="number" class="form-control" id="yearsExperience" name="years_experience" min="0">
-                      </div>
-                      <div class="col-md-6 mb-3">
-                        <label for="hourlyRate" class="form-label">Hourly Rate (₱)</label>
-                        <div class="input-group">
-                          <span class="input-group-text">₱</span>
-                          <input type="number" class="form-control" id="hourlyRate" name="hourly_rate" min="0" step="0.01">
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div class="col-12">
-                      <div class="form-check form-switch ms-1">
-                        <input class="form-check-input" type="checkbox" id="isAvailable" name="is_available" checked>
-                        <label class="form-check-label" for="isAvailable">Available for new clients</label>
-                      </div>
-                    </div>
-
-                  </div>
-                  
-                  <div class="row mb-2">
-                    <div class="form-check col-md-3 form-switch mb-3 ms-3">
-                      <input class="form-check-input" type="checkbox" id="isActive" name="is_active" checked>
-                      <label class="form-check-label" for="isActive">Active Account</label>
-                    </div>
-                    
-                    <div id="sendInviteField" class="col-md-6 mb-3">
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="sendInvite" name="send_invite" checked>
-                        <label class="form-check-label" for="sendInvite">Send account activation email</label>
-                      </div>
-                    </div>
-                  </div>  
-                  
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="saveUserBtn">
-                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        Save User
-                    </button>
-                </div>
-            </form>
+          </div>
         </div>
     </div>
 </div>
@@ -401,45 +207,28 @@
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
 // Initialize when document is ready
 $(document).ready(function() {
-    function togglePsychologistFields() {
-      const role = $('#role').val();
-      const psychFields = document.getElementById('psychologistFields');
-      if (role === 'psychologist') {
-          // Make psychologist fields required
-          const requiredFields = psychFields.querySelectorAll('input[type="text"], input[type="number"], textarea, select');
-          requiredFields.forEach(field => {
-              field.required = true;
-          });
-          $('#psychologistFields').show();
-      } else {
-          // Remove required from psychologist fields
-          const requiredFields = psychFields.querySelectorAll('input[type="text"], input[type="number"], textarea, select');
-          requiredFields.forEach(field => {
-              field.required = false;
-          });
 
-          $('#psychologistFields').hide();
-      }
-    }
+    function LoadDataTable(){
+      $.get('/accounts/users/data', function(response) {
+        $('#usersTable').html(response.html);
 
-    $('#role').on('change', togglePsychologistFields);
-
-    // Initialize DataTable
-    const usersTable = $('#usersTable').DataTable({
-        order: [[1, 'asc']],
-        pageLength: 25,
-        responsive: true,
-        columnDefs: [
+         // Initialize DataTable
+        window.usersTable = $('#usersTable').DataTable({
+          order: [[1, 'asc']],
+          pageLength: 25,
+          responsive: true,
+          columnDefs: [
             { orderable: false, targets: [0, 6] },
             { searchable: false, targets: [0, 5, 6] }
-        ],
-        language: {
+          ],
+          language: {
             search: "_INPUT_",
             searchPlaceholder: "Search users...",
             lengthMenu: "Show _MENU_ users per page",
@@ -447,11 +236,16 @@ $(document).ready(function() {
             info: "Showing _START_ to _END_ of _TOTAL_ users",
             infoEmpty: "No users available",
             infoFiltered: "(filtered from _MAX_ total users)"
-        },
-        dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
-             "<'row'<'col-sm-12'tr>>" +
-             "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
-    });
+          },
+          dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+              "<'row'<'col-sm-12'tr>>" +
+              "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
+        });
+      });
+    }
+
+    // Load User DataTable
+    LoadDataTable();
 
     // Search functionality
     $('#searchInput').on('keyup', function() {
@@ -519,9 +313,10 @@ $(document).ready(function() {
 
     // View user details
     $(document).on('click', '.view-user', function() {
+
+        console.log('View user clicked');
         const userId = $(this).data('user-id');
         const modal = new bootstrap.Modal(document.getElementById('viewUserModal'));
-        
         // Show loading state
         $('#userDetailsContent').html(`
             <div class="text-center my-5">
@@ -531,109 +326,47 @@ $(document).ready(function() {
             </div>
         `);
         
-        // Load user data via AJAX
-        fetch(`/accounts/user/${userId}`)
-            .then(response => response.json())
-            .then(data => {
+        $.get(`modal/user/${userId}`, function(data) {
+            $('#userDetailsContent').html(data);
+            if (data.error) {
+              $('#userDetailsContent').html(`
+                  <div class="alert alert-danger">
+                      <i class="fas fa-exclamation-circle me-2"></i>
+                      ${data.error}
+                  </div>
+              `);
+              return;
+            }
 
-                console.log('User data:', data);
-                
-                if (data.error) {
-                    $('#userDetailsContent').html(`
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            ${data.error}
-                        </div>
-                    `);
-                    return;
-                }
-                
-                // Format and display user data
-                const user = data.user;
-                const html = `
-                    <div class="row">
-                        <div class="col-md-4 text-center mb-4">
-                            <img src="${user.avatar_url || '/static/img/default-avatar.png'}" 
-                                 class="rounded-circle mb-3" width="120" height="120" 
-                                 alt="${user.first_name} ${user.last_name}">
-                            <h5>${user.first_name} ${user.last_name}</h5>
-                            <span class="badge bg-${user.role === 'Admin' ? 'primary' : 'success'}">
-                                ${user.role}
-                            </span>
-                        </div>
-                        <div class="col-md-8">
-                            <div class="mb-3">
-                                <h6 class="text-muted">Contact Information</h6>
-                                <p class="mb-1"><i class="fas fa-envelope me-2 text-muted"></i> ${user.email}</p>
-                                ${user.phone ? `<p class="mb-1"><i class="fas fa-phone me-2 text-muted"></i> ${user.phone}</p>` : ''}
-                                <p class="mb-1">
-                                    <i class="fas fa-circle me-2 text-${user.is_active ? 'success' : 'secondary'}"></i>
-                                    ${user.is_active ? 'Active' : 'Inactive'} Account
-                                </p>
-                            </div>
-                            <div class="mb-3">
-                                <h6 class="text-muted">Account Details</h6>
-                                <p class="mb-1"><strong>Member Since:</strong> ${new Date(user.created_at).toLocaleDateString()}</p>
-                                <p class="mb-1"><strong>Last Login:</strong> ${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <h6 class="text-muted">User Activity</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Activity</th>
-                                            <th>IP Address</th>
-                                            <th>Location</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>${new Date().toLocaleString()}</td>
-                                            <td>Account Viewed</td>
-                                            <td>192.168.1.1</td>
-                                            <td>New York, US</td>
-                                        </tr>
-                                        <!-- Add more activity rows as needed -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                $('#userDetailsContent').html(html);
-                $('.edit-user', '#viewUserModal').data('user-id', userId);
-            })
-            .catch(error => {
-                console.error('Error fetching user data:', error);
-                $('#userDetailsContent').html(`
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        Failed to load user data. Please try again.
-                    </div>
-                `);
-            });
-            
+        }).catch(function(error) {
+            console.error('Error fetching user data:', error);
+            $('#userDetailsContent').html(`
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Failed to load user data. Please try again.
+                </div>
+            `);
+        });
         modal.show();
     });
 
     // Add new user
     $('[data-bs-target="#addUserModal"]').on('click', function() {
-        const modal = new bootstrap.Modal(document.getElementById('userFormModal'));
-        $('#userForm')[0].reset();
-        $('#userFormModalLabel').text('Add New User');
-        $('#userId').val('');
-        $('#password').prop('required', true);
-        $('#confirmPassword').prop('required', true);
-        $('#sendInviteField').show();
-        $('#psychologistFields').hide();
-        $('#passwordHelperText').hide();
-        modal.show();
+        // Show loading state
+        $('#userModalContent').html('<div class="text-center my-5"><div class="spinner-border"></div></div>');
+        $.get('modal/user/register', function(data) {
+            $('#userModalContent').html(data);
+            $('#userForm')[0].reset();
+            $('#userFormModalLabel').text('Add New User');
+            $('#userId').val('');
+            $('#password').prop('required', true);
+            $('#confirmPassword').prop('required', true);
+            $('#sendInviteField').show();
+            $('#psychologistFields').hide();
+            $('#passwordHelperText').hide();
+            $('#userFormModal').modal('show');
+        });
+
     });
 
     // Edit user
@@ -759,159 +492,7 @@ $(document).ready(function() {
         }, 1000);
     });
 
-    // Form submission
-    $('#userForm').on('submit', function(e) {
-        e.preventDefault();
-        
-        const form = $(this);
-        const submitBtn = $('#saveUserBtn');
-        const spinner = submitBtn.find('.spinner-border');
-        const userId = $('#userId').val();
-        const url = userId ? `/accounts/user/${userId}` : '/accounts/user/create';
-        const method = userId ? 'PUT' : 'POST';
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-        // Show loading state
-        submitBtn.prop('disabled', true);
-        spinner.removeClass('d-none');
-        
-        // Clear previous errors
-        $('#formErrors').addClass('d-none').empty();
-        $('.is-invalid').removeClass('is-invalid');
-        
-        // Get form data as JSON object
-        const formData = {
-            first_name: $('#firstName').val(),
-            last_name: $('#lastName').val(),
-            email: $('#email').val(),
-            role: $('#role').val(),
-            is_active: $('#isActive').is(':checked'),
-            send_invite: $('#sendInvite').is(':checked')
-        };
-        
-        // Add password only if provided
-        const password = $('#password').val();
-        if (password) {
-            formData.password = password;
-            formData.confirm_password = $('#confirmPassword').val();
-        }
-        
-        // Add psychologist fields if role is psychologist or guidance_counselor
-        const role = $('#role').val();
-        if (role === 'psychologist' || role === 'guidance_counselor') {
-            formData.license_number = $('#licenseNumber').val();
-            formData.specialization = $('#specialization').val();
-            formData.education = $('#education').val();
-            formData.bio = $('#bio').val();
-            formData.years_experience = $('#yearsExperience').val();
-            formData.hourly_rate = $('#hourlyRate').val();
-            formData.is_available = $('#isAvailable').is(':checked');
-        }
-        
-        console.log('Sending data:', formData);
-        
-        // Make AJAX call to save the user
-        $.ajax({
-            url: url,
-            type: method,
-            data: JSON.stringify(formData),
-            contentType: 'application/json',
-            dataType: 'json',
-            headers: {
-                'X-CSRFToken': csrfToken
-            },
-            success: function(response) {
-                // Hide loading state
-                submitBtn.prop('disabled', false);
-                spinner.addClass('d-none');
-                
-                // Hide the modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('userFormModal'));
-                modal.hide();
-                
-                // Show success message
-                const toast = new bootstrap.Toast(document.getElementById('statusToast'));
-                $('.toast-body', '#statusToast').html(`
-                    <i class="fas fa-check-circle me-2 text-success"></i>
-                    ${userId ? 'User updated' : 'User created'} successfully.
-                `);
-                toast.show();
-                
-                // Reload the page to show updated user list
-                setTimeout(() => location.reload(), 1500);
-            },
-            error: function(xhr, status, error) {
-                // Hide loading state
-                submitBtn.prop('disabled', false);
-                spinner.addClass('d-none');
-                
-                console.error('Error:', status, error);
-                console.error('Response:', xhr.responseText);
-                
-                let errorMessage = 'An error occurred. Please try again.';
-                let errorList = $('<ul class="mb-0"></ul>');
-                let response;
-                
-                try {
-                    // Try to parse the response as JSON
-                    response = xhr.responseJSON || JSON.parse(xhr.responseText);
-                } catch (e) {
-                    response = { message: xhr.statusText || errorMessage };
-                }
-                
-                const errors = response.errors || { message: response.error || errorMessage };
-                
-                // Handle field-specific errors
-                for (const [field, message] of Object.entries(errors)) {
-                    console.log(`Field: ${field}, Message: ${message}`);
-                    if (field !== 'message') {
-                        // Convert snake_case to camelCase for matching with field IDs
-                        const fieldId = field.split('_').map((word, i) => 
-                            i === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)
-                        ).join('');
-                        
-                        const fieldElement = $(`#${fieldId}`);
-                        if (fieldElement.length) {
-                            fieldElement.addClass('is-invalid');
-                            errorList.append($('<li>').text(`${field}: ${message}`));
-                        } else {
-                            // If field not found, add to general errors
-                            errorList.append($('<li>').text(`${field}: ${message}`));
-                        }
-                    } else {
-                        // Handle general error message
-                        errorMessage = message;
-                    }
-                }
-                
-                // Show error message in the form
-                const errorContainer = $('#formErrors');
-                
-                // Prepare error display
-                errorContainer
-                    .removeClass('d-none alert-success')
-                    .addClass('alert-danger')
-                    .empty()
-                    .append($('<i>').addClass('fas fa-exclamation-circle me-2'))
-                    .append('Please correct the following errors:');
-                
-                // Add error list if there are field errors, otherwise show general message
-                if (errorList.children().length > 0) {
-                    errorContainer.append(errorList);
-                } else {
-                    errorContainer.append($('<p>').addClass('mb-0').text(errorMessage));
-                }
-                
-                // Scroll to the top of the form to show errors
-                $('html, body').animate({
-                    scrollTop: errorContainer.offset().top - 20
-                }, 500);
-                
-                // Ensure modal is scrolled to show errors
-                $('.modal-body').scrollTop(0);
-            }
-        });
-    });
+    
 
 
     // Bulk actions

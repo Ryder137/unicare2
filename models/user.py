@@ -94,7 +94,7 @@ class User(UserMixin):
             is_deleted = data.get('is_deleted', False),
             is_active = data.get('is_active', True),
             is_verified = data.get('is_verified', False),
-            image = data.get('profile_image', ''),
+            image = data.get('image', ''),
             created_at = data.get('created_at'),
             failed_attempt = data.get('failed_attempt', 0),
             last_login_at = data.get('last_login'),

@@ -71,11 +71,13 @@ def management():
       current_year = now.year
       current_month = now.month
       
+      from dateutil import parser
+      
       new_users_count = len([
           user for user in users_data
           if user.get('created_at') and
-            datetime.fromisoformat(user['created_at']).year == current_year and
-            datetime.fromisoformat(user['created_at']).month == current_month
+            parser.parse(user['created_at']).year == current_year and
+            parser.parse(user['created_at']).month == current_month
       ])
       
       user_counts = len(users_data)
@@ -131,8 +133,11 @@ def get_user(id):
 @login_required
 def create_user():
   print("\n[DEBUG] ====== create_user route called ======")
-  data = request.get_json()
-  print(f"[DEBUG] Request Data:",data)
+  # Accept multipart/form-data for file upload
+  print(f"[DEBUG] Request Form: {request.form}")
+  print(f"[DEBUG] Request Files: {request.files}")
+  data = request.form.to_dict()
+  avatar_file = request.files.get('avatar')
   
   # Ensure data is a dictionary
   if isinstance(data, str):
@@ -153,6 +158,25 @@ def create_user():
   # Hash the password
   hashed_password = generate_password_hash(password)
 
+  # Handle avatar upload to Supabase Storage
+  avatar_url = None
+  if avatar_file and avatar_file.filename:
+    try:
+      # Generate unique filename
+      ext = os.path.splitext(avatar_file.filename)[1]
+      filename = f"avatars/{secrets.token_hex(8)}{ext}"
+      # Upload to Supabase Storage bucket (e.g., 'avatars')
+      file_bytes = avatar_file.read()
+      res = supabase.storage.from_('avatars').upload(filename, file_bytes)
+      if hasattr(res, 'error') and res.error:
+        print(f"[ERROR] Supabase upload error: {res.error}")
+      else:
+        # Get public URL
+        avatar_url = supabase.storage.from_('avatars').get_public_url(filename)
+        print(f"[DEBUG] Avatar uploaded: {avatar_url}")
+    except Exception as e:
+      print(f"[ERROR] Avatar upload failed: {str(e)}")
+
   try:
     reqAccounts = AccountsModel(
       id=None,
@@ -164,10 +188,11 @@ def create_user():
       password = hashed_password,
       is_deleted = False,
       is_active = True,
-      is_verified = False
+      is_verified = False,
+      image = avatar_url
     )
     
-    print(f"[DEBUG] Prepared Account Data: {reqAccounts}")
+    print(f"[DEBUG] Prepared Account Data Image: {reqAccounts.image}")
       
     new_user = account_repo_service.create_account(reqAccounts)
     print(f"[DEBUG] New User Created: {new_user}")
@@ -217,4 +242,46 @@ def delete_user(id):
   print(f"[DEBUG] Request Data: {data}")
   return jsonify({'message': 'User deleted successfully.'}), 200
 
+@accounts_bp.route('/modal/user/register')
+def modal_user():
+    print("\n[DEBUG] ====== modal_user route called ======")
+    try:
+      return render_template('accounts/user_modal_form.html')
+    except Exception as e:
+        print(f"[ERROR] Failed to load user modal form: {str(e)}")
+        return jsonify({'error': 'Failed to load user modal form.'}), 500
 
+@accounts_bp.route('/modal/user/<user_id>', methods=['GET'])
+def modal_view_user(user_id):
+    print("\n[DEBUG] ====== modal_view_user route called ======")
+    print("\n[DEBUG] Selected user id : ",user_id)
+    try:
+      result = account_repo_service.get_account_by_id(user_id)
+      user = result.data[0] if hasattr(result, "data") and result.data else None
+      
+      if not user:
+        return jsonify({'error': 'User not found.'}), 404
+      
+      psych_user = None
+      if user.get('role') == 'psychologist':
+        psych_result = account_repo_service.get_psychologist_details(user_id)
+        psych_user = psych_result.data[0] if hasattr(psych_result, "data") and psych_result.data else None
+      
+      return render_template('accounts/user_modal_profile.html', 
+                             user=user, 
+                             psych_user=psych_user,
+                             now=datetime.now())
+    except Exception as e:
+      print(f"[ERROR] Failed to load user modal form: {str(e)}")
+      return jsonify({'error': 'Failed to load user modal form.'}), 500
+
+@accounts_bp.route('/users/data')
+def users_data():
+  # Query your users and return as JSON
+  result = account_repo_service.get_all_accounts();
+  users = result.data if hasattr(result, "data") else []
+  
+  # Render table rows as HTML using Jinja2
+  table_rows = render_template('accounts/user_table_list.html', users=users)
+  
+  return jsonify({'html': table_rows})
