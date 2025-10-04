@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Guest Info Modal -->
+<div class="flex-grow-1 d-flex flex-column">
+    <!-- Guest Info Modal -->
 <div id="guestInfoModal" class="position-fixed w-100 h-100" style="display: none; top: 0; left: 0; background-color: rgba(0,0,0,0.5); z-index: 1050; overflow-y: auto;">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg">
@@ -80,9 +81,8 @@
     </div>
 </div>
 
-<main class="py-5" style="margin-top: 1rem;">
+<main class="py-5 flex-grow-1" style="margin-top: 1rem;">
     <div class="container">
-
         <!-- Personality Test Section -->
         <div class="assessment-card mb-5">
             <div class="assessment-header">
@@ -99,41 +99,6 @@
                                 </div>
                                 <h3 class="h5">Big Five Personality Test</h3>
                                 <p>Take this scientifically validated test to understand your personality across five major dimensions.</p>
-                                <div class="d-flex justify-content-between align-items-center mt-3">
-                                    <a href="{{ url_for('personality_test') }}" class="btn btn-primary text-white">Start Test</a>
-                                    <small class="text-muted">15 min</small>
-                                </div>
-                                <div class="progress mt-2" style="height: 4px;">
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
-                                </div>
-                                <small class="text-muted">75% complete</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card h-100 game-card">
-                            <div class="card-body position-relative">
-                                <div class="position-absolute top-0 end-0 m-3">
-                                    <span class="badge bg-warning text-dark">+15 XP</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-2">
-                                    <h3 class="h5 mb-0">Emotional Intelligence Test</h3>
-                                    <span class="ms-2 badge bg-success">New!</span>
-                                </div>
-                                <p class="mb-3">Assess your ability to recognize, understand, and manage emotions.</p>
-                                <div class="d-flex justify-content-between align-items-center mt-3">
-                                    <a href="{{ url_for('eq_test') }}" class="btn btn-primary">Start Assessment</a>
-                                    <div class="d-flex align-items-center">
-                                        <i class="bi bi-star-fill text-warning me-1"></i>
-                                        <span class="small">4.8</span>
-                                    </div>
-                                </div>
-                                <div class="mt-2 d-flex justify-content-between align-items-center">
-                                    <small class="text-muted">10 min</small>
-                                    <small class="text-success">
-                                        <i class="bi bi-check-circle-fill"></i> 87% completion
-                                    </small>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -141,87 +106,22 @@
             </div>
         </div>
 
-        <!-- Games Section -->
-        <div class="games-section">
-            <div class="section-header mb-4">
-                <h2>Mindfulness Games</h2>
-                <p>Engage in fun activities designed to reduce stress and improve focus.</p>
-            </div>
-            
-            <div class="games-scroll-container">
-                <div class="games-scroll d-flex flex-nowrap pb-4">
-
-                    <!-- Breathing Exercise -->
-                    <div class="game-card-wrapper me-4" style="min-width: 300px;">
-                        <div class="card h-100 game-card">
-                            <div class="card-body text-center position-relative">
-                                <div class="position-absolute top-0 end-0 m-3">
-                                    <span class="badge bg-warning text-dark">+10 XP</span>
-                                </div>
-                                <div class="game-icon mb-3 position-relative">
-                                    <i class="bi bi-activity fs-1"></i>
-                                    <div class="position-absolute top-0 start-100 translate-middle">
-                                        <span class="badge rounded-pill bg-danger">Popular</span>
-                                    </div>
-                                </div>
-                                <h3 class="h5">Breathing Exercise</h3>
-                                <p class="mb-3">Practice deep breathing to reduce stress and increase focus.</p>
-                                <div class="d-flex justify-content-center gap-2 mb-3">
-                                    <span class="badge bg-light text-dark"><i class="bi bi-arrow-repeat text-success"></i> 3 min</span>
-                                </div>
-                                <a href="{{ url_for('breathing_exercise') }}" class="btn btn-primary">Start Exercise</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Gratitude Journal -->
-                    <div class="game-card-wrapper me-4" style="min-width: 300px;">
-                        <div class="card h-100">
-                            <div class="card-body text-center">
-                                <div class="game-icon mb-3">
-                                    <i class="bi bi-journal-text fs-1"></i>
-                                </div>
-                                <h3 class="h5">Gratitude Journal</h3>
-                                <p>Reflect on the positive aspects of your day with our gratitude journal.</p>
-                                <a href="{{ url_for('gratitude_journal') }}" class="btn btn-primary">Start Journaling</a>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <!-- Memory Match -->
-                    <div class="game-card-wrapper me-4" style="min-width: 300px;">
-                        <div class="card h-100">
-                            <div class="card-body text-center">
-                                <div class="game-icon mb-3">
-                                    <i class="bi bi-card-checklist fs-1"></i>
-                                </div>
-                                <h3 class="h5">Memory Match</h3>
-                                <p>Match pairs of cards with positive affirmations and mindfulness tips.</p>
-                                <a href="{{ url_for('memory_match') }}" class="btn btn-primary">Play Now</a>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-            </div>
-        </div>
     </div>
-            <!-- Fidget Games Section -->
-            <div class="section-header text-center mb-5 mt-5">
-                <h2 class="mb-3">Fidget Games</h2>
-                <p class="text-muted mx-auto" style="max-width: 600px;">Interactive tools to help with focus, stress relief, and anxiety management.</p>
-            </div>
-            
-            <div class="games-scroll-container">
-                <div class="games-scroll d-flex justify-content-center flex-wrap gap-4 pb-4">
-                    <!-- Fidget Spinner -->
-                    <div class="game-card-wrapper me-4" style="min-width: 280px;">
-                        <div class="card h-100">
-                            <div class="card-body text-center">
-                                <div class="game-icon mb-3">
-                                    <i class="bi bi-arrow-repeat fs-1"></i>
+    
+    <!-- Fidget Games Section -->
+    <div class="container">
+        <div class="section-header text-center mb-5 mt-5">
+            <h2 class="mb-3">Fidget Games</h2>
+            <p class="text-muted mx-auto" style="max-width: 600px;">Interactive tools to help with focus, stress relief, and anxiety management.</p>
+        </div>
+        <div class="games-scroll-container">
+            <div class="games-scroll d-flex justify-content-center flex-wrap gap-4 pb-4">
+                <!-- Fidget Spinner -->
+                <div class="game-card-wrapper me-4" style="min-width: 280px;">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <div class="game-icon mb-3">
+                                <i class="bi bi-arrow-repeat fs-1"></i>
                                 </div>
                                 <h3 class="h5">Fidget Spinner</h3>
                                 <p>Interactive spinner to help with focus and stress relief.</p>
@@ -255,15 +155,16 @@
                                 <p>Click with satisfying sounds and animations.</p>
                                 <a href="{{ url_for('clicker') }}" class="btn btn-primary w-100">Start Clicking</a>
                             </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-    </div>
-</section>
+        </div>
 
-</main>
-
+            </div> <!-- End of container -->
+    </main>
+</div> <!-- End of flex-grow-1 -->
 {% endblock %}
 
 {% block extra_js %}

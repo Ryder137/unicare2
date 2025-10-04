@@ -1312,6 +1312,10 @@ def clear_session():
 # Register blueprints before running the app
 register_blueprints(app)
 
+# Initialize auth routes
+from routes.auth_routes import init_auth_routes
+init_auth_routes(app)
+
 def print_startup_info():
     """Print startup information after the app is running."""
     with app.app_context():

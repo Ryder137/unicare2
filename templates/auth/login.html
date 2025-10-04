@@ -35,7 +35,7 @@
                         {% endif %}
                     {% endwith %}
 
-                    <form method="POST" action="{{ url_for('handle_user_login') }}" class="needs-validation" novalidate>
+                    <form method="POST" action="{{ url_for('user_login') }}" class="needs-validation" novalidate>
                         {{ form.hidden_tag() }}
                         
                         <div class="mb-3">
