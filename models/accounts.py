@@ -38,7 +38,7 @@ class AccountsModelDto():
                failed_attempt: int = 0,
                last_login_at: str = None,
                is_authenticated: bool = False,
-               username: str = None,):
+               username: str = None):
     self.id = id
     self.first_name = first_name
     self.middle_name = middle_name

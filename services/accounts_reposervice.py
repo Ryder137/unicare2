@@ -24,8 +24,12 @@ class AccountRepoService:
       "password": account.password,
       "is_deleted": False,
       "is_active": True,
-      "is_verified": False
+      "is_verified": False,
+      "image": account.image
     }
+    
+    print(f"[DEBUG] Inserting Account Data: {accounts_data}")
+    print(f"[DEBUG] Inserting Account Image URL: {accounts_data['image']}")
     
     result = self.supabase.table('user_accounts').insert(accounts_data).execute()
     inserted_id = result.data[0]['id'] if result.data else None
@@ -47,26 +51,23 @@ class AccountRepoService:
     }
     return self.supabase.table('psychologists').insert(psychologist_data).execute()
 
-  def update_account(self, id: str, account: AccountsModel):
-    accounts_data = {
-      "first_name": account.first_name,
-      "middle_name": account.middle_name,
-      "last_name": account.last_name,
-      "email": account.email,
-      "role": account.role,
-      "password": account.password,
-      "is_deleted": account.is_deleted,
-      "is_active": account.is_active,
-      "is_verified": account.is_verified
-    }
-    return self.supabase.table('user_accounts').update(accounts_data).eq('id', id).execute()
-  
+  def update_account(self, id: str, account):
+    return (self.supabase.table('user_accounts')
+                .update(account)
+                .eq('id', id)
+                .execute())
+    
+  def update_psychologist_detail(self, user_id: str, details):
+    return (self.supabase.table('psychologists')
+                .update(details)
+                .eq('user_id', user_id)
+                .execute())
+
   def delete_account(self, id: str):
     return (self.supabase.table('user_accounts')
                 .update({'is_deleted': True})
                 .eq('id', id)
-                .execute()
-    )
+                .execute())
   
   def get_all_accounts(self):
     result = (self.supabase
@@ -94,9 +95,7 @@ class AccountRepoService:
     )
   
   def reset_attempts(self, email: str, role: str):
-    print(f"[DEBUG] Reset attempts update Email: {email} Role: {role}")
     now = datetime.now(timezone.utc).isoformat()
-    print(f"[DEBUG] Resetting attempts at: {now}")
     results = (self.supabase.table('user_accounts')
                 .update({'failed_attempt': 0,
                          'last_login_at': now})
@@ -104,12 +103,14 @@ class AccountRepoService:
                 .eq('role', role)
                 .execute()
     )
-    
-    print(f"[DEBUG] Reset attempts for {email} with role {role}: {results}")
-    
     return results
     
-    
+  def get_psychologist_details(self, user_id: str):
+    return (self.supabase.from_('psychologists')
+                .select('*')
+                .eq('user_id', user_id)
+                .execute()
+    )  
 
 # Singleton instance
 account_repo_service = AccountRepoService()

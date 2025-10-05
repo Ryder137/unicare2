@@ -199,17 +199,19 @@
                     {% if current_user.is_authenticated %}
                     <!-- User Dropdown -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" 
-                           role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="position-relative me-2">
-                                <img src="{{ current_user.profile_image or url_for('static', filename='img/default-avatar.svg') }}" 
-                                     class="rounded-circle border border-2 border-white" 
-                                     width="36" height="36" 
-                                     alt="{{ current_user.first_name }}">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center dropdown-toggle" href="#" id="userDropdown" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="position-relative me-3">
+                                {% if current_user.image %}
+                                    <img src="{{ current_user.image }}" alt="Profile" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename='img/default-avatar.svg') }}" alt="Profile" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                                {% endif %}
                                 <span class="position-absolute bottom-0 end-0 bg-success rounded-circle border border-2 border-white" 
                                       style="width: 10px; height: 10px;"></span>
-                            </div>
-                            <span class="d-none d-lg-inline">{{ current_user.first_name or 'My Account' }}</span>
+                            </div> 
+                            <span class="d-none d-lg-inline me-3">{{ current_user.first_name | title or 'My Account' }}</span>
+                            <i class="bi bi-caret-down-fill"></i>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3" aria-labelledby="userDropdown">
                             <li>
@@ -445,6 +447,8 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}?v=1.0.0"></script>
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

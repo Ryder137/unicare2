@@ -71,11 +71,13 @@ def management():
       current_year = now.year
       current_month = now.month
       
+      from dateutil import parser
+      
       new_users_count = len([
           user for user in users_data
           if user.get('created_at') and
-            datetime.fromisoformat(user['created_at']).year == current_year and
-            datetime.fromisoformat(user['created_at']).month == current_month
+            parser.parse(user['created_at']).year == current_year and
+            parser.parse(user['created_at']).month == current_month
       ])
       
       user_counts = len(users_data)
@@ -125,14 +127,17 @@ def get_user(id):
       return jsonify({'error': 'User not found.'}), 404
     
   return jsonify({'user': user_result}), 200
-  
-# CREATE USER ACCOUNT
+
+# CREATE AND UPDATE USER ACCOUNT
 @accounts_bp.route('/user/create',methods=['POST'])
 @login_required
 def create_user():
   print("\n[DEBUG] ====== create_user route called ======")
-  data = request.get_json()
-  print(f"[DEBUG] Request Data:",data)
+  # Accept multipart/form-data for file upload
+  print(f"[DEBUG] Request Form: {request.form}")
+  print(f"[DEBUG] Request Files: {request.files}")
+  data = request.form.to_dict()
+  avatar_file = request.files.get('avatar')
   
   # Ensure data is a dictionary
   if isinstance(data, str):
@@ -152,6 +157,25 @@ def create_user():
 
   # Hash the password
   hashed_password = generate_password_hash(password)
+  
+  # Handle avatar upload to Supabase Storage
+  avatar_url = None
+  if avatar_file and avatar_file.filename:
+    try:
+      # Generate unique filename
+      ext = os.path.splitext(avatar_file.filename)[1]
+      filename = f"avatars/{secrets.token_hex(8)}{ext}"
+      # Upload to Supabase Storage bucket (e.g., 'avatars')
+      file_bytes = avatar_file.read()
+      res = supabase.storage.from_('avatars').upload(filename, file_bytes)
+      if hasattr(res, 'error') and res.error:
+        print(f"[ERROR] Supabase upload error: {res.error}")
+      else:
+        # Get public URL
+        avatar_url = supabase.storage.from_('avatars').get_public_url(filename)
+        print(f"[DEBUG] Avatar uploaded: {avatar_url}")
+    except Exception as e:
+      print(f"[ERROR] Avatar upload failed: {str(e)}")
 
   try:
     reqAccounts = AccountsModel(
@@ -165,9 +189,8 @@ def create_user():
       is_deleted = False,
       is_active = True,
       is_verified = False
-    )
-    
-    print(f"[DEBUG] Prepared Account Data: {reqAccounts}")
+    ) 
+    print(f"[DEBUG] Prepared Account Data Image: {reqAccounts.image}")
       
     new_user = account_repo_service.create_account(reqAccounts)
     print(f"[DEBUG] New User Created: {new_user}")
@@ -201,20 +224,213 @@ def create_user():
     return jsonify({'error': 'Failed to create user.'}), 500
 #######################################################################
   
-@accounts_bp.route('/user/update/<id>',methods=['PUT'])  
+@accounts_bp.route('/user/update/<id>',methods=['PUT','POST'])  
 @login_required
 def update_user(id):
-  data = request.get_json()
   print("\n[DEBUG] ====== update_user route called ======")
-  print(f"[DEBUG] Request Data: {data}")
-  return jsonify({'message': 'User updated successfully.'}), 200
-     
-@accounts_bp.route('/user/delete/<id>',methods=['PUT'])  
+  print(f"[DEBUG] Request Form: {request.form}")
+  print(f"[DEBUG] Request Files: {request.files}")
+  data = request.form.to_dict()
+  avatar_file = request.files.get('avatar')
+
+  # Ensure data is a dictionary
+  if isinstance(data, str):
+    try:
+      data = json.loads(data)
+    except Exception as e:
+      print(f"[ERROR] Failed to parse JSON string: {e}")
+      return jsonify({'error': 'Invalid JSON format.'}), 400
+  elif not isinstance(data, dict):
+    return jsonify({'error': 'Invalid data format.'}), 400
+
+  # Only validate password if provided (edit mode)
+  password = data.get("password")
+  confirm_password = data.get("confirm_password")
+  if password or confirm_password:
+    if password != confirm_password:
+      return jsonify({'error': 'Password and confirm password do not match.'}), 400
+    hashed_password = generate_password_hash(password)
+  else:
+    hashed_password = None
+
+  # Handle avatar upload to Supabase Storage
+  avatar_url = None
+  if avatar_file and avatar_file.filename:
+    try:
+      ext = os.path.splitext(avatar_file.filename)[1]
+      filename = f"avatars/{secrets.token_hex(8)}{ext}"
+      file_bytes = avatar_file.read()
+      res = supabase.storage.from_('avatars').upload(filename, file_bytes)
+      if hasattr(res, 'error') and res.error:
+        print(f"[ERROR] Supabase upload error: {res.error}")
+      else:
+        avatar_url = supabase.storage.from_('avatars').get_public_url(filename)
+        print(f"[DEBUG] Avatar uploaded: {avatar_url}")
+    except Exception as e:
+      print(f"[ERROR] Avatar upload failed: {str(e)}")
+
+  try:
+    # Update user logic here (example, adjust as needed)
+    update_fields = {
+      'first_name': data.get("first_name"),
+      'middle_name': data.get("middle_name"),
+      'last_name': data.get("last_name"),
+      'email': data.get("email"),
+      'role': data.get("role"),
+      'is_active': data.get("is_active", True),
+      'is_verified': data.get("is_verified", False),
+    }
+    
+    if hashed_password:
+      update_fields['password'] = hashed_password
+    if avatar_url:
+      update_fields['image'] = avatar_url
+
+    account_repo_service.update_account(id, update_fields)
+    
+    print(f"[DEBUG] Update Fields: {update_fields}")
+    # If psychologist, update psychologist details
+    if data.get('role') == 'psychologist':
+      psych_fields = {
+        'license_number': data.get("license_number"),
+        'specialization': data.get("specialization"),
+        'bio': data.get("bio"),
+        'years_of_experience': data.get("years_experience"),
+        'education': data.get("education"),
+        'hourly_rate': data.get("hourly_rate"),
+        'is_available': data.get("is_available", True),
+      }
+      print(f"[DEBUG] Psychologist Update Fields: {psych_fields}")
+      account_repo_service.update_psychologist_detail(id, psych_fields)
+
+    return jsonify({'message': 'User updated successfully.'}), 200
+  except Exception as e:
+    print(f"[ERROR] Failed to update user: {str(e)}")
+    return jsonify({'error': 'Failed to update user.'}), 500
+
+@accounts_bp.route('/user/delete/<id>', methods=['DELETE'])
 @login_required
 def delete_user(id):
-  data = request.get_json()
   print("\n[DEBUG] ====== delete_user route called ======")
-  print(f"[DEBUG] Request Data: {data}")
+  print(f"[DEBUG] User ID to delete: {id}")
+
+  if not id:
+    return jsonify({'error': 'Invalid request no id provided.'}), 400
+
+  try:
+    account_repo_service.delete_account(id)
+  except Exception as e:
+    print(f"[ERROR] Failed to delete user: {str(e)}")
+    return jsonify({'error': 'Failed to delete user.'}), 500
+
   return jsonify({'message': 'User deleted successfully.'}), 200
 
+@accounts_bp.route('/user/setstatus/<id>',methods=['PUT','POST'])  
+@login_required
+def set_user_status(id):
+  data = request.get_json()
+  print("\n[DEBUG] ====== set_user_status route called ======")
+  print(f"[DEBUG] Request Data: {data}")
 
+  # Validate and extract status
+  status = data.get("status")
+  if status not in ["active", "inactive"]:
+    return jsonify({'error': 'Invalid status value.'}), 400
+
+  try:
+    account_repo_service.update_account(id, {"is_active": status == "active"})
+    return jsonify({'message': 'User status updated successfully.'}), 200
+  except Exception as e:
+    print(f"[ERROR] Failed to update user status: {str(e)}")
+    return jsonify({'error': 'Failed to update user status.'}), 500
+
+@accounts_bp.route('/user/bulk_setstatus',methods=['PUT','POST'])  
+@login_required
+def bulk_set_user_status():
+  data = request.get_json()
+  print("\n[DEBUG] ====== bulk_set_user_status route called ======")
+  print(f"[DEBUG] Request Data: {data}")
+
+  user_ids = data.get("ids", [])
+  status = data.get("status")
+  
+  if not isinstance(user_ids, list) or not user_ids:
+    return jsonify({'error': 'Invalid or empty user_ids list.'}), 400
+  if status not in ["active", "inactive"]:
+    return jsonify({'error': 'Invalid status value.'}), 400
+
+  try:
+    for user_id in user_ids:
+      account_repo_service.update_account(user_id, {"is_active": status == "active"})
+    return jsonify({'message': 'User statuses updated successfully.'}), 200
+  except Exception as e:
+    print(f"[ERROR] Failed to bulk update user statuses: {str(e)}")
+    return jsonify({'error': 'Failed to bulk update user statuses.'}), 500
+
+
+@accounts_bp.route('/modal/user/register/<user_id>', methods=['GET'])
+def modal_user(user_id):
+    print("\n[DEBUG] ====== modal_user route called ======")
+    print(f"[DEBUG] Selected user id : {user_id}")
+    
+    try:
+      
+      user = None
+      psych_user = None
+      
+      # Load user data if editing or updating existing user
+      if user_id != "new":
+        result = account_repo_service.get_account_by_id(user_id)
+        user = result.data[0] if hasattr(result, "data") and result.data else None
+        
+        if user.get('role') == 'psychologist':
+          psych_result = account_repo_service.get_psychologist_details(user_id)
+          psych_user = psych_result.data[0] if hasattr(psych_result, "data") and psych_result.data else None
+        
+        return render_template('accounts/user_modal_form.html', 
+                               user=user,
+                               psych_user=psych_user)
+      else:
+        # New user registration
+        return render_template('accounts/user_modal_form.html',
+                               user=user,
+                               psych_user=psych_user)
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to load user modal form: {str(e)}")
+        return jsonify({'error': 'Failed to load user modal form.'}), 500
+
+@accounts_bp.route('/modal/user/<user_id>', methods=['GET'])
+def modal_view_user(user_id):
+    print("\n[DEBUG] ====== modal_view_user route called ======")
+    print("\n[DEBUG] Selected user id : ",user_id)
+    try:
+      result = account_repo_service.get_account_by_id(user_id)
+      user = result.data[0] if hasattr(result, "data") and result.data else None
+      
+      if not user:
+        return jsonify({'error': 'User not found.'}), 404
+      
+      psych_user = None
+      if user.get('role') == 'psychologist':
+        psych_result = account_repo_service.get_psychologist_details(user_id)
+        psych_user = psych_result.data[0] if hasattr(psych_result, "data") and psych_result.data else None
+      
+      return render_template('accounts/user_modal_profile.html', 
+                             user=user, 
+                             psych_user=psych_user,
+                             now=datetime.now())
+    except Exception as e:
+      print(f"[ERROR] Failed to load user modal form: {str(e)}")
+      return jsonify({'error': 'Failed to load user modal form.'}), 500
+
+@accounts_bp.route('/users/data')
+def users_data():
+  # Query your users and return as JSON
+  result = account_repo_service.get_all_accounts();
+  users = result.data if hasattr(result, "data") else []
+  
+  # Render table rows as HTML using Jinja2
+  table_rows = render_template('accounts/user_table_list.html', users=users)
+  
+  return jsonify({'html': table_rows})

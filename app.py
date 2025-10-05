@@ -261,7 +261,11 @@ def parse_iso_datetime(value):
     if isinstance(value, str):
         try:
             # Try parsing ISO format string to datetime
-            # Handles formats like '2025-10-02T13:00:44.41363'
+            # Handles formats like '2025-10-02T13:00:44.41363+00:00' and '2025-10-02T13:00:44.41363+0000'
+            if value.endswith('+00:00'):
+                value = value[:-6] + '+00:00'
+            elif value.endswith('+0000'):
+                value = value[:-5] + '+00:00'
             return datetime.fromisoformat(value)
         except Exception as e:
             print(f"parse_iso_datetime error: {e}, value: {value}")
@@ -273,6 +277,13 @@ app.jinja_env.filters['parse_iso_datetime'] = parse_iso_datetime
 def datetimeformat(value, format='%m/%d/%Y %I:%M %p'):
     if value is None:
         return ''
+    # If value is a string, try to parse to datetime
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace('+00:00', '+0000'))
+        except Exception as e:
+            print(f"datetimeformat parse error: {e}, value: {value}")
+            return value
     return value.strftime(format)
 
 app.jinja_env.filters['datetimeformat'] = datetimeformat
@@ -1062,10 +1073,10 @@ def register():
                 return render_template('register.html', form=form)
             
             # Check if username is already taken
-            existing_username = db_service.get_user(form.username.data)
-            if existing_username:
-                flash('Username is already taken. Please choose a different one.', 'danger')
-                return render_template('register.html', form=form)
+            # existing_username = db_service.get_user(form.username.data)
+            # if existing_username:
+            #     flash('Username is already taken. Please choose a different one.', 'danger')
+            #     return render_template('register.html', form=form)
             
             print("[DEBUG] Creating new user...")
             # Prepare user data with all form fields

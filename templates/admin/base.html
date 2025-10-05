@@ -284,7 +284,7 @@
                         <div class="avatar-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-1" 
                              style="width: 55px; height: 55px; flex-shrink: 0;">
                             {% if current_user.image %}
-                                <img src="{{ current_user.profile_image }}" alt="Profile" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                                <img src="{{ current_user.image }}" alt="Profile" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
                             {% else %}
                                 <img src="{{ url_for('static', filename='img/avatars/user.png') }}" alt="Default Avatar" class="rounded-circle" style="width: 45px; height: 45px; object-fit: cover;">
                             {% endif %}
@@ -339,6 +339,9 @@
     <script type="text/javascript" src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
     <script type="text/javascript" src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
     
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <!-- Custom JS -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
