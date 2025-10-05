@@ -1073,10 +1073,10 @@ def register():
                 return render_template('register.html', form=form)
             
             # Check if username is already taken
-            existing_username = db_service.get_user(form.username.data)
-            if existing_username:
-                flash('Username is already taken. Please choose a different one.', 'danger')
-                return render_template('register.html', form=form)
+            # existing_username = db_service.get_user(form.username.data)
+            # if existing_username:
+            #     flash('Username is already taken. Please choose a different one.', 'danger')
+            #     return render_template('register.html', form=form)
             
             print("[DEBUG] Creating new user...")
             # Prepare user data with all form fields

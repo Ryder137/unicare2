@@ -216,9 +216,13 @@
 $(document).ready(function() {
 
     function LoadDataTable(){
+
+      if ($.fn.DataTable.isDataTable('#usersTable')) {
+        $('#usersTable').DataTable().destroy();
+      }
+
       $.get('/accounts/users/data', function(response) {
         $('#usersTable').html(response.html);
-
          // Initialize DataTable
         window.usersTable = $('#usersTable').DataTable({
           order: [[1, 'asc']],
@@ -354,10 +358,11 @@ $(document).ready(function() {
     $('[data-bs-target="#addUserModal"]').on('click', function() {
         // Show loading state
         $('#userModalContent').html('<div class="text-center my-5"><div class="spinner-border"></div></div>');
-        $.get('modal/user/register', function(data) {
+        const userId = 'new';  // Replace with actual user ID
+        $.get(`modal/user/register/${userId}`, function(data) {
             $('#userModalContent').html(data);
             $('#userForm')[0].reset();
-            $('#userFormModalLabel').text('Add New User');
+            $('#userFormModalLabel').text('Register User Accounts');
             $('#userId').val('');
             $('#password').prop('required', true);
             $('#confirmPassword').prop('required', true);
@@ -372,30 +377,27 @@ $(document).ready(function() {
     // Edit user
     $(document).on('click', '.edit-user', function() {
         const userId = $(this).data('user-id');
-        const modal = new bootstrap.Modal(document.getElementById('userFormModal'));
-        
-        // In a real app, you would fetch the user data via AJAX
-        // For now, we'll just show the form with the user ID
-        $('#userFormModalLabel').text('Edit User');
-        $('#userId').val(userId);
-        $('#password, #confirmPassword').prop('required', false);
-        $('#sendInviteField').hide();
-        $('#passwordHelperText').show();
+        $.get(`modal/user/register/${userId}`, function(data) {
+            $('#userModalContent').html(data);
+            $('#userForm')[0].reset();
+            $('#userFormModalLabel').text('Modify User Account');
+            $('#userId').val(userId);
+            $('#password').prop('required', false);
+            $('#confirmPassword').prop('required', false);
+            $('#sendInviteField').show();
+            $('#psychologistFields').hide();
+            $('#passwordHelperText').hide();
+            $('#userFormModal').modal('show');
 
-        // Check if Role is Psychologist show this fiels
-        $('#psychologistFields').hide();
-
-        // Simulate loading user data
-        setTimeout(() => {
-            // This would be replaced with actual data from your API
-            $('#firstName').val('John');
-            $('#lastName').val('Doe');
-            $('#email').val('john.doe@example.com');
-            $('#role').val('admin');
-            $('#isActive').prop('checked', true);
-            
-            modal.show();
-        }, 300);
+        }).catch(function(error) {
+            console.error('Error fetching user data:', error);
+            $('#userModalContent').html(`
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Failed to load user data. Please try again.
+                </div>
+            `);
+        });
     });
 
     // Toggle user status
@@ -412,9 +414,19 @@ $(document).ready(function() {
         
         // In a real app, you would make an AJAX call to update the status
         setTimeout(() => {
-            // Simulate API call
-            console.log(`Updating user ${userId} status to ${newStatus ? 'active' : 'inactive'}`);
-            
+            $.ajax({
+                url: `/accounts/user/setstatus/${userId}`,
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({ status: newStatus ? 'active' : 'inactive' }),
+                success: function(response) {
+                    console.log('User status updated successfully:', response);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error updating user status:', error);
+                }
+            });
+
             // Update UI
             button.data('status', newStatus);
             button.toggleClass('btn-secondary btn-success', newStatus);
@@ -457,43 +469,118 @@ $(document).ready(function() {
         modal.show();
     });
 
+    function ajaxDeleteCall(id){
+      return new Promise(function(resolve) {
+          $.ajax({
+              url: `user/delete/${id}`,
+              type: 'DELETE',
+              xhrFields: { withCredentials: true },
+              headers: {
+                  'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+              },
+              success: function(response) {
+                  console.log('User deleted successfully:', response);
+                  resolve(true);
+              },
+              error: function(xhr, status, error) {
+                  console.error('Error deleting user:', error);
+                  resolve(false);
+              }
+          });
+      });
+    }
+
     // Confirm delete
     $('#confirmDeleteBtn').on('click', function() {
         const userId = $(this).data('user-id');
         const button = $(this);
-        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
         // Show loading state
+        
         const originalHtml = button.html();
         button.html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Deleting...');
         button.prop('disabled', true);
         
-        // In a real app, you would make an AJAX call to delete the user
-        setTimeout(() => {
-            // Simulate API call
-            console.log(`Deleting user ${userId}`);
-            
-            // Hide the modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
-            modal.hide();
-            
-            // Remove the row from the table
-            $(`[data-user-id="${userId}"]`).fadeOut(300, function() {
-                usersTable.row($(this)).remove().draw(false);
+        // Get selected user IDs
+        const selectedIds = [];
+        $('.user-checkbox:checked').each(function() {
+            selectedIds.push($(this).val());
+        });
+
+        if (selectedIds.length > 0) {
+            // Bulk delete
+            console.log('Bulk delete users:', selectedIds);
+            const successDelete = [];
+            const failedDelete = [];
+            selectedIds.forEach(id => {
+              const result = ajaxDeleteCall(id);
+              if (result) {
+                successDelete.push(id);
+              } else {
+                failedDelete.push(id);
+              }
             });
-            
-            // Show success message
-            const toast = new bootstrap.Toast(document.getElementById('statusToast'));
-            $('.toast-body', '#statusToast').html(`
-                <i class="fas fa-check-circle me-2 text-success"></i>
-                User has been deleted successfully.
-            `);
-            toast.show();
-            
-        }, 1000);
+
+            if (failedDelete.length > 0 && successDelete.length > 0) {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Some Selected users deleted',
+                  html: ` ${successDelete.length} user(s) deleted successfully and
+                          <br> 
+                          ${failedDelete.length} user(s) failed to delete. Please try again.`,
+                });
+            } else if (failedDelete.length > 0 && successDelete.length == 0) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to delete selected users. Please try again.',
+              });
+            } else {
+              Swal.fire({
+                icon: 'success',
+                title: 'Bulk Users Deleted',
+                html: `All ${successDelete.length} user(s) deleted successfully.`,
+                showConfirmButton: false,
+                timer: 2000
+              });
+            }          
+        } else if (!userId) {
+            // No user ID to delete
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No user selected for deletion.',
+            });
+        }else{
+          console.log('Delete user:', userId);
+          const result = ajaxDeleteCall(userId);
+          console.log('Delete result : ', result);
+          if (!result) {
+              Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: 'Failed to delete user. Please try again.',
+              });
+              return;
+          }else{
+              Swal.fire({
+                  icon: 'success',
+                  title: 'User Deleted',
+                  text: `User ${userId} deleted successfully.`,
+                  showConfirmButton: false,
+                  timer: 2000
+              });
+          }
+        }
+
+        modal.hide();
+
+        LoadDataTable();
+
+        // Restore button state
+        button.html(originalHtml);
+        button.prop('disabled', false);
     });
-
-    
-
 
     // Bulk actions
     $('#bulkActivate').on('click', function(e) {
@@ -572,50 +659,6 @@ $(document).ready(function() {
         toast.show();
     }
     
-    // Confirm bulk delete
-    $('#confirmDeleteBtn').on('click', function() {
-        const button = $(this);
-        const spinner = button.find('.spinner-border');
-        
-        // Show loading state
-        button.prop('disabled', true);
-        spinner.removeClass('d-none');
-        
-        // In a real app, you would make an AJAX call to delete the users
-        setTimeout(() => {
-            // Get selected user IDs
-            const selectedIds = [];
-            $('.user-checkbox:checked').each(function() {
-                selectedIds.push($(this).val());
-            });
-            
-            console.log('Deleting users:', selectedIds);
-            
-            // Hide the modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
-            modal.hide();
-            
-            // Update UI
-            selectedIds.forEach(id => {
-                const row = $(`[data-user-id="${id}"]`);
-                row.fadeOut(300, function() {
-                    usersTable.row($(this)).remove().draw(false);
-                });
-            });
-            
-            // Clear selection
-            $('.user-checkbox, #selectAll').prop('checked', false).trigger('change');
-            
-            // Show success message
-            const toast = new bootstrap.Toast(document.getElementById('statusToast'));
-            $('.toast-body', '#statusToast').html(`
-                <i class="fas fa-check-circle me-2 text-success"></i>
-                ${selectedIds.length} user(s) deleted successfully.
-            `);
-            toast.show();
-            
-        }, 1000);
-    });
 });
 </script>
 {% endblock %}

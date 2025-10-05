@@ -7,49 +7,80 @@
     <form id="userForm" method="POST" enctype="multipart/form-data">
       <div class="modal-body">
         <div id="formErrors" class="alert alert-danger d-none"></div>
-        <input type="hidden" name="user_id" id="userId">
+        <input type="hidden" name="user_id" id="userId" value="{{ user.id if user.id else '' }}">
 
         <!-- Avatar Upload and Preview -->
         <div class="row mb-3">
           <div class="col-md-12 text-center">
             <label for="avatarInput" class="form-label">Avatar Image</label><br>
-            <img id="avatarPreview" src="{{ url_for('static', filename='img/avatars/user.png') }}" alt="Avatar Preview" class="rounded-circle mb-2" style="width: 100px; height: 100px; object-fit: cover; border: 2px solid #ddd;">
+            <img id="avatarPreview" 
+                src="{{ user.image if user.image else url_for('static', filename='img/avatars/user.png') }}" 
+                alt="Avatar Preview" 
+                class="rounded-circle mb-2" 
+                style="width: 100px; height: 100px; object-fit: cover; border: 2px solid #ddd;">
+
+            {% if user and user.role %}
+              {% set role_colors = {
+              'admin': 'primary',
+              'psychologist': 'success',
+              'staff': 'info',
+              'client': 'secondary'
+              } %}
+              <div class="row justify-content-center">
+                <span class="col-md-2 badge bg-{{ role_colors[user.role] }} text-center badge-sm" style="font-size: 0.8rem;">
+                    {{ user.role | title  }}
+                </span>
+              </div>
+            {% endif %}
+
             <input class="form-control mt-2" type="file" id="avatarInput" name="avatar" accept="image/*">
           </div>
         </div>
-        
         <div class="row mb-2">
           <div class="col-md-6 mb-2">
               <label for="firstName" class="form-label">First Name</label>
-              <input type="text" class="form-control" id="firstName" name="first_name" required>
+              <input type="text" class="form-control" 
+                     id="firstName" name="first_name" 
+                     value="{{ user.first_name if user.first_name else '' }}"
+                     required>
           </div>
           <div class="col-md-6 mb-2">
               <label for="lastName" class="form-label">Last Name</label>
-              <input type="text" class="form-control" id="lastName" name="last_name" required>
+              <input id="lastName" type="text" class="form-control" 
+                     name="last_name" 
+                     value="{{ user.last_name if user.last_name else '' }}" 
+                     required>
           </div>
         </div>
         
         <div class="row">
           <div class="col-md-6 mb-2">
             <label for="email" class="form-label">Email Address</label>
-            <input type="email" class="form-control" id="email" name="email" required>
+            <input type="email" class="form-control" 
+                   id="email" name="email" 
+                   value="{{ user.email if user.email else '' }}"
+                   required>
           </div>
-            
-          <div class="col-md-6 mb-2">
-            <label for="role" class="form-label">Role</label>
-            <select class="form-select" id="role" name="role" required>
-                <option value="" selected disabled>Select Role</option>
-                <option value="admin">Admin</option>
-                <option value="psychologist">Psychologist</option>
-                <option value="staff">Staff</option>
-            </select>
-          </div>
+          
+          {% if not user and not user.role %}
+            <div class="col-md-6 mb-2">
+              <label for="role" class="form-label">Role</label>
+              <select class="form-select" id="role" name="role" required>
+                  <option value="" selected disabled>Select Role</option>
+                  <option value="admin">Admin</option>
+                  <option value="psychologist">Psychologist</option>
+                  <option value="staff">Staff</option>
+              </select>
+            </div>
+          {% else %}
+            <input type="hidden" name="role" value="{{ user.role }}">
+          {% endif %}
         </div>
           
         <div id="passwordFields" class="row mb-2">
           <div class="col-md-6 mb-2">
               <label for="password" class="form-label">Password</label>
-              <input type="password" class="form-control" id="password" name="password" minlength="8">
+          <input type="password" class="form-control" id="password" name="password" minlength="8">
               <div class="form-text" 
                   id="passwordHelperText" 
                   style="display: none;">Leave blank to keep current password
@@ -57,56 +88,65 @@
           </div>
           <div class="col-md-6 mb-2">
               <label for="confirmPassword" class="form-label">Confirm Password</label>
-              <input type="password" class="form-control" id="confirmPassword" name="confirm_password">
+          <input type="password" class="form-control" id="confirmPassword" name="confirm_password">
           </div>
         </div>
 
         <!-- Psychologist Specific Fields -->
-        <div id="psychologistFields" class="mt-4 border-top pt-3" style="display: none;">
-
-          <h6 class="mb-3">Psychologist Information</h6>
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label for="licenseNumber" class="form-label">License Number</label>
-              <input type="text" class="form-control" id="licenseNumber" name="license_number">
+        {% if user and user.role == 'psychologist' %}
+          <div id="psychologistFields" class="mt-4 border-top pt-3" style="display: none;">
+            <h6 class="mb-3">Psychologist Information</h6>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="licenseNumber" class="form-label">License Number</label>
+                <input type="text" class="form-control" 
+                      id="licenseNumber" name="license_number"
+                      value="{{ psych_user.license_number if psych_user and psych_user.license_number else None }}">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="specialization" class="form-label">Specialization</label>
+                <input type="text" class="form-control" id="specialization" name="specialization"
+                      value="{{ psych_user.specialization if psych_user and psych_user.specialization else None }}">
+              </div>
             </div>
-            <div class="col-md-6 mb-3">
-              <label for="specialization" class="form-label">Specialization</label>
-              <input type="text" class="form-control" id="specialization" name="specialization">
+            <div class="col-12 mb-3">
+              <label for="education" class="form-label">Education</label>
+              <textarea class="form-control" 
+                        id="education" name="education" rows="2"
+                        >{{ psych_user.education|trim if psych_user and psych_user.education else '' }}
+              </textarea>
             </div>
-          </div>
-
-          <div class="col-12 mb-3">
-            <label for="education" class="form-label">Education</label>
-            <textarea class="form-control" id="education" name="education" rows="2"></textarea>
-          </div>
-          <div class="col-12 mb-3">
-            <label for="bio" class="form-label">Professional Bio</label>
-            <textarea class="form-control" id="bio" name="bio" rows="3"></textarea>
-          </div>
-
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label for="yearsExperience" class="form-label">Years of Experience</label>
-              <input type="number" class="form-control" id="yearsExperience" name="years_experience" min="0">
+            <div class="col-12 mb-3">
+              <label for="bio" class="form-label">Professional Bio</label>
+              <textarea class="form-control" 
+                        id="bio" name="bio" rows="3"
+                        >{{ psych_user.bio|trim if psych_user and psych_user.bio else '' }}</textarea>
             </div>
-            <div class="col-md-6 mb-3">
-              <label for="hourlyRate" class="form-label">Hourly Rate (₱)</label>
-              <div class="input-group">
-                <span class="input-group-text">₱</span>
-                <input type="number" class="form-control" id="hourlyRate" name="hourly_rate" min="0" step="0.01">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="yearsExperience" class="form-label">Years of Experience</label>
+                <input type="number" class="form-control" 
+                      id="yearsExperience" name="years_experience" min="0"
+                      value="{{ psych_user.years_of_experience if psych_user and psych_user.years_of_experience else None }}">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="hourlyRate" class="form-label">Hourly Rate (₱)</label>
+                <div class="input-group">
+                  <span class="input-group-text">₱</span>
+                  <input type="number" class="form-control" id="hourlyRate" 
+                        name="hourly_rate" min="0" step="0.01"
+                        value="{{ psych_user.hourly_rate if psych_user and psych_user.hourly_rate else None }}">
+                </div>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch ms-1">
+                <input class="form-check-input" type="checkbox" id="isAvailable" name="is_available" checked>
+                <label class="form-check-label" for="isAvailable">Available for new clients</label>
               </div>
             </div>
           </div>
-          
-          <div class="col-12">
-            <div class="form-check form-switch ms-1">
-              <input class="form-check-input" type="checkbox" id="isAvailable" name="is_available" checked>
-              <label class="form-check-label" for="isAvailable">Available for new clients</label>
-            </div>
-          </div>
-
-        </div>
+        {% endif %}
         
         <div class="row mb-2">
           <div class="form-check col-md-3 form-switch mb-3 ms-3">
@@ -163,6 +203,13 @@
           }
         }
 
+        {% if user %}
+          $('#passwordHelperText').show();
+          {% if user.role == 'psychologist' %}
+            $('#psychologistFields').show();
+          {% endif %}
+        {% endif %}
+
         $('#role').on('change', togglePsychologistFields);
         
         function reloadDataTable(){
@@ -194,8 +241,7 @@
           const submitBtn = $('#saveUserBtn');
           const spinner = submitBtn.find('.spinner-border');
           const userId = $('#userId').val();
-          const url = userId ? `/accounts/user/${userId}` : '/accounts/user/create';
-          const method = userId ? 'PUT' : 'POST';
+          const url = userId ? `/accounts/user/update/${userId}` : '/accounts/user/create';
           const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
           // Show loading state
@@ -224,7 +270,7 @@
           // Make AJAX call to save the user (multipart/form-data)
           $.ajax({
               url: url,
-              type: method,
+              type: 'POST',
               data: formData,
               processData: false,
               contentType: false,

@@ -51,26 +51,23 @@ class AccountRepoService:
     }
     return self.supabase.table('psychologists').insert(psychologist_data).execute()
 
-  def update_account(self, id: str, account: AccountsModel):
-    accounts_data = {
-      "first_name": account.first_name,
-      "middle_name": account.middle_name,
-      "last_name": account.last_name,
-      "email": account.email,
-      "role": account.role,
-      "password": account.password,
-      "is_deleted": account.is_deleted,
-      "is_active": account.is_active,
-      "is_verified": account.is_verified
-    }
-    return self.supabase.table('user_accounts').update(accounts_data).eq('id', id).execute()
-  
+  def update_account(self, id: str, account):
+    return (self.supabase.table('user_accounts')
+                .update(account)
+                .eq('id', id)
+                .execute())
+    
+  def update_psychologist_detail(self, user_id: str, details):
+    return (self.supabase.table('psychologists')
+                .update(details)
+                .eq('user_id', user_id)
+                .execute())
+
   def delete_account(self, id: str):
     return (self.supabase.table('user_accounts')
                 .update({'is_deleted': True})
                 .eq('id', id)
-                .execute()
-    )
+                .execute())
   
   def get_all_accounts(self):
     result = (self.supabase
