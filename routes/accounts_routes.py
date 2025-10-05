@@ -344,6 +344,30 @@ def set_user_status(id):
     print(f"[ERROR] Failed to update user status: {str(e)}")
     return jsonify({'error': 'Failed to update user status.'}), 500
 
+@accounts_bp.route('/user/bulk_setstatus',methods=['PUT','POST'])  
+@login_required
+def bulk_set_user_status():
+  data = request.get_json()
+  print("\n[DEBUG] ====== bulk_set_user_status route called ======")
+  print(f"[DEBUG] Request Data: {data}")
+
+  user_ids = data.get("ids", [])
+  status = data.get("status")
+  
+  if not isinstance(user_ids, list) or not user_ids:
+    return jsonify({'error': 'Invalid or empty user_ids list.'}), 400
+  if status not in ["active", "inactive"]:
+    return jsonify({'error': 'Invalid status value.'}), 400
+
+  try:
+    for user_id in user_ids:
+      account_repo_service.update_account(user_id, {"is_active": status == "active"})
+    return jsonify({'message': 'User statuses updated successfully.'}), 200
+  except Exception as e:
+    print(f"[ERROR] Failed to bulk update user statuses: {str(e)}")
+    return jsonify({'error': 'Failed to bulk update user statuses.'}), 500
+
+
 @accounts_bp.route('/modal/user/register/<user_id>', methods=['GET'])
 def modal_user(user_id):
     print("\n[DEBUG] ====== modal_user route called ======")

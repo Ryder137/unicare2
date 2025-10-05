@@ -416,42 +416,44 @@ $(document).ready(function() {
         setTimeout(() => {
             $.ajax({
                 url: `/accounts/user/setstatus/${userId}`,
-                method: 'PUT',
+                type: 'PUT',
+                xhrFields: { withCredentials: true },
+                headers: {
+                    'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+                },
                 contentType: 'application/json',
                 data: JSON.stringify({ status: newStatus ? 'active' : 'inactive' }),
                 success: function(response) {
-                    console.log('User status updated successfully:', response);
+                  // Update UI
+                  button.data('status', newStatus);
+                  button.toggleClass('btn-secondary', newStatus).toggleClass('btn-success', !newStatus);
+                  button.attr('title', newStatus ? 'Deactivate' : 'Activate');
+                  button.find('i').toggleClass('fa-toggle-on fa-toggle-off');
+                  
+                  // Update status badge
+                  const row = button.closest('tr');
+                  // Assuming the status badge is in the 5th column (index 4)
+                  const statusBadge = row.find('td:eq(4) .badge');
+                  statusBadge.removeClass('bg-secondary bg-success')
+                            .addClass(newStatus ? 'bg-success' : 'bg-secondary')
+                            .text(newStatus ? 'Active' : 'Inactive');
+                  
+                  // Restore button state
+                  button.html(originalHtml);
+                  button.prop('disabled', false);
+
+                  Swal.fire({
+                    icon: 'success',
+                    title: 'Change Status Successfully',
+                    html: `User status has been changed to ${newStatus ? 'Active' : 'Inactive'}.`,
+                    showConfirmButton: false,
+                    timer: 2000
+                  });
                 },
                 error: function(xhr, status, error) {
                     console.error('Error updating user status:', error);
                 }
             });
-
-            // Update UI
-            button.data('status', newStatus);
-            button.toggleClass('btn-secondary btn-success', newStatus);
-            button.attr('title', newStatus ? 'Deactivate' : 'Activate');
-            button.find('i').toggleClass('fa-toggle-on fa-toggle-off');
-            
-            // Update status badge
-            const row = button.closest('tr');
-            const statusBadge = row.find('.badge');
-            statusBadge.removeClass('bg-secondary bg-success')
-                      .addClass(newStatus ? 'bg-success' : 'bg-secondary')
-                      .text(newStatus ? 'Active' : 'Inactive');
-            
-            // Restore button state
-            button.html(originalHtml);
-            button.prop('disabled', false);
-            
-            // Show success message
-            const toast = new bootstrap.Toast(document.getElementById('statusToast'));
-            $('.toast-body', '#statusToast').html(`
-                <i class="fas fa-check-circle me-2 text-success"></i>
-                User has been ${newStatus ? 'activated' : 'deactivated'} successfully.
-            `);
-            toast.show();
-            
         }, 800);
     });
 
@@ -582,17 +584,6 @@ $(document).ready(function() {
         button.prop('disabled', false);
     });
 
-    // Bulk actions
-    $('#bulkActivate').on('click', function(e) {
-        e.preventDefault();
-        updateSelectedUsers('activate');
-    });
-    
-    $('#bulkDeactivate').on('click', function(e) {
-        e.preventDefault();
-        updateSelectedUsers('deactivate');
-    });
-    
     $('#bulkDelete').on('click', function(e) {
         e.preventDefault();
         const count = $('.user-checkbox:checked').length;
@@ -606,57 +597,51 @@ $(document).ready(function() {
         modal.show();
     });
     
+
+    // Bulk actions
+    $('#bulkActivate').on('click', function(e) {
+        e.preventDefault();
+        updateSelectedUsers(true);
+    });
+    
+    $('#bulkDeactivate').on('click', function(e) {
+        e.preventDefault();
+        updateSelectedUsers(false);
+    });
+
     // Update selected users (bulk actions)
-    function updateSelectedUsers(action) {
-        const selectedIds = [];
-        $('.user-checkbox:checked').each(function() {
-            selectedIds.push($(this).val());
-        });
-        
-        if (selectedIds.length === 0) return;
-        
-        // In a real app, you would make an AJAX call to update the users
-        console.log(`${action} users:`, selectedIds);
-        
-        // Update UI
-        selectedIds.forEach(id => {
-            const row = $(`[data-user-id="${id}"]`);
-            const statusBadge = row.find('.badge');
-            const toggleBtn = row.find('.toggle-status');
-            
-            if (action === 'delete') {
-                row.fadeOut(300, function() {
-                    usersTable.row($(this)).remove().draw(false);
+    function updateSelectedUsers(isActive) {
+        const selectedIds = $('.user-checkbox:checked').map(function() {
+            return $(this).val();
+        }).get();
+       
+        $.ajax({
+            url: '/accounts/user/bulk_setstatus',
+            type: 'PUT',
+            xhrFields: { withCredentials: true },
+            headers: {
+                'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+            },
+            contentType: 'application/json',
+            data: JSON.stringify({ status: isActive ? 'active' : 'inactive', ids: selectedIds }),
+            success: function(response) {
+                // Optionally, you could refresh the user table or update the UI
+                LoadDataTable();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Bulk Update Successful',
+                    html: `${selectedIds.length} user(s) have been ${isActive ? 'activated' : 'deactivated'}.`,
+                    showConfirmButton: false,
+                    timer: 2000
                 });
-            } else {
-                const isActivate = (action === 'activate');
-                
-                // Update status badge
-                statusBadge
-                    .removeClass('bg-secondary bg-success')
-                    .addClass(isActivate ? 'bg-success' : 'bg-secondary')
-                    .text(isActivate ? 'Active' : 'Inactive');
-                
-                // Update toggle button
-                toggleBtn
-                    .data('status', isActivate)
-                    .toggleClass('btn-secondary btn-success', isActivate)
-                    .attr('title', isActivate ? 'Deactivate' : 'Activate')
-                    .find('i')
-                    .toggleClass('fa-toggle-on fa-toggle-off', isActivate);
+            },
+            error: function(xhr, status, error) {
+                console.error('Error updating user status:', error);
             }
         });
-        
+
         // Clear selection
         $('.user-checkbox, #selectAll').prop('checked', false).trigger('change');
-        
-        // Show success message
-        const toast = new bootstrap.Toast(document.getElementById('statusToast'));
-        $('.toast-body', '#statusToast').html(`
-            <i class="fas fa-check-circle me-2 text-success"></i>
-            ${selectedIds.length} user(s) ${action}d successfully.
-        `);
-        toast.show();
     }
     
 });
