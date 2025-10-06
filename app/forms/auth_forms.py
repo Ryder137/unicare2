@@ -5,6 +5,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
 
+from services.accounts_reposervice import account_repo_service
+
 class BaseLoginForm(FlaskForm):
     """Base form for login functionality."""
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -18,29 +20,27 @@ class LoginForm(BaseLoginForm):
     def __init__(self, *args, **kwargs):
         super(LoginForm, self).__init__(*args, **kwargs)
         # Set the role to 'user' by default for this login form
-        self.role.data = 'user'
+        self.role.data = 'client'
 
 class RegisterForm(FlaskForm):
     """Form for user registration."""
-    first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
-    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    first_name = StringField('First Name', validators=[DataRequired("First Name is required"), Length(max=50)])
+    last_name = StringField('Last Name', validators=[DataRequired("Last Name is required"), Length(max=50)])
+    email = StringField('Email', validators=[DataRequired("Email is required"), Email()])
     password = PasswordField('Password', validators=[
-        DataRequired(),
+        DataRequired("Password is required"),
         Length(min=8, message='Password must be at least 8 characters long')
     ])
     confirm_password = PasswordField('Confirm Password', validators=[
-        DataRequired(),
+        DataRequired("Confirm Password is required"),
         EqualTo('password', message='Passwords must match')
     ])
     submit = SubmitField('Register')
     
     def validate_email(self, email):
-        """Check if email is already registered."""
-        from app.models.user import User
-        user = User.query.filter_by(email=email.data).first()
-        if user is not None:
-            raise ValidationError('Please use a different email address.')
+      """Check if email is already registered."""
+      existing_user = account_repo_service.get_account_by_email(email.data)
+      return existing_user.count is not None
 
 class ForgotPasswordForm(FlaskForm):
     """Form for requesting a password reset."""

@@ -40,7 +40,7 @@ from flask_mail import Mail, Message
 from services.accounts_reposervice import account_repo_service
 
 # Import models
-from models.accounts import AccountsModelDto
+from models.accounts import AccountsModel, AccountsModelDto
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -1061,77 +1061,81 @@ def register():
     print("\n[DEBUG] Register route called")
     form = RegisterForm()
     
-    if form.validate_on_submit():
-        print(f"[DEBUG] Form submitted with data: {form.data}")
-        
-        try:
-            print("[DEBUG] Checking if email already exists...")
-            existing_user = db_service.get_user_by_email(form.email.data)
-            if existing_user:
-                flash('Email is already registered. Please use a different email or log in.', 'danger')
-                print("[DEBUG] Registration failed - email already exists")
-                return render_template('register.html', form=form)
+    print("[DEBUG] Rendering registration form method:", request.method)
+
+    if request.method == 'POST':
+        print("[DEBUG] Form submitted with data before validate:", form.data)
+        if form.validate_on_submit():
+            print(f"[DEBUG] Form submitted with data after validate: {form.data}")
             
-            # Check if username is already taken
-            # existing_username = db_service.get_user(form.username.data)
-            # if existing_username:
-            #     flash('Username is already taken. Please choose a different one.', 'danger')
-            #     return render_template('register.html', form=form)
-            
-            print("[DEBUG] Creating new user...")
-            # Prepare user data with all form fields
-            user_data = {
-                'email': form.email.data.lower().strip(),
-                'password': form.password.data,  # This will be hashed in create_user
-                'first_name': form.first_name.data.strip() if form.first_name.data else None,
-                'last_name': form.last_name.data.strip() if form.last_name.data else None,
-                'gender': form.gender.data if hasattr(form, 'gender') and form.gender.data else None,
-                'birthdate': form.birthdate.data.isoformat() if hasattr(form, 'birthdate') and form.birthdate.data else None,
-                'created_at': datetime.now(timezone.utc).isoformat(),
-                'is_active': True,
-                'is_admin': False
-            }
-            
-            print(f"[DEBUG] User data prepared: {user_data}")
-            
-            # Create user in database
             try:
-                user = db_service.create_user(user_data)
-                if not user:
-                    flash('Failed to create user. Please try again.', 'danger')
+                validate_email = form.validate_email(form.email)
+                if validate_email:
+                    flash('This email is already registered. Please log in instead.', 'info')
+                    return render_template('register.html', form=form)           
+                
+                # Validate password and confirm_password match
+                password = form.password.data
+                confirm_password = form.confirm_password.data
+                if password != confirm_password:
+                    flash('Password and confirm password do not match.', 'danger')
+                    return render_template('register.html', form=form)
+
+                # Hash the password
+                hashed_password = generate_password_hash(password)
+                
+                # Prepare user data with all form fields
+                print(f"[DEBUG] Prepare user data with all form fields")
+                user_data = AccountsModel(
+                    id=None,  # ID will be set by the database
+                    first_name=form.first_name.data.strip() if form.first_name.data else None,
+                    middle_name= None,
+                    last_name=form.last_name.data.strip() if form.last_name.data else None,
+                    role='client',
+                    email=form.email.data.lower().strip(),
+                    password=hashed_password,  # This will be hashed in create_user
+                    is_active=True,
+                    image=None
+                )
+
+                print(f"[DEBUG] Creating new user for {user_data}")
+
+                # Create user in database
+                try:
+                    user_id = account_repo_service.create_account(user_data)
+                    print(f"[DEBUG] Creating new user response {user_id}")
+                    if not user_id:
+                        flash('Failed to create user. Please try again.', 'danger')
+                        return render_template('register.html', form=form)
+
+                    print(f"[DEBUG] User created successfully with ID: {user_id}")
+
+                    # Don't log the user in automatically
+                    print(f"[DEBUG] Registration successful for user {user_id}, redirecting to login")
+
+                    flash('🎉 Registration successful! Please log in to continue.', 'success')
+                    return redirect(url_for('user_login'))
+                    
+                except Exception as e:
+                    error_msg = str(e)
+                    print(f"[ERROR] Error creating user: {error_msg}")
+                    if '429' in error_msg or 'rate limit' in error_msg.lower():
+                        flash('Too many signup attempts. Please wait a moment and try again.', 'warning')
+                    elif 'already registered' in error_msg.lower() or 'duplicate key' in error_msg.lower():
+                        flash('This email or username is already registered. Please log in instead.', 'info')
+                    else:
+                        flash('An error occurred during registration. Please try again.', 'danger')
                     return render_template('register.html', form=form)
                     
-                print(f"[DEBUG] User created successfully with ID: {user.id}")
-                
-                # Don't log the user in automatically
-                print(f"[DEBUG] Registration successful for user {user.id}, redirecting to login")
-                
-                flash('🎉 Registration successful! Please log in to continue.', 'success')
-                return redirect(url_for('user_login'))
-                
             except Exception as e:
-                error_msg = str(e)
-                print(f"[ERROR] Error creating user: {error_msg}")
-                if '429' in error_msg or 'rate limit' in error_msg.lower():
-                    flash('Too many signup attempts. Please wait a moment and try again.', 'warning')
-                elif 'already registered' in error_msg.lower() or 'duplicate key' in error_msg.lower():
-                    flash('This email or username is already registered. Please log in instead.', 'info')
-                else:
-                    flash('An error occurred during registration. Please try again.', 'danger')
-                return render_template('register.html', form=form)
-                
-        except Exception as e:
-            print(f"[ERROR] Registration error: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            flash('An unexpected error occurred during registration. Please try again.', 'danger')
-    elif request.method == 'POST':
-        # Form validation failed
-        print(f"[DEBUG] Form validation failed with errors: {form.errors}")
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f"{getattr(form, field).label.text}: {error}", 'danger')
-    
+                print(f"[ERROR] Registration error: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                flash('An unexpected error occurred during registration. Please try again.', 'danger')
+        else:
+          # Form validation failed
+          print(f"[DEBUG] Form validation failed with errors: {form.errors}")
+         
     # For GET requests or if form validation fails
     return render_template('register.html', form=form)
 
