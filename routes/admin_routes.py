@@ -143,7 +143,6 @@ def admin_required(f):
         
         # Check if user is authenticated
         if not current_user.is_authenticated:
-        if not getattr(current_user, 'is_authenticated', False):
             print("[DEBUG] User not authenticated, redirecting to login")
             session['next'] = request.url if request.method == 'GET' else None
             return redirect(url_for('admin.admin_login', next=request.url))
