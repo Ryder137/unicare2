@@ -117,7 +117,7 @@
     <div id="page-container">
         <div id="content-wrap">
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg fixed-top shadow-sm py-2" style="background-color: var(--primary-50);">
+    <nav class="navbar navbar-expand-lg fixed-top shadow-sm mb-1" style="background-color: var(--primary-50);">
         <div class="container">
             <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url_for('index') }}" style="color: var(--primary-800);">
                 <i class="bi bi-heart-pulse-fill me-2"></i>UNICARE
@@ -318,7 +318,7 @@
             </svg>
         </div>
         
-        <div class="container py-5">
+        <div class="container py-3">
             <div class="row g-4">
                 <!-- About Column -->
                 <div class="col-lg-4 col-md-6 mb-4 mb-lg-0">
@@ -450,5 +450,11 @@
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     {% block extra_js %}{% endblock %}
+    {% block scripts %}
+    <script>
+      console.log("UNICARE - Mental Health Support System: Template BaseHtml loaded.");
+        // Custom scripts can be added here
+    </script>
+    {% endblock %}
 </body>
 </html>

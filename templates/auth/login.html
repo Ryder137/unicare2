@@ -3,14 +3,30 @@
 {% block title %}User Login - UniCare{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<style>
+  /* Form controls */
+  .toggle-password {
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid #e0e0e0;
+      background-color: #fff;
+      border-left: 0px;
+  }
+  .toggle-password i {
+      font-size: 1.1rem;
+  }
+  .toggle-password:hover {
+      background-color: #e9ecef;
+  }
+</style>
+<div class="container">
     <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white text-center">
-                    <h4 class="mb-0">User Login</h4>
+        <div class="col-12 d-flex justify-content-center mt-4">
+            <div class="card w-auto shadow" style="width: 100%; max-width: 450px;">
+                <div class="card-header text-center text-white p-2 mb-4" style="background-color: #0a3a8a;">
+                    <h4 class="mb-0 text-white"><i class="bi bi-people-fill me-2"></i></i>User Login</h4>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body p-0">
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
@@ -24,7 +40,13 @@
                         
                         <div class="mb-3">
                             {{ form.email.label(class="form-label") }}
-                            {{ form.email(class="form-control" + (' is-invalid' if form.email.errors else '')) }}
+
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-envelope"></i>
+                                </span>
+                                {{ form.email(class="form-control" + (' is-invalid' if form.email.errors else '')) }}
+                            </div>
                             {% if form.email.errors %}
                                 <div class="invalid-feedback">
                                     {{ form.email.errors[0] }}
@@ -53,14 +75,21 @@
                             {{ form.remember_me.label(class="form-check-label") }}
                         </div>
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Sign In</button>
-                            <a href="{{ url_for('forgot_password') }}" class="btn btn-link text-decoration-none">Forgot Password?</a>
+                        <div class="d-grid mb-1">
+                            <button type="submit" class="btn btn-primary">
+                              <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                            </button>
+                        </div>
+                        <div class="text-center mb-2">
+                            <a href="{{ url_for('forgot_password') }}" class="btn btn-link bg-transparent text-primary mt-3 d-block mx-auto">
+                                  <i class="bi bi-key me-1"></i>Forgot Password?</a>
                         </div>
                     </form>
                 </div>
-                <div class="card-footer text-center bg-light">
-                    <p class="mb-0">Don't have an account? <a href="{{ url_for('accounts.register') }}">Sign up</a></p>
+                <div class="card-footer text-center">
+                   <div class="d-flex justify-content-center">
+                    <p class="mb-0">Don't have an account? <a href="{{ url_for('register') }}">Sign up</a></p>
+                   </div>
                 </div>
             </div>
         </div>
