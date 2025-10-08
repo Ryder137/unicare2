@@ -964,7 +964,6 @@ def process_login(form, is_admin=False):
     full_name = f'{fname} {lname}'
     username = email.split('@')[0]
     
-    session['user_role_id'] = user_role_id
     session['user_role'] = user_role
     session['user_id'] = user_id
     
@@ -983,7 +982,7 @@ def process_login(form, is_admin=False):
     print(f"[DEBUG] user_role: {user_role}, is_admin: {current_user.is_admin}")
     print(f"[DEBUG] Redirecting to: {url_for('admin.dashboard') if user_role != 'client' else url_for('dashboard')}")
     print(f"[DEBUG] current_user: {current_user}, id: {current_user.id}, is_admin: {current_user.is_admin}")
-    print(f"[DEBUG] url_for('admin.dashboard'): {url_for('admin.dashboard')}")
+    
     
     flash(f'Welcome back, {full_name}!', 'success')
     
@@ -1000,11 +999,8 @@ def process_login(form, is_admin=False):
       if next_page and is_safe_url(next_page, request.host_url):
         print(f"[DEBUG] Redirecting to next page: {next_page}")
         return redirect(next_page)
-    
-    
-    
-    
-    print("[DEBUG] Redirecting to user dashboard")
+
+    print(f"[DEBUG] Redirecting to user dashboard: {url_for('dashboard')}")
     return redirect(url_for('dashboard'))
     
     # End of Password Verification
@@ -1166,13 +1162,14 @@ def update_avatar():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    print(f"[DEBUG] Rendering dashboard for user: {current_user}")
     # Get user data to pass to the template
     user_data = {
         'username': current_user.username,
         'email': current_user.email,
         'first_name': current_user.first_name,
         'last_name': current_user.last_name,
-        'avatar_url': current_user.avatar_url or url_for('static', filename='img/avatars/default.png')
+        'avatar_url': current_user.image or url_for('static', filename='img/avatars/user.png')
     }
     return render_template('dashboard.html', user=user_data)
 
