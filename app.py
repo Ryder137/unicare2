@@ -29,10 +29,19 @@ from flask import (
     Flask, render_template, request, jsonify, session, g, flash, 
     redirect, url_for, current_app, abort, send_from_directory
 )
+from functools import wraps
 from flask_login import (
     LoginManager, UserMixin, login_user, login_required, 
     logout_user, current_user
 )
+
+def login_optional(func):
+    """Decorator to mark a route as accessible to both authenticated and unauthenticated users."""
+    @wraps(func)
+    def decorated_view(*args, **kwargs):
+        return func(*args, **kwargs)
+    return decorated_view
+
 from flask_pymongo import PyMongo
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -430,6 +439,7 @@ def load_user(user_id):
 
 # Chatbot route (accessible to all)
 @app.route('/chatbot')
+@login_optional
 def chatbot():
     return render_template('chatbot.html')
 
@@ -437,17 +447,52 @@ def chatbot():
 from flask import jsonify
 from chatbot_rules import get_bot_response
 
-@app.route('/chatbot/message', methods=['POST'])
+@app.route('/chatbot/message', methods=['POST', 'OPTIONS'])
 @csrf.exempt
 @limiter.limit("10 per minute")
+@login_optional
 def chatbot_message():
-    data = request.get_json()
-    user_message = data.get('message', '')
-    last_topic = data.get('last_topic')
-    user_facts = data.get('user_facts', {})
-    bot_reply, new_topic, updated_facts = get_bot_response(user_message, last_topic, user_facts)
-    return jsonify({'reply': bot_reply, 'topic': new_topic, 'user_facts': updated_facts})
-
+    # Create a response object that we'll modify based on the request method
+    def create_response(data, status_code=200):
+        response = jsonify(data)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        return create_response({'status': 'success'})
+    
+    # Handle POST request
+    try:
+        data = request.get_json()
+        if not data:
+            return create_response({'error': 'No data provided', 'status': 'error'}, 400)
+            
+        user_message = data.get('message', '').strip()
+        if not user_message:
+            return create_response({'error': 'Message cannot be empty', 'status': 'error'}, 400)
+            
+        last_topic = data.get('last_topic')
+        user_facts = data.get('user_facts', {})
+        
+        response = get_bot_response(user_message, last_topic, user_facts)
+        
+        response_data = {
+            'reply': response,
+            'user_facts': user_facts,
+            'status': 'success'
+        }
+        
+        return create_response(response_data)
+        
+    except Exception as e:
+        current_app.logger.error(f'Error in chatbot_message: {str(e)}')
+        return create_response({
+            'error': 'An error occurred while processing your message',
+            'status': 'error'
+        }, 500)
 
 # Static page routes
 @app.route('/about')

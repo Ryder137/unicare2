@@ -16,11 +16,20 @@ class Appointment(db.Model):
     
     # Relationships
     staff_id = db.Column(db.Integer, db.ForeignKey('admin_users.id'), nullable=False)
-    staff = db.relationship('AdminUser', backref=db.backref('staff_appointments', lazy=True))
+    staff = db.relationship(
+        'models.admin_user.AdminUser',  # Use full module path
+        backref=db.backref('staff_appointments', lazy='dynamic'),
+        foreign_keys=[staff_id],
+        lazy='joined'  # Eager load the staff member by default
+    )
     professional_id = db.Column(db.Integer, nullable=False)  # ID of either guidance or psychologist
     user_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
-    # Using back_populates instead of backref to avoid conflicts
-    client = db.relationship('Client', back_populates='appointments')
+    # Using string reference for Client to avoid circular imports
+    client = db.relationship(
+        'Client',
+        back_populates='appointments',
+        lazy='joined'  # Eager load the client by default
+    )
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

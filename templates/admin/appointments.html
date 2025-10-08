@@ -7,9 +7,25 @@
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Appointment Management</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newAppointmentModal">
-                <i class="bi bi-plus-circle me-1"></i> New Appointment
-            </button>
+            {% if current_user.is_admin %}
+            <div class="me-3">
+                <form class="d-flex" method="get" action="{{ url_for('admin.manage_appointments') }}">
+                    <select class="form-select form-select-sm me-2" name="staff_id" onchange="this.form.submit()">
+                        <option value="all" {% if selected_staff == 'all' %}selected{% endif %}>All Staff</option>
+                        {% for staff in staff_members %}
+                        <option value="{{ staff.id }}" {% if selected_staff == staff.id|string %}selected{% endif %}>
+                            {{ staff.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            {% endif %}
+            <div>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newAppointmentModal">
+                    <i class="bi bi-plus-circle me-1"></i> New Appointment
+                </button>
+            </div>
         </div>
     </div>
 
@@ -45,6 +61,7 @@
                                     <th>Title</th>
                                     <th>Client</th>
                                     <th>Professional</th>
+                                    <th>Staff Member</th>
                                     <th>Date & Time</th>
                                     <th>Status</th>
                                     <th>Type</th>
@@ -61,6 +78,14 @@
                                             Guidance Counselor
                                         {% else %}
                                             Psychologist
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if appt.staff %}
+                                            {{ appt.staff.full_name }}
+                                            <small class="d-block text-muted">{{ appt.staff.email }}</small>
+                                        {% else %}
+                                            N/A
                                         {% endif %}
                                     </td>
                                     <td>
@@ -92,7 +117,7 @@
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="7" class="text-center">No appointments found.</td>
+                                    <td colspan="8" class="text-center">No appointments found.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

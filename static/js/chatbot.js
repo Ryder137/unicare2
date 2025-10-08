@@ -97,29 +97,64 @@ function extractUserFacts(message) {
 async function sendMessage() {
     const message = chatInput.value.trim();
     if (!message) return;
+    
+    // Add user message to chat
     addMessage(message, true);
     extractUserFacts(message);
     chatInput.value = '';
+    
+    // Show typing indicator
+    const typingIndicator = document.createElement('div');
+    typingIndicator.className = 'typing-indicator';
+    typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+    chatMessages.appendChild(typingIndicator);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
     try {
         const response = await fetch('/chatbot/message', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message, last_topic: lastTopic, user_facts: userFacts })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ 
+                message, 
+                last_topic: lastTopic, 
+                user_facts: userFacts 
+            })
         });
-        if (response.ok) {
-            const data = await response.json();
+        
+        // Remove typing indicator
+        chatMessages.removeChild(typingIndicator);
+        
+        const data = await response.json();
+        
+        if (response.ok && data.status === 'success') {
+            // Add bot's response to chat
             addMessage(data.reply, false);
-            lastTopic = data.topic || lastTopic;
+            
+            // Update last topic and user facts if provided
+            if (data.topic) lastTopic = data.topic;
             if (data.user_facts) {
-                userFacts = data.user_facts;
+                userFacts = { ...userFacts, ...data.user_facts };
                 localStorage.setItem('userFacts', JSON.stringify(userFacts));
             }
         } else {
-            addMessage('Sorry, something went wrong. Please try again.', false);
+            // Handle error response
+            const errorMsg = data.error || 'Sorry, something went wrong. Please try again.';
+            addMessage(errorMsg, false);
         }
     } catch (error) {
-        addMessage('Sorry, I could not connect to the server.', false);
+        // Remove typing indicator on error
+        if (typingIndicator.parentNode === chatMessages) {
+            chatMessages.removeChild(typingIndicator);
+        }
+        console.error('Chatbot error:', error);
+        addMessage('Sorry, I encountered an error. Please try again later.', false);
     }
+    
+    // Scroll to bottom of chat
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 

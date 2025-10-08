@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, abort, session
+from app.extensions import db  # Import db from extensions
 from flask_login import current_user, login_required, login_url, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from services import database_service as db_service
@@ -1123,13 +1124,19 @@ def manage_appointments():
     from sqlalchemy.orm import joinedload
     import json
     
-    # Base query for appointments
-    query = Appointment.query.options(joinedload(Appointment.client))
+    # Base query for appointments with joined client and staff
+    from models.user import User
+    query = db.session.query(Appointment).options(
+        joinedload(Appointment.client),
+        joinedload(Appointment.staff)
+    )
     
-    # If user is admin, show all appointments
-    # If user is staff, show only their appointments
+    # If user is not admin, show only their appointments
+    staff_filter = request.args.get('staff_id')
     if not getattr(current_user, 'is_admin', False):
         query = query.filter(Appointment.staff_id == current_user.id)
+    elif staff_filter and staff_filter != 'all':
+        query = query.filter(Appointment.staff_id == staff_filter)
     
     # Order by start time
     appointments = query.order_by(Appointment.start_time.desc()).all()
@@ -1146,6 +1153,17 @@ def manage_appointments():
                 'last_name': appt.client.last_name
             }
         
+        # Add staff information
+        staff_data = None
+        if appt.staff:
+            staff_data = {
+                'id': appt.staff.id,
+                'full_name': f"{appt.staff.first_name} {appt.staff.last_name}",
+                'first_name': appt.staff.first_name,
+                'last_name': appt.staff.last_name,
+                'email': appt.staff.email
+            }
+            
         appt_data = {
             'id': appt.id,
             'title': appt.title or 'Appointment',
@@ -1156,6 +1174,7 @@ def manage_appointments():
             'appointment_type': appt.appointment_type or '',
             'professional_type': appt.professional_type or '',
             'client': client_data,
+            'staff': staff_data,
             'user_id': appt.user_id
         }
         appointments_data.append(appt_data)
@@ -1168,6 +1187,15 @@ def manage_appointments():
         'full_name': f"{c.first_name} {c.last_name}"
     } for c in Client.query.order_by(Client.last_name, Client.first_name).all()]
     
+    # Get all staff members for the filter
+    staff_members = [{
+        'id': u.id,
+        'first_name': u.first_name,
+        'last_name': u.last_name,
+        'full_name': f"{u.first_name} {u.last_name}",
+        'email': u.email
+    } for u in User.query.filter(User.is_staff == True).order_by(User.last_name, User.first_name).all()]
+    
     # Get appointment count for the badge
     appointment_count = len(appointments)
     
@@ -1177,7 +1205,9 @@ def manage_appointments():
     return render_template('admin/appointments.html', 
                          appointments=appointments_json,
                          clients=clients,
-                         appointment_count=appointment_count)
+                         staff_members=staff_members,
+                         appointment_count=appointment_count,
+                         selected_staff=request.args.get('staff_id', 'all'))
         
     # except Exception as e:
     #     import traceback
