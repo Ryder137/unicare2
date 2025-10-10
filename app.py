@@ -38,10 +38,11 @@ from flask_mail import Mail, Message
 
 # Now import the accounts repository service
 from services.accounts_reposervice import account_repo_service
+from services.auth_service import auth_service
 
 # Import models
 from models.accounts import AccountsModel, AccountsModelDto
-
+from services.auth_service import auth_service
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -294,11 +295,13 @@ def register_blueprints(app):
     from routes.admin_routes import admin_bp
     from routes.guidance_routes import guidance_bp
     from routes.accounts_routes import accounts_bp
+    from routes.content_routes import content_bp
     
     # Register blueprints with URL prefixes
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(guidance_bp, url_prefix='/guidance')
     app.register_blueprint(accounts_bp, url_prefix='/accounts')
+    app.register_blueprint(content_bp, url_prefix='/content')
     
     # Import and register other blueprints when they're available
     # from routes.auth import auth_bp
@@ -352,8 +355,6 @@ def create_default_admin():
             if not existing_admins:
                 print(f"[DEBUG] Attempting to create default admin: {admin_email}")
                 print("[INFO] Creating default admin user...")
-                # Create admin user
-                password_hash = generate_password_hash(admin_password)
                 
                 admin_data = AccountsModel(
                     first_name='System',
@@ -361,7 +362,7 @@ def create_default_admin():
                     middle_name='',
                     role='admin',
                     email=admin_email,
-                    password=password_hash,
+                    password=admin_password,
                     is_verified=True
                 )
                 
@@ -409,7 +410,7 @@ def load_user(user_id):
             print("[DEBUG] Empty user_id provided")
             return None
         
-        result = account_repo_service.get_account_by_id(user_id)
+        result = account_repo_service.get_account_by_user_id(user_id)
         result_data = result.data[0] if result and result.data else None
         if result_data and len(result_data) > 0:
           user_obj = User.to_user_dto_obj(result_data)
@@ -829,7 +830,7 @@ def clear_rate_limit():
 def login_selector():
     """Render the login selector page."""
     if current_user.is_authenticated:
-        if current_user.is_admin:
+        if current_user.role != 'client':
             return redirect(url_for('admin.dashboard'))
         return redirect(url_for('dashboard'))
     return render_template('auth/login_selector.html')
@@ -850,169 +851,10 @@ def handle_user_login():
         return redirect(url_for('dashboard'))
     form = LoginForm()
     if form.validate_on_submit():
-        return process_login(form, is_admin=False)
+        return auth_service.process_login(form, is_admin=False)
     return render_template('auth/login.html', form=form)
 
-@app.route('/admin/login', methods=['POST'])
-@login_limiter
-def handle_admin_login():
-    """Handle admin login form submission."""
-    print("\n[DEBUG] Admin login attempt started")
-    if current_user.is_authenticated and current_user.is_admin:
-        print("[DEBUG] Already logged in as admin, redirecting to admin dashboard")
-        return redirect(url_for('admin.dashboard'))
-    
-    form = AdminLoginForm()
-    print(f"[DEBUG] Form data: {form.data}")
-    
-    if form.validate_on_submit():
-        print("[DEBUG] Form validation passed, processing login")
-        return process_login(form, is_admin=True)
-    else:
-        print(f"[DEBUG] Form validation failed with errors: {form.errors}")
-    
-    return render_template('admin/login.html', form=form)
-
-
-"""Process login for both users and admins."""
-def process_login(form, is_admin=False):
-    print(f"[DEBUG] ***app.py_process_login ***")
-    print(f"[DEBUG] is_admin flag: {is_admin}")
-    
-    # try:
-    email = form.email.data.lower().strip()
-    password = form.password.data
-    remember_me = form.remember_me.data
-    
-    print(f"\n[LOGIN] {'Admin' if is_admin else 'User'} login attempt - Email: {email}")
-    print(f"[DEBUG] Remember me: {remember_me}")
-    
-    response_data = account_repo_service.get_account_by_email(email) 
-    user = response_data.data[0] if response_data and response_data.data else None
-    
-    print("[DEBUG] get_account_by_email result : ", user)
-    
-    if not user and len(user) == 0:
-        flash('Invalid email or password.', 'danger')
-        print("[DEBUG] Login failed - email not found : ", email)
-        return render_template('admin/login.html', form=form)
-    
-    print("[DEBUG] Login Success - user data : ", user)
-    
-    user_id = user.get('id')
-    user_role = user.get('role')
-    user_role_id = f'{user_role}_{user_id}'
-    
-    redirect_url = 'auth/login.html' if user_role == 'client' else 'admin/login.html'
-
-    # Check if User login is active
-    is_active = user.get('is_active', True)
-    if not is_active:
-      print(f"[LOGIN] User account is not active: {email}")
-      flash('This user account is disabled. Please contact support.', 'error')
-      return render_template(redirect_url, form=form)
-        
-    # Check for too many failed login attempts
-    failed_attempts = user.get('failed_attempt', 0)
-    if failed_attempts >= 5:  # Lock account after 5 failed attempts
-      print(f"[LOGIN] Account locked due to too many failed {failed_attempts} attempts: {email}")
-      flash('This account is temporarily locked. Please try again later or contact support.', 'error')
-      return render_template(redirect_url, form=form)
-    
-    # Password Verification Area
-    from werkzeug.security import check_password_hash
-    from passlib.hash import pbkdf2_sha256, scrypt
-    
-    password_hash = user.get('password', '')
-    is_password_valid = False
-    
-    # Check password hash format and verify accordingly
-    if password_hash.startswith('$scrypt$'):
-        # scrypt format (e.g., from Supabase Auth)
-        try:
-            print("[DEBUG] Using scrypt verification")
-            is_password_valid = scrypt.verify(password, password_hash)
-        except Exception as e:
-            print(f"[ERROR] scrypt verification failed: {str(e)}")
-            is_password_valid = False
-    elif password_hash.startswith('$pbkdf2-sha256$'):
-        # passlib pbkdf2_sha256 format
-        print("[DEBUG] Using pbkdf2_sha256 verification")
-        is_password_valid = pbkdf2_sha256.verify(password, password_hash)
-    else:
-        # werkzeug format
-        print("[DEBUG] Using werkzeug check_password_hash")
-        is_password_valid = check_password_hash(password_hash, password)
-    
-    print(f"[DEBUG] Password verification result: {is_password_valid}")
-    
-    if not is_password_valid:
-      # Update failed login attempts
-      account_repo_service.update_attempts(email, user_role, failed_attempts + 1)
-      remaining_attempts = 5 - (failed_attempts + 1)
-      if remaining_attempts > 0:
-          flash(f'Invalid email or password. {remaining_attempts} attempts remaining.', 'error')
-      else:
-          flash('Account locked due to too many failed attempts. Please contact support.', 'error')
-          
-      return render_template(redirect_url , form=form)
-      
-    print(f"[LOGIN] User account found and authenticated {user_role} user: {email}")
-    
-    fname = user.get('first_name') or ''
-    lname = user.get('last_name') or ''
-    full_name = f'{fname} {lname}'
-    username = email.split('@')[0]
-    
-    session['user_role'] = user_role
-    session['user_id'] = user_id
-    
-    # Create a user object for flask login.
-    user_obj = User(
-            id=user_id,
-            email=email,
-            username=username,
-            is_admin=(user_role != 'client'),
-            is_active=True
-        )
-    
-    # Assign user object to flask login user for authenthication purposes in admin route
-    login_user(user_obj, remember=remember_me)
-    
-    print(f"[DEBUG] user_role: {user_role}, is_admin: {current_user.is_admin}")
-    print(f"[DEBUG] Redirecting to: {url_for('admin.dashboard') if user_role != 'client' else url_for('dashboard')}")
-    print(f"[DEBUG] current_user: {current_user}, id: {current_user.id}, is_admin: {current_user.is_admin}")
-    
-    
-    flash(f'Welcome back, {full_name}!', 'success')
-    
-    # Reset failed attempts and Update the last_login_at
-    account_repo_service.reset_attempts(email, user_role)    
-    
-    if user_role != 'client':
-      # For Admin dashboard users
-      print("[DEBUG] Redirecting to admin dashboard", url_for('admin.dashboard'))
-      return redirect(url_for('admin.dashboard'))
-    else:
-      # For regular users, check for next parameter or go to dashboard
-      next_page = request.args.get('next')
-      if next_page and is_safe_url(next_page, request.host_url):
-        print(f"[DEBUG] Redirecting to next page: {next_page}")
-        return redirect(next_page)
-
-    print(f"[DEBUG] Redirecting to user dashboard: {url_for('dashboard')}")
-    return redirect(url_for('dashboard'))
-    
-    # End of Password Verification
-        
-    # except Exception as e:
-    #     print(f"[ERROR] Login error: {str(e)}")
-    #     import traceback
-    #     traceback.print_exc()
-    #     flash('An error occurred during login. Please try again.', 'danger')
-    
-    return render_template('admin/login.html' if is_admin else 'auth/login.html', form=form)
-
+   
 @app.route('/logout')
 @login_required
 def logout():
@@ -1076,22 +918,19 @@ def register():
                 if password != confirm_password:
                     flash('Password and confirm password do not match.', 'danger')
                     return render_template('register.html', form=form)
-
-                # Hash the password
-                hashed_password = generate_password_hash(password)
-                
+  
                 # Prepare user data with all form fields
                 print(f"[DEBUG] Prepare user data with all form fields")
                 user_data = AccountsModel(
-                    id=None,  # ID will be set by the database
-                    first_name=form.first_name.data.strip() if form.first_name.data else None,
-                    middle_name= None,
-                    last_name=form.last_name.data.strip() if form.last_name.data else None,
-                    role='client',
-                    email=form.email.data.lower().strip(),
-                    password=hashed_password,  # This will be hashed in create_user
-                    is_active=True,
-                    image=None
+                    id = None,  # ID will be set by the database
+                    first_name = form.first_name.data.strip() if form.first_name.data else None,
+                    middle_name = None,
+                    last_name = form.last_name.data.strip() if form.last_name.data else None,
+                    role = 'client',
+                    email = form.email.data.lower().strip(),
+                    password = password,  # This will be hashed in create_user
+                    is_active = True,
+                    image = None
                 )
 
                 print(f"[DEBUG] Creating new user for {user_data}")
@@ -1146,13 +985,13 @@ def update_avatar():
     
     try:
         # Update user's profile image in Supabase
-        result = supabase_db.supabase.table('clients')\
-            .update({'profile_image': avatar_url})\
-            .eq('id', current_user.id)\
-            .execute()
+        result = (supabase_db.supabase.table('clients')
+                  .update({'profile_image': avatar_url})
+                  .eq('id', current_user.id)
+                  .execute())
         
         if not result.data:
-            return jsonify({'error': 'Failed to update avatar'}), 500
+          return jsonify({'error': 'Failed to update avatar'}), 500
             
         return jsonify({'success': True})
     except Exception as e:

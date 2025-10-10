@@ -267,6 +267,14 @@
                                         User Accounts
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white px-3 py-2 {% if request.endpoint == 'content.management' %}active bg-primary{% endif %}"
+                                      href="{{ url_for('content.management') }}"
+                                      style="font-weight: 400;">
+                                      <i class="bi bi-chat-right-quote-fill"></i>
+                                        Content List
+                                    </a>
+                                </li>
                                 <!-- Add more management items here if needed -->
                             </ul>
                         </div>

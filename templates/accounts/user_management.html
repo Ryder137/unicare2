@@ -492,6 +492,59 @@ $(document).ready(function() {
       });
     }
 
+    function BulkDeleteCall(selectedIds){
+        $.ajax({
+            url: '/accounts/user/bulk_delete',
+            type: 'PUT',
+            xhrFields: { withCredentials: true },
+            headers: {
+                'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+            },
+            contentType: 'application/json',
+            data: JSON.stringify({ ids: selectedIds }),
+            success: function(response) {
+                // Optionally, you could refresh the user table or update the UI
+                const successCount =  response.success;
+                const failCount = response.fail;
+
+                console.log('Bulk delete response:', response);
+                console.log('Bulk delete response:', response.success);
+                console.log('Bulk delete response:', response.fail);
+
+                if(failCount > 0){
+                  Swal.fire({
+                      icon: 'warning',
+                      title: 'Partial Deletion',
+                      html: `${successCount} user(s) deleted successfully, <br>
+                             but ${failCount} user(s) could not be deleted. <br>
+                             Please try again...`,
+                      showConfirmButton: false,
+                      timer: 3000
+                  });
+                }else{
+                  Swal.fire({
+                      icon: 'success',
+                      title: 'Bulk Delete Successful',
+                      html: `${selectedIds.length} user(s) have been deleted.`,
+                      showConfirmButton: false,
+                      timer: 2000
+                  });
+                }
+                LoadDataTable();
+            },
+            error: function(xhr, status, error) {
+                console.error('Error build delete user:', error);
+                 Swal.fire({
+                    icon: 'error',
+                    title: 'Bulk Delete Failed',
+                    html: `Failed to delete ${selectedIds.length} user(s). Please try again.`,
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            }
+        });
+    }
+
     // Confirm delete
     $('#confirmDeleteBtn').on('click', function() {
         const userId = $(this).data('user-id');
@@ -512,40 +565,7 @@ $(document).ready(function() {
         if (selectedIds.length > 0) {
             // Bulk delete
             console.log('Bulk delete users:', selectedIds);
-            const successDelete = [];
-            const failedDelete = [];
-            selectedIds.forEach(id => {
-              const result = ajaxDeleteCall(id);
-              if (result) {
-                successDelete.push(id);
-              } else {
-                failedDelete.push(id);
-              }
-            });
-
-            if (failedDelete.length > 0 && successDelete.length > 0) {
-                Swal.fire({
-                  icon: 'success',
-                  title: 'Some Selected users deleted',
-                  html: ` ${successDelete.length} user(s) deleted successfully and
-                          <br> 
-                          ${failedDelete.length} user(s) failed to delete. Please try again.`,
-                });
-            } else if (failedDelete.length > 0 && successDelete.length == 0) {
-              Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to delete selected users. Please try again.',
-              });
-            } else {
-              Swal.fire({
-                icon: 'success',
-                title: 'Bulk Users Deleted',
-                html: `All ${successDelete.length} user(s) deleted successfully.`,
-                showConfirmButton: false,
-                timer: 2000
-              });
-            }          
+            BulkDeleteCall(selectedIds);
         } else if (!userId) {
             // No user ID to delete
             Swal.fire({
@@ -574,11 +594,8 @@ $(document).ready(function() {
               });
           }
         }
-
         modal.hide();
-
         LoadDataTable();
-
         // Restore button state
         button.html(originalHtml);
         button.prop('disabled', false);

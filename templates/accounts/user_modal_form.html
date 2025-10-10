@@ -93,60 +93,59 @@
         </div>
 
         <!-- Psychologist Specific Fields -->
-        {% if user and user.role == 'psychologist' %}
-          <div id="psychologistFields" class="mt-4 border-top pt-3" style="display: none;">
-            <h6 class="mb-3">Psychologist Information</h6>
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label for="licenseNumber" class="form-label">License Number</label>
-                <input type="text" class="form-control" 
-                      id="licenseNumber" name="license_number"
-                      value="{{ psych_user.license_number if psych_user and psych_user.license_number else None }}">
-              </div>
-              <div class="col-md-6 mb-3">
-                <label for="specialization" class="form-label">Specialization</label>
-                <input type="text" class="form-control" id="specialization" name="specialization"
-                      value="{{ psych_user.specialization if psych_user and psych_user.specialization else None }}">
-              </div>
+        <div id="psychologistFields" class="mt-4 border-top pt-3" style="display: none;">
+          <h6 class="mb-3">Psychologist Information</h6>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="licenseNumber" class="form-label">License Number</label>
+              <input type="text" class="form-control" 
+                    id="licenseNumber" name="license_number"
+                    value="{{ psych_user.license_number if psych_user and psych_user.license_number else None }}">
             </div>
-            <div class="col-12 mb-3">
-              <label for="education" class="form-label">Education</label>
-              <textarea class="form-control" 
-                        id="education" name="education" rows="2"
-                        >{{ psych_user.education|trim if psych_user and psych_user.education else '' }}
-              </textarea>
+            <div class="col-md-6 mb-3">
+              <label for="specialization" class="form-label">Specialization</label>
+              <input type="text" class="form-control" id="specialization" name="specialization"
+                    value="{{ psych_user.specialization if psych_user and psych_user.specialization else None }}">
             </div>
-            <div class="col-12 mb-3">
-              <label for="bio" class="form-label">Professional Bio</label>
-              <textarea class="form-control" 
-                        id="bio" name="bio" rows="3"
-                        >{{ psych_user.bio|trim if psych_user and psych_user.bio else '' }}</textarea>
+          </div>
+          <div class="col-12 mb-3">
+            <label for="education" class="form-label">Education</label>
+            <textarea class="form-control" 
+                      id="education" name="education" rows="2"
+                      >{{ psych_user.education|trim if psych_user and psych_user.education else '' }}
+            </textarea>
+          </div>
+          <div class="col-12 mb-3">
+            <label for="bio" class="form-label">Professional Bio</label>
+            <textarea class="form-control" 
+                      id="bio" name="bio" rows="3"
+                      >{{ psych_user.bio|trim if psych_user and psych_user.bio else '' }}</textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="yearsExperience" class="form-label">Years of Experience</label>
+              <input type="number" class="form-control" 
+                    id="yearsExperience" name="years_experience" min="0"
+                    value="{{ psych_user.years_of_experience if psych_user and psych_user.years_of_experience else None }}">
             </div>
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label for="yearsExperience" class="form-label">Years of Experience</label>
-                <input type="number" class="form-control" 
-                      id="yearsExperience" name="years_experience" min="0"
-                      value="{{ psych_user.years_of_experience if psych_user and psych_user.years_of_experience else None }}">
-              </div>
-              <div class="col-md-6 mb-3">
-                <label for="hourlyRate" class="form-label">Hourly Rate (₱)</label>
-                <div class="input-group">
-                  <span class="input-group-text">₱</span>
-                  <input type="number" class="form-control" id="hourlyRate" 
-                        name="hourly_rate" min="0" step="0.01"
-                        value="{{ psych_user.hourly_rate if psych_user and psych_user.hourly_rate else None }}">
-                </div>
-              </div>
-            </div>
-            <div class="col-12">
-              <div class="form-check form-switch ms-1">
-                <input class="form-check-input" type="checkbox" id="isAvailable" name="is_available" checked>
-                <label class="form-check-label" for="isAvailable">Available for new clients</label>
+            <div class="col-md-6 mb-3">
+              <label for="hourlyRate" class="form-label">Hourly Rate (₱)</label>
+              <div class="input-group">
+                <span class="input-group-text">₱</span>
+                <input type="number" class="form-control" id="hourlyRate" 
+                      name="hourly_rate" min="0" step="0.01"
+                      value="{{ psych_user.hourly_rate if psych_user and psych_user.hourly_rate else None }}">
               </div>
             </div>
           </div>
-        {% endif %}
+          <div class="col-12">
+            <div class="form-check form-switch ms-1">
+              <input class="form-check-input" type="checkbox" id="isAvailable" name="is_available" checked>
+              <label class="form-check-label" for="isAvailable">Available for new clients</label>
+            </div>
+          </div>
+        </div>
+        
         
         <div class="row mb-2">
           <div class="form-check col-md-3 form-switch mb-3 ms-3">

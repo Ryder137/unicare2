@@ -23,7 +23,7 @@
     <div class="row justify-content-center">
         <div class="col-md-6 col-lg-5 mt-4">
             <div class="card w-auto shadow">
-                <div class="card-header text-center p-2" style="background-color: #0a2c63ff;">
+                <div class="card-header text-center p-2 mb-4" style="background-color: #0a2c63ff;">
                     <h4 class="mb-0 text-white"><i class="bi bi-shield-lock me-2"></i>Admin Login</h4>
                 </div>
                 <div class="card-body p-0">
@@ -48,29 +48,26 @@
                         </div>
                     {% endif %}
 
-                    <!-- Rate Limit Information -->
-                    <div id="rate-limit-info" 
-                        class="alert alert-warning mb-4 text-center d-flex flex-column align-items-center justify-content-center"
-                         data-first-attempt="{{ session.first_attempt|default('0') }}"
-                         data-max-attempts="10"
-                         data-time-window="300">
-                        <h5 class="alert-heading"><i class="bi bi-shield-exclamation"></i> Rate Limit Status</h5>
-                        <p class="mb-2">
-                            {% if 'login_attempts' in session %}
-                                Login attempts: {{ session.login_attempts }}/10
-                                {% if 'first_attempt' in session %}
-                                    <br>Time remaining: 
-                                    <span id="time-remaining">Calculating...</span>
-                                {% endif %}
-                            {% else %}
-                                No active rate limiting
-                            {% endif %}
-                        </p>
-                        <a href="{{ url_for('clear_rate_limit') }}" class="btn btn-sm btn-outline-danger">
-                            <i class="bi bi-arrow-clockwise"></i> Reset Rate Limit
-                        </a>
-                    </div>
-
+                    {% if 'login_attempts' in session %}
+                      <!-- Rate Limit Information -->
+                      <div id="rate-limit-info" 
+                          class="alert alert-warning mb-4 text-center d-flex flex-column align-items-center justify-content-center"
+                          data-first-attempt="{{ session.first_attempt|default('0') }}"
+                          data-max-attempts="10"
+                          data-time-window="300">
+                          <h5 class="alert-heading"><i class="bi bi-shield-exclamation"></i> Rate Limit Status</h5>
+                          <p class="mb-2">
+                                  Login attempts: {{ session.login_attempts }}/10
+                                  {% if 'first_attempt' in session %}
+                                      <br>Time remaining: 
+                                      <span id="time-remaining">Calculating...</span>
+                                  {% endif %}  
+                          </p>
+                          <a href="{{ url_for('clear_rate_limit') }}" class="btn btn-sm btn-outline-danger">
+                              <i class="bi bi-arrow-clockwise"></i> Reset Rate Limit
+                          </a>
+                      </div>
+                    {% endif %}
                     <form method="POST" action="{{ url_for('admin.admin_login') }}" class="needs-validation" novalidate>
                         {{ form.hidden_tag() }}
                         <input type="hidden" name="next" value="{{ next or '' }}">
