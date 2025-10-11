@@ -15,6 +15,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from forms import RegisterForm
 from models.accounts import AccountsModel,PsychologistDetailModel
 
+
 # Add the project root to the Python path first
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
@@ -22,11 +23,7 @@ if project_root not in sys.path:
 
 # Now import the accounts repository service
 from services.accounts_reposervice import account_repo_service
-
-# Import forms from the forms package
-from forms.base_forms import (
-    CreateAdminForm
-)
+from services.auth_service import auth_service
 
 # Import Supabase client
 from supabase import create_client, Client
@@ -121,7 +118,7 @@ def get_user(id):
   print("\n[DEBUG] ====== get_user route called ======")
   print("\n[DEBUG] GET USER DETAILS : ",id  )
 
-  user_result = db_service.get_account_by_id(id);
+  user_result = account_repo_service.get_account_by_user_id(id);
 
   if not user_result:
       return jsonify({'error': 'User not found.'}), 404
@@ -155,9 +152,6 @@ def create_user():
   if password != confirm_password:
     return jsonify({'error': 'Password and confirm password do not match.'}), 400
 
-  # Hash the password
-  hashed_password = generate_password_hash(password)
-  
   # Handle avatar upload to Supabase Storage
   avatar_url = None
   if avatar_file and avatar_file.filename:
@@ -185,11 +179,13 @@ def create_user():
       last_name = data.get("last_name"),
       email = data.get("email"),
       role = data.get("role"),
-      password = hashed_password,
+      password = password,
       is_deleted = False,
       is_active = True,
-      is_verified = False
+      is_verified = False,
+      image = avatar_url
     ) 
+    
     print(f"[DEBUG] Prepared Account Data Image: {reqAccounts.image}")
       
     new_user = account_repo_service.create_account(reqAccounts)
@@ -325,6 +321,36 @@ def delete_user(id):
 
   return jsonify({'message': 'User deleted successfully.'}), 200
 
+@accounts_bp.route('/user/bulk_delete',methods=['PUT','POST'])  
+@login_required
+def bulk_delete():
+  data = request.get_json()
+  print("\n[DEBUG] ====== bulk_delete route called ======")
+  print(f"[DEBUG] Request Data: {data}")
+
+  user_ids = data.get("ids", [])
+  
+  if not isinstance(user_ids, list) or not user_ids:
+    return jsonify({'error': 'Invalid or empty user_ids list.'}), 400
+  
+  success_cnt = 0
+  fail_cnt = 0
+  try:
+    for user_id in user_ids:
+      try:
+        account_repo_service.delete_account(user_id)
+        success_cnt += 1
+      except Exception as e:
+        print(f"[ERROR] Failed to delete user {user_id}: {str(e)}")
+        fail_cnt += 1
+        continue
+
+    return jsonify({'message': 'Users deleted successfully.', 'success': success_cnt, 'fail': fail_cnt}), 200
+  except Exception as e:
+    print(f"[ERROR] Failed to bulk delete user statuses: {str(e)}")
+    return jsonify({'error': 'Failed to bulk delete user statuses.'}), 500
+
+
 @accounts_bp.route('/user/setstatus/<id>',methods=['PUT','POST'])  
 @login_required
 def set_user_status(id):
@@ -380,7 +406,7 @@ def modal_user(user_id):
       
       # Load user data if editing or updating existing user
       if user_id != "new":
-        result = account_repo_service.get_account_by_id(user_id)
+        result = account_repo_service.get_account_by_user_id(user_id)
         user = result.data[0] if hasattr(result, "data") and result.data else None
         
         if user.get('role') == 'psychologist':
@@ -405,7 +431,7 @@ def modal_view_user(user_id):
     print("\n[DEBUG] ====== modal_view_user route called ======")
     print("\n[DEBUG] Selected user id : ",user_id)
     try:
-      result = account_repo_service.get_account_by_id(user_id)
+      result = account_repo_service.get_account_by_user_id(user_id)
       user = result.data[0] if hasattr(result, "data") and result.data else None
       
       if not user:
@@ -416,9 +442,13 @@ def modal_view_user(user_id):
         psych_result = account_repo_service.get_psychologist_details(user_id)
         psych_user = psych_result.data[0] if hasattr(psych_result, "data") and psych_result.data else None
       
+      auth_user = auth_service.get_auth_user_by_id(user_id)
+      print(f"[DEBUG] Auth User Data: {auth_user}")
+      
       return render_template('accounts/user_modal_profile.html', 
                              user=user, 
                              psych_user=psych_user,
+                             auth_user=auth_user,
                              now=datetime.now())
     except Exception as e:
       print(f"[ERROR] Failed to load user modal form: {str(e)}")
@@ -434,3 +464,45 @@ def users_data():
   table_rows = render_template('accounts/user_table_list.html', users=users)
   
   return jsonify({'html': table_rows})
+
+@accounts_bp.route('/user/send_verification/<user_id>', methods=['POST'])
+@login_required
+def send_verification_email(user_id):
+    print("\n[DEBUG] ====== send_verification_email route called ======")
+    print(f"[DEBUG] User ID to send verification email: {user_id}")
+
+    if not user_id:
+        return jsonify({'error': 'Invalid request no id provided.'}), 400
+
+    try:
+        user_result = account_repo_service.get_account_by_user_id(user_id)
+        print(f"[DEBUG] Retrieved user result: {user_result}")
+        if not user_result:
+            return jsonify({'error': 'User not found.'}), 404
+        # Fix: Access the user data correctly
+        user_data = user_result.data[0] if hasattr(user_result, "data") and user_result.data else None
+        if not user_data:
+            return jsonify({'error': 'User data not found.'}), 404
+
+        email = user_data.get('email')
+        if not email:
+            return jsonify({'error': 'User email not found.'}), 404
+        
+        print(f"[DEBUG] Sending verification email to: {email}")
+        
+        # Send verification email via Supabase
+        response = auth_service.send_verification_email(email)
+        
+        print(f"[DEBUG] Supabase response: {response}")
+        
+         # Check for errors in the response
+        if response and hasattr(response, 'error') and response.error:
+            print(f"[ERROR] Supabase send verification error: {response.error}")
+            return jsonify({'error': 'Failed to send verification email.'}), 500
+        
+        print(f"[DEBUG] Verification email sent to: {email}")
+        return jsonify({'message': 'Verification email sent successfully.', 'status': 'success'}), 200
+
+    except Exception as e:
+        print(f"[ERROR] Failed to send verification email: {str(e)}")
+        return jsonify({'error': 'Failed to send verification email.'}), 500

@@ -26,14 +26,17 @@ from services.database_service import db_service
 from forms.base_forms import (
     AdminRegisterForm, 
     AdminLoginForm,
-    CreateAdminForm
+    CreateAdminForm,
+    LoginForm
 )
 from forms.psychologist_form import PsychologistForm
 from forms.guidance_counselor_form import CreateGuidanceCounselorForm
+from services.auth_service import auth_service
 
 # Import Supabase client
 from supabase import create_client, Client
 from config import SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_ROLE_KEY
+import pytz
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -53,83 +56,6 @@ try:
 except Exception as e:
     print(f"[ERROR] Failed to initialize Supabase client: {str(e)}")
     supabase = None
-
-def process_login(form, is_admin=False):
-    """Process login for admin users.
-    
-    Args:
-        form: The login form containing email and password
-        is_admin: Whether this is an admin login (for future use)
-        
-    Returns:
-        Redirect response to dashboard or login page with error
-    """
-    logger.info("Processing admin login")
-    
-    if not form.validate_on_submit():
-        logger.warning("Form validation failed: %s", form.errors)
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f"{getattr(form, field).label.text}: {error}", 'error')
-        return render_template('admin/login.html', form=form)
-        
-    try:
-        email = form.email.data.lower().strip()
-        password = form.password.data
-        remember = form.remember_me.data
-        
-        logger.debug("Attempting login for email: %s", email)
-        
-        # Get admin user from database
-        admin_data = db_service.get_admin_by_email(email)
-        
-        if not admin_data:
-            logger.warning("Login failed - admin not found: %s", email)
-            flash('Invalid email or password', 'error')
-            return render_template('admin/login.html', form=form)
-            
-        # Verify password
-        if not check_password_hash(admin_data.get('password_hash', ''), password):
-            logger.warning("Login failed - invalid password for: %s", email)
-            flash('Invalid email or password', 'error')
-            return render_template('admin/login.html', form=form)
-            
-        # Check if account is active
-        if not admin_data.get('is_active', True):
-            logger.warning("Login failed - account inactive: %s", email)
-            flash('This account has been deactivated', 'error')
-            return render_template('admin/login.html', form=form)
-            
-        # Create user object
-        admin_user = Admin(**admin_data)
-        
-        # Log the user in
-        login_user(admin_user, remember=remember)
-        
-        # Update last login time
-        db_service.update_admin_last_login(admin_user.id)
-        
-        # Set session variables
-        session['user_id'] = admin_user.id
-        session['is_admin'] = True
-        session.permanent = True
-        
-        # Get the next URL from the form or query parameters
-        next_url = request.form.get('next') or request.args.get('next')
-        
-        # Validate the next URL to prevent open redirects
-        if next_url and not next_url.startswith('/'):
-            next_url = None
-            
-        logger.info("Admin login successful: %s", email)
-        
-        # Redirect to dashboard or next URL
-        return redirect(next_url or url_for('admin.dashboard'))
-        
-    except Exception as e:
-        logger.error("Error during login: %s\n%s", str(e), traceback.format_exc())
-        flash('An error occurred during login. Please try again.', 'error')
-        return render_template('admin/login.html', form=form)
 
 def admin_required(f):
     """Decorator to ensure the user is an admin."""
@@ -160,94 +86,69 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@admin_bp.route('/login', methods=['GET', 'POST'])
+def login_limiter(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):   
+        print("\n[DEBUG] ====== login_limiter decorator called ======")   
+        current_time = datetime.now(pytz.utc)
+        
+        # Initialize session variables if they don't exist
+        if 'login_attempts' not in session:
+            session['login_attempts'] = 0
+            session['first_attempt'] = current_time.timestamp()
+        
+        # Reset attempts if more than 5 minutes have passed since first attempt
+        time_since_first_attempt = current_time.timestamp() - session['first_attempt']
+        if time_since_first_attempt > 300:  # 5 minutes in seconds
+            session['login_attempts'] = 0
+            session['first_attempt'] = current_time.timestamp()
+        
+        # Check if too many attempts (increased to 10 for development)
+        max_attempts = 10  # Increased from 5 to 10
+        if session.get('login_attempts', 0) >= max_attempts:
+            time_left = int(300 - time_since_first_attempt)  # Time left in seconds
+            minutes, seconds = divmod(time_left, 60)
+            flash(f'Too many login attempts. Please try again in {minutes}m {seconds}s.', 'danger')
+            return redirect(url_for('login_selector')), 429  # 429: Too Many Requests
+        
+        # Increment login attempts
+        session['login_attempts'] = session.get('login_attempts', 0) + 1
+        session.modified = True
+        
+        # Log the attempt
+        print(f"[LOGIN] Login attempt {session['login_attempts']}/{max_attempts} from {request.remote_addr}")
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+@admin_bp.route('/login', methods=['GET'])
+def user_login():
+    """Render the user login page."""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    form = LoginForm()
+    return render_template('admin/login.html', form=form)
+
+@admin_bp.route('/login', methods=['POST'])
+@login_limiter
 def admin_login():
-    """Admin login page."""
-    print("\n[DEBUG] ====== admin_login route called ======")
-    print(f"[DEBUG] Method: {request.method}")
-    print(f"[DEBUG] Current user: {current_user}")
-    print(f"[DEBUG] Is authenticated: {current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else 'N/A'}")
-    
-    # Clear any existing flash messages at the start
-    clear_flash_messages()
-    
-    # If user is already logged in and is an admin, redirect to dashboard
-    if current_user.is_authenticated and hasattr(current_user, 'is_admin') and current_user.is_admin:
-        print("[DEBUG] User is already logged in as admin, redirecting to dashboard")
+    """Handle admin login form submission."""
+    print("\n[DEBUG] Admin login attempt started")
+    if current_user.is_authenticated and current_user.is_admin:
+        print("[DEBUG] Already logged in as admin, redirecting to admin dashboard")
         return redirect(url_for('admin.dashboard'))
     
     form = AdminLoginForm()
+    print(f"[DEBUG] Form data: {form.data}")
     
     if form.validate_on_submit():
-        print("\n[DEBUG] Form submitted, starting login process")
-        print(f"[DEBUG] Email: {form.email.data}")
-        
-        # Process the login
-        return process_login(form, is_admin=True)
-        try:
-            # Get user from database
-            user = db_service.get_user_by_email(email)
-            print(f"[DEBUG] User from DB: {user}")
-            
-            # Check if user exists and password is correct
-            if not user or not user.check_password(password):
-                print("[DEBUG] Invalid email or password")
-                flash('Invalid email or password', 'danger')
-                return redirect(url_for('admin.admin_login'))
-            
-            # Verify admin status
-            if not getattr(user, 'is_admin', False):
-                print("[DEBUG] User is not an admin")
-                flash('You do not have admin privileges', 'danger')
-                return redirect(url_for('admin.admin_login'))
-            
-            # Clear any existing session data
-            session.clear()
-            
-            # Log the user in
-            login_user(user, remember=remember_me)
-            print(f"[DEBUG] User {user.email} logged in successfully")
-            
-            # Set session variables
-            session.update({
-                'user_id': str(user.id),
-                'is_admin': True,
-                'full_name': user.full_name or '',
-                'email': user.email,
-                '_fresh': True  # Mark session as fresh
-            })
-            
-            # Set remember me cookie
-            if remember_me:
-                session.permanent = True
-                current_app.permanent_session_lifetime = timedelta(days=30)
-            
-            # Ensure session is saved
-            session.modified = True
-            
-            flash('Login successful!', 'success')
-            
-            # Get next URL safely
-            next_url = request.args.get('next')
-            if not next_url or not next_url.startswith('/'):
-                next_url = url_for('admin.dashboard')
-            
-            print(f"[DEBUG] Redirecting to: {next_url}")
-            return redirect(next_url)
-            
-        except Exception as e:
-            print(f"[ERROR] Login error: {str(e)}")
-            current_app.logger.error(f"Login error: {str(e)}", exc_info=True)
-            session.clear()
-            flash('An error occurred during login. Please try again.', 'danger')
+        print("[DEBUG] Form validation passed, processing login")
+        return auth_service.process_login(form, is_admin=True)
+    else:
+        print(f"[DEBUG] Form validation failed with errors: {form.errors}")
     
-    # For GET requests or failed form validation
-    next_url = request.args.get('next')
-    if next_url and not next_url.startswith('/'):
-        next_url = None
-    return render_template('admin/login.html', 
-                         form=form, 
-                         next=next_url)
+    return render_template('admin/login.html', form=form)
+
 
 @admin_bp.route('/register', methods=['GET', 'POST'])
 def register():

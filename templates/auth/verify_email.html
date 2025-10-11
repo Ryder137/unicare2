@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}Email Verification - UniCare{% endblock %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-5 col-md-7 col-sm-9">
+                <div class="card shadow border-0">
+                    <div class="card-body p-5">
+                        <!-- Logo/Header -->
+                        <div class="text-center mb-4">
+                            <h2 class="h4 text-primary fw-bold">
+                               <i class="bi bi-envelope-at-fill mb-3 text-primary fs-1"></i> Email Verification</h2>
+                        </div>
+
+                        <!-- Success Message -->
+                        <div id="successMessage" class="text-center mb-4" style="display: none;">
+                            <div class="mb-3">
+                                <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                            </div>
+                            <h3 class="h5 text-success fw-bold mb-3">Email Verified Successfully!</h3>
+                            <p class="text-muted mb-4">
+                                Your email has been verified. You can now sign in to your UniCare account.
+                            </p>
+                        </div>
+
+                        <!-- Error Message -->
+                        <div id="errorMessage" class="text-center mb-4" style="display: none;">
+                            <div class="mb-3">
+                                <i class="fas fa-exclamation-circle text-danger" style="font-size: 4rem;"></i>
+                            </div>
+                            <h3 class="h5 text-danger fw-bold mb-3">Verification Failed</h3>
+                            <p class="text-muted mb-4" id="errorText">
+                                The verification link is invalid or has expired.
+                            </p>
+                        </div>
+
+                        <!-- Loading Message -->
+                        <div id="loadingMessage" class="text-center mb-4">
+                            <div class="mb-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <h3 class="h5 text-primary fw-bold mb-3">Verifying Your Email</h3>
+                            <p class="text-muted mb-4">
+                                Please wait while we verify your email address...
+                            </p>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="text-center">
+                            <!-- Sign In Button (shown after successful verification) -->
+                            <div id="signinSection" style="display: none;">
+                                <a href="{{ url_for('user_login') }}" 
+                                   class="btn btn-primary btn-lg w-100 mb-3">
+                                    <i class="fas fa-sign-in-alt me-2"></i>
+                                    Sign In to Your Account
+                                </a>
+                                <p class="small text-muted">
+                                    Ready to access your UniCare dashboard
+                                </p>
+                            </div>
+
+                            <!-- Retry/Resend Button (shown after error) -->
+                            <div id="retrySection" style="display: none;">
+                                <button id="resendBtn" class="btn btn-outline-primary btn-lg w-100 mb-3">
+                                    <i class="fas fa-envelope me-2"></i>
+                                    Resend Verification Email
+                                </button>
+                                <p class="small text-muted">
+                                    Or <a href="{{ url_for('user_login') }}" class="text-decoration-none">go back to login</a>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Help Section -->
+                        <div class="text-center mt-4 pt-3 border-top">
+                            <p class="small text-muted">
+                                Need help? <a href="mailto:support@unicare.com" class="text-decoration-none">Contact Support</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Info Card -->
+                <div class="text-center mt-4">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body py-3">
+                            <small>
+                                <i class="fas fa-shield-alt me-2"></i>
+                                Your account security is important to us
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notifications -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055;">
+    <div id="verificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="fas fa-info-circle text-primary me-2"></i>
+            <strong class="me-auto">Verification Status</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toastMessage">
+            <!-- Toast message will be inserted here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenHash = urlParams.get('token_hash');
+    const type = urlParams.get('type') || 'email';
+    const error = urlParams.get('error');
+    const errorDescription = urlParams.get('error_description');
+
+    // Elements
+    const loadingMessage = document.getElementById('loadingMessage');
+    const successMessage = document.getElementById('successMessage');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    const signinSection = document.getElementById('signinSection');
+    const retrySection = document.getElementById('retrySection');
+    const resendBtn = document.getElementById('resendBtn');
+
+    // Check if there's an error in URL params (from Supabase)
+    if (error) {
+        showError(errorDescription || 'Verification failed. Please try again.');
+        return;
+    }
+
+    // Verify the token with backend
+    verifyToken(tokenHash, type);
+
+    function verifyToken(token, type) {
+        fetch('/auth/verify-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+            },
+            body: JSON.stringify({
+                token_hash: token,
+                type: type
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccess();
+                showToast('Email verified successfully!', 'success');
+            } else {
+                showError(data.error || 'Verification failed. Please try again.');
+                showToast(data.error || 'Verification failed', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Verification error:', error);
+            showError('Unable to verify email. Please check your connection and try again.');
+            showToast('Connection error. Please try again.', 'error');
+        });
+    }
+
+    function showSuccess() {
+        loadingMessage.style.display = 'none';
+        errorMessage.style.display = 'none';
+        successMessage.style.display = 'block';
+        signinSection.style.display = 'block';
+        retrySection.style.display = 'none';
+
+        // Auto-redirect to login after 3 seconds
+        setTimeout(() => {
+            window.location.href = "{{ url_for('user_login') }}";
+        }, 3000);
+    }
+
+    function showError(message) {
+        loadingMessage.style.display = 'none';
+        successMessage.style.display = 'none';
+        errorMessage.style.display = 'block';
+        errorText.textContent = message;
+        signinSection.style.display = 'none';
+        retrySection.style.display = 'block';
+    }
+
+    function showToast(message, type) {
+        const toast = document.getElementById('verificationToast');
+        const toastMessage = document.getElementById('toastMessage');
+        const icon = toast.querySelector('.toast-header i');
+        
+        // Update toast content
+        toastMessage.textContent = message;
+        
+        // Update icon based on type
+        if (type === 'success') {
+            icon.className = 'fas fa-check-circle text-success me-2';
+        } else {
+            icon.className = 'fas fa-exclamation-circle text-danger me-2';
+        }
+        
+        // Show toast
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    }
+
+    console.log('resendBtn is not null before');
+    // Resend verification email
+    if (resendBtn) {
+      console.log('resendBtn is not null');
+      resendBtn.addEventListener('click', function() {
+          const btn = this;
+          const originalText = btn.innerHTML;
+          
+          // Show loading state
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+          btn.disabled = true;
+          
+          // Get email from session or prompt user
+          const email = prompt('Please enter your email address:');
+          
+          if (!email) {
+              btn.innerHTML = originalText;
+              btn.disabled = false;
+              return;
+          }
+          
+          fetch('/auth/resend-verification', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+              },
+              body: JSON.stringify({
+                  email: email
+              })
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  showToast('Verification email sent! Please check your inbox.', 'success');
+                  btn.innerHTML = '<i class="fas fa-check me-2"></i>Email Sent!';
+                  btn.classList.remove('btn-outline-primary');
+                  btn.classList.add('btn-success');
+              } else {
+                  showToast(data.error || 'Failed to send email', 'error');
+                  btn.innerHTML = originalText;
+                  btn.disabled = false;
+              }
+          })
+          .catch(error => {
+              console.error('Resend error:', error);
+              showToast('Failed to send email. Please try again.', 'error');
+              btn.innerHTML = originalText;
+              btn.disabled = false;
+          });
+      });
+    }else{
+      console.error('Resend button not found in the DOM.');
+    }
+
+    // Check if token is present
+    if (!tokenHash) {
+        showError('Invalid verification link. Please check your email for the correct link.');
+        return;
+    }
+
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card {
+    border-radius: 1rem;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Fix for btn-outline-primary text visibility */
+.btn-outline-primary {
+    color: var(--bs-primary) !important;
+    border-color: var(--bs-primary);
+    background-color: transparent;
+}
+
+.btn-outline-primary:hover {
+    color: white !important;
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.btn-outline-primary:focus,
+.btn-outline-primary:active {
+    color: white !important;
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+@media (max-width: 576px) {
+    .card-body {
+        padding: 2rem !important;
+    }
+    
+    .col-sm-9 {
+        margin: 0 1rem;
+    }
+}
+
+/* Animation for success/error messages */
+#successMessage, #errorMessage {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Pulse animation for loading */
+.spinner-border {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+</style>
+{% endblock %}

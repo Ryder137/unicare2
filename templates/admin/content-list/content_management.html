@@ -1,0 +1,93 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Content Management - UNICARE Back Office{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0 text-gray-800">Content Management</h1>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addContentModal">
+            <i class="fas fa-plus-circle me-1"></i> Add Content
+        </button>
+    </div>
+    <!-- Content List Table -->
+    <div class="card shadow mb-2">
+      <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">LIST OF CONTENT</h6>
+        <div class="d-flex">
+          <div class="input-group input-group-sm me-1" style="width: 250px;">
+              <input type="text" class="form-control" placeholder="Search content..." id="searchInput">
+              <button class="btn btn-outline-secondary" type="button">
+                  <i class="fas fa-search"></i>
+              </button>
+          </div>
+          <div class="dropdown">
+              <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="fas fa-filter"></i> Filter
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
+                  <li><a class="dropdown-item" href="#" data-filter="all">All Content</a></li>
+                  <li><a class="dropdown-item" href="#" data-filter="active">Active</a></li>
+                  <li><a class="dropdown-item" href="#" data-filter="inactive">Inactive</a></li>
+              </ul>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+              <table class="table table-bordered" id="contentTable" width="100%" cellspacing="0">
+                  <!-- Table content must load here -->
+                  <!-- This will be populated via AJAX and used user_table_list.html template -->
+              </table>
+          </div>
+      </div>
+
+    </div>
+
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable
+        function LoadContentList(){
+          if ($.fn.DataTable.isDataTable('#contentTable')) {
+            $('#contentTable').DataTable().destroy();
+          }
+
+          $.get('/content/list', function(response) {
+            $('#contentTable').html(response.html);
+            // Initialize DataTable
+            window.contentTable = $('#contentTable').DataTable({
+              order: [[1, 'asc']],
+              pageLength: 25,
+              responsive: true,
+              columnDefs: [
+                { orderable: false, targets: [0, 6] },
+                { searchable: false, targets: [0, 5, 6] }
+              ],
+              language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search contents...",
+                lengthMenu: "Show _MENU_ contents per page",
+                zeroRecords: "No matching contents found",
+                info: "Showing _START_ to _END_ of _TOTAL_ contents",
+                infoEmpty: "No contents available",
+                infoFiltered: "(filtered from _MAX_ total contents)"
+              },
+              dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                  "<'row'<'col-sm-12'tr>>" +
+                  "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
+            });
+          });
+        }
+
+        // Load Content DataTable
+        LoadContentList();
+
+    });
+</script>
+{% endblock %}

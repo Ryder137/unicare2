@@ -1,0 +1,56 @@
+{% block content %}
+  <thead>
+      <tr>
+          <th width="40">
+              <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="selectAll">
+              </div>
+          </th>
+          <th>Author</th>
+          <th>Messages</th>
+          <th>Status</th>
+          <th>Date Created</th>
+          <th>Actions</th>
+          <th class="d-none">hidden_status</th>
+      </tr>
+  </thead>
+  <tbody>
+    {% for content in contents %}
+      <tr data-content-id="{{ content['id'] }}" data-status="{{ 'active' if content['is_active'] else 'inactive' }}" data-role="{{ content['role']|lower }}">
+        <td>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="selectContent{{ content['id'] }}">
+          </div>
+        </td>
+        <td>{{ content['author'] }}</td>
+        <td>{{ content['messages'] }}</td>
+        <td>
+            <span class="badge bg-{{ 'success' if content['is_active'] else 'secondary' }}">
+              {{ 'Active' if content['is_active'] else 'Inactive' }}
+            </span>
+          </td>
+        <td>{{ content['created_at']|parse_iso_datetime|datetimeformat('%m/%d/%Y %I:%M %p') }}</td>
+        <td>
+          <div class="d-flex justify-content-center align-items-center gap-1">
+            <button class="btn btn-info btn-sm view-content" data-content-id="{{ content['id'] }}">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editContentModal{{ content['id'] }}">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-{{ 'secondary' if content['is_active'] else 'success' }} btn-sm toggle-status" 
+                  data-user-id="{{ content['id'] }}" 
+                  data-status="{{ content['is_active'] }}"
+                  title="{{ 'Deactivate' if content['is_active'] else 'Activate' }}">
+                <i class="fas fa-{{ 'toggle-on' if content['is_active'] else 'toggle-off' }}"></i>
+            </button>
+            <button class="btn btn-danger btn-sm delete-user" data-user-id="{{ content['id'] }}" title="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>    
+        </td>
+        <td class="d-none">{{ content['hidden_status'] }}</td>
+      </tr>
+    {% endfor %}  
+  </tbody>
+{% endblock %}

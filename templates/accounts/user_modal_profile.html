@@ -13,26 +13,30 @@
       <div class="row border-bottom border-gray border-1 mb-3 ">
         <div class="col-md-6 mb-3">
             <h6 class="text-muted">Contact Information</h6>
-            <p class="mb-1"><i class="fas fa-envelope me-2 text-muted"></i> {{ user.email }}</p>
-            <p class="mb-1">
-                <i class="fas fa-circle me-2 text-{{ 'success' if user.is_verified else 'secondary' }}"></i>
-                {{ 'Verified Email Address' if user.is_verified else 'Unverified Email Address' }}
-            </p>
+            <p class="mb-1"><i class="fas fa-envelope me-2 text-muted"></i> {{ user.email }}</p>        
             <p class="mb-1">
                 <i class="fas fa-circle me-2 text-{{ 'success' if user.is_active else 'secondary' }}"></i>
                 {{ 'Active' if user.is_active else 'Inactive' }} Account
+            </p>
+                <p class="mb-1">
+                <i class="fas fa-circle me-2 text-{{ 'success' if user.is_verified else 'secondary' }}"></i>
+                {{ 'Verified Email Address' if user.is_verified else 'Unverified Email Address' }}
             </p>
         </div>
         <div class="col-md-6 mb-3">
             <h6 class="text-muted">Account Details</h6>
             <p class="mb-1">
               <span class="fw-semibold">Member Since: </span>  
-              {{ user.created_at|parse_iso_datetime|datetimeformat('%B %d, %Y') }}
+              {{ auth_user.created_at|parse_iso_datetime|datetimeformat('%B %d, %Y') }}
             </p>
             <p class="mb-1">
               <span class="fw-semibold">Last Login: </span> 
-              {{ user.last_login_at|parse_iso_datetime|datetimeformat('%m/%d/%Y %I:%M %p') if user.last_login_at else 'Never' }}
+              {{ auth_user.last_sign_in_at|parse_iso_datetime|datetimeformat('%m/%d/%Y %I:%M %p') if auth_user.last_sign_in_at else 'Never' }}
             </p>
+            
+            {% if not user.is_verified %}
+              <a id="send-verification" class="btn btn-sm btn-outline-primary" href="#">Send Email Verification</a>  
+            {% endif %}
         </div>
       </div>
       {% if user.role == 'psychologist' and psych_user %}
@@ -93,4 +97,98 @@
           </div>
       </div>
   </div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.getElementById('send-verification').addEventListener('click', function(e) {
+      e.preventDefault();
+
+      const userId = '{{ user.user_id }}'; // Get user ID from template
+      const button = this;
+      const originalText = button.innerHTML;
+
+       // Show loading state
+      button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Sending...';
+      button.disabled = true;
+
+       // Make AJAX request
+      fetch(`/accounts/user/send_verification/${userId}`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+          }
+      })
+      .then(response => response.json())
+      .then(data => {
+          console.log('Response data:', data);
+          if (data.status === 'success') {
+              console.log('Data status is success');
+              // Show success message
+              button.innerHTML = '<i class="fas fa-check me-1"></i>Sent!';
+              button.classList.remove('btn-outline-primary');
+              button.classList.add('btn-success');
+              
+              // Show toast notification (if you have Bootstrap toast)
+              showToast('Success', 'Verification email sent successfully!', 'success');
+              
+              // Optionally hide the button after successful send
+              setTimeout(() => {
+                  button.style.display = 'none';
+              }, 2000);
+          } else {
+              console.log('Data status is not success');
+              throw new Error(data.message || 'Failed to send verification email');
+          }
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          
+          // Reset button state
+          button.innerHTML = originalText;
+          button.disabled = false;
+          
+          // Show error message
+          showToast('Error', error.message || 'Failed to send verification email', 'error');
+      });
+  });
+
+   // Toast notification function (optional - requires Bootstrap toast)
+  function showToast(title, message, type = 'info') {
+      const toastContainer = document.getElementById('toast-container') || createToastContainer();
+      console.log(`Toast status: ${title}, ${message}, ${type}`);
+      const toastHtml = `
+          <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="toast-header">
+                  <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger'} me-2"></i>
+                  <strong class="me-auto">${title}</strong>
+                  <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+              </div>
+              <div class="toast-body">
+                  ${message}
+              </div>
+          </div>
+      `;
+      
+      toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+      const toastElement = toastContainer.lastElementChild;
+      const toast = new bootstrap.Toast(toastElement);
+      toast.show();
+      
+      // Remove toast element after it's hidden
+      toastElement.addEventListener('hidden.bs.toast', () => {
+          toastElement.remove();
+      });
+  }
+
+  // Create toast container if it doesn't exist
+  function createToastContainer() {
+      const container = document.createElement('div');
+      container.id = 'toast-container';
+      container.className = 'toast-container position-fixed top-0 end-0 p-3';
+      container.style.zIndex = '1055';
+      document.body.appendChild(container);
+      return container;
+  }
+</script>
 {% endblock %}
