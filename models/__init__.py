@@ -17,6 +17,7 @@ from .admin_user import AdminUser
 from .client import Client
 from .appointment import Appointment
 from .accounts import AccountsModel,PsychologistDetailModel
+from .audit_trail_model import AuditTrailModel
 
 # Make models available at package level
 __all__ = [
@@ -31,5 +32,6 @@ __all__ = [
     'Client',
     'Appointment',
     'AccountsModel',
-    'PsychologistDetailModel'
+    'PsychologistDetailModel',
+    'AuditTrailModel'
 ]

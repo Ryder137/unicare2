@@ -15,6 +15,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from forms import RegisterForm
 from models.accounts import AccountsModel,PsychologistDetailModel
 
+
 # Add the project root to the Python path first
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
@@ -22,6 +23,7 @@ if project_root not in sys.path:
 
 # Now import the accounts repository service
 from services.accounts_reposervice import account_repo_service
+from services.auth_service import auth_service
 
 # Import Supabase client
 from supabase import create_client, Client
@@ -440,9 +442,13 @@ def modal_view_user(user_id):
         psych_result = account_repo_service.get_psychologist_details(user_id)
         psych_user = psych_result.data[0] if hasattr(psych_result, "data") and psych_result.data else None
       
+      auth_user = auth_service.get_auth_user_by_id(user_id)
+      print(f"[DEBUG] Auth User Data: {auth_user}")
+      
       return render_template('accounts/user_modal_profile.html', 
                              user=user, 
                              psych_user=psych_user,
+                             auth_user=auth_user,
                              now=datetime.now())
     except Exception as e:
       print(f"[ERROR] Failed to load user modal form: {str(e)}")
@@ -458,3 +464,45 @@ def users_data():
   table_rows = render_template('accounts/user_table_list.html', users=users)
   
   return jsonify({'html': table_rows})
+
+@accounts_bp.route('/user/send_verification/<user_id>', methods=['POST'])
+@login_required
+def send_verification_email(user_id):
+    print("\n[DEBUG] ====== send_verification_email route called ======")
+    print(f"[DEBUG] User ID to send verification email: {user_id}")
+
+    if not user_id:
+        return jsonify({'error': 'Invalid request no id provided.'}), 400
+
+    try:
+        user_result = account_repo_service.get_account_by_user_id(user_id)
+        print(f"[DEBUG] Retrieved user result: {user_result}")
+        if not user_result:
+            return jsonify({'error': 'User not found.'}), 404
+        # Fix: Access the user data correctly
+        user_data = user_result.data[0] if hasattr(user_result, "data") and user_result.data else None
+        if not user_data:
+            return jsonify({'error': 'User data not found.'}), 404
+
+        email = user_data.get('email')
+        if not email:
+            return jsonify({'error': 'User email not found.'}), 404
+        
+        print(f"[DEBUG] Sending verification email to: {email}")
+        
+        # Send verification email via Supabase
+        response = auth_service.send_verification_email(email)
+        
+        print(f"[DEBUG] Supabase response: {response}")
+        
+         # Check for errors in the response
+        if response and hasattr(response, 'error') and response.error:
+            print(f"[ERROR] Supabase send verification error: {response.error}")
+            return jsonify({'error': 'Failed to send verification email.'}), 500
+        
+        print(f"[DEBUG] Verification email sent to: {email}")
+        return jsonify({'message': 'Verification email sent successfully.', 'status': 'success'}), 200
+
+    except Exception as e:
+        print(f"[ERROR] Failed to send verification email: {str(e)}")
+        return jsonify({'error': 'Failed to send verification email.'}), 500

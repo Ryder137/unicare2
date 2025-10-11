@@ -43,6 +43,7 @@ from services.auth_service import auth_service
 # Import models
 from models.accounts import AccountsModel, AccountsModelDto
 from services.auth_service import auth_service
+
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -296,12 +297,14 @@ def register_blueprints(app):
     from routes.guidance_routes import guidance_bp
     from routes.accounts_routes import accounts_bp
     from routes.content_routes import content_bp
+    from routes.auth_routes import auth_bp
     
     # Register blueprints with URL prefixes
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(guidance_bp, url_prefix='/guidance')
     app.register_blueprint(accounts_bp, url_prefix='/accounts')
     app.register_blueprint(content_bp, url_prefix='/content')
+    app.register_blueprint(auth_bp, url_prefix='/auth')
     
     # Import and register other blueprints when they're available
     # from routes.auth import auth_bp

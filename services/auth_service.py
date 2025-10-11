@@ -1,16 +1,10 @@
+import os
 from werkzeug.security import check_password_hash
 from models import Psychologist, GuidanceCounselor, Client, Admin
 from config import init_supabase
 
-from flask import (
-    Flask, render_template, request, jsonify, session, g, flash, 
-    redirect, url_for, current_app, abort, send_from_directory
-)
-
-from flask_login import (
-    LoginManager, UserMixin, login_user, login_required, 
-    logout_user, current_user
-)
+from flask import render_template, request, session, g, flash, redirect, url_for
+from flask_login import login_user , current_user
 
 from services.accounts_reposervice import account_repo_service
 from models.user import User
@@ -19,9 +13,11 @@ class AuthService:
   def __init__(self):
     try:
       self.supabase: Client = init_supabase()
+      self.supabase_role: Client = init_supabase(True)
     except Exception as e:
       print(f"[Supabase] ❌ Failed to initialize in DatabaseService: {str(e)}")
       self.supabase = None
+      self.supabase_role = None
 
   def authenticate_user(self, credentials: dict):
       try:
@@ -37,7 +33,6 @@ class AuthService:
           import traceback
           print(traceback.format_exc())
           return None
-
 
   """Process login for both users and admins."""
   def process_login(self, form, is_admin=False):
@@ -138,6 +133,97 @@ class AuthService:
 
       print(f"[DEBUG] Redirecting to user dashboard: {url_for('dashboard')}")
       return redirect(url_for('dashboard'))
+  
+  def send_verification_email(self, email):
+      """Send email verification for new user or resend for existing user"""
+      try:
+          # Resend verification for existing user
+          response = self.supabase.auth.resend({
+              "type": "signup",
+              "email": email,
+              "options": {
+                  "email_redirect_to": f"{os.getenv('APP_URL')}/auth/verify-email"
+              }
+          })
+          
+          #Get Account By Email
+          user_account = account_repo_service.get_account_by_email(email)
+          user = user_account.data[0] if user_account and user_account.data else None
+          if not user:
+              print(f"[ERROR] No user account found for email: {email}")
+              return {"success": False, "error": "User account not found"}
+          
+          #Update user_accounts verified email
+          resp = account_repo_service.update_account(user.get('user_id'), {"is_verified": True})
+          
+          return {"success": True, "data": response}
+      except Exception as e:
+          return {"success": False, "error": str(e)}
+  
+  def get_auth_user_by_id(self, user_id: str):
+    """Fetch user data from auth.users table by user ID"""
+    try:
+        if not self.supabase_role:
+            print("[ERROR] Service role client not initialized")
+            return None
+            
+        # Use admin client to get user from auth.users
+        response = self.supabase_role.auth.admin.get_user_by_id(user_id)
         
+        if response.user:
+            print(f"[DEBUG] Auth user found: {response.user.email}")
+            return response.user
+        else:
+            print(f"[DEBUG] No auth user found with ID: {user_id}")
+            return None
+            
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch auth user: {str(e)}")
+        return None
+  
+  def get_auth_user_by_email(self, email: str):
+    """Fetch user data from auth.users table by email"""
+    try:
+        if not self.supabase_role:
+            print("[ERROR] Service role client not initialized")
+            return None
+            
+        # List users and filter by email (since there's no direct get by email)
+        response = self.supabase_role.auth.admin.list_users()
+        
+        if response.users:
+            for user in response.users:
+                if user.email and user.email.lower() == email.lower():
+                    print(f"[DEBUG] Auth user found by email: {user.email}")
+                    return user
+                    
+        print(f"[DEBUG] No auth user found with email: {email}")
+        return None
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch auth user by email: {str(e)}")
+        return None
+    
+  def get_all_auth_users(self):
+    """Get all users from auth.users table"""
+    try:
+        if not self.supabase_role:
+            print("[ERROR] Service role client not initialized")
+            return None
+            
+        response = self.supabase_role.auth.admin.list_users()
+        
+        if response.users:
+            print(f"[DEBUG] Found {len(response.users)} auth users")
+            return response.users
+        else:
+            print("[DEBUG] No auth users found")
+            return []
+            
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch all auth users: {str(e)}")
+        return None  
+        
+  
 # Singleton instance
 auth_service = AuthService()

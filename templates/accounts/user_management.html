@@ -159,9 +159,6 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary edit-user" data-bs-dismiss="modal">
-                    <i class="fas fa-edit me-1"></i> Edit User
-                </button>
             </div>
         </div>
     </div>
@@ -402,6 +399,8 @@ $(document).ready(function() {
 
     // Toggle user status
     $(document).on('click', '.toggle-status', function() {
+        console.log('Toggling status for user:', $(this).data('user-id'));
+      
         const button = $(this);
         const userId = button.data('user-id');
         const currentStatus = button.data('status');
@@ -413,48 +412,54 @@ $(document).ready(function() {
         button.prop('disabled', true);
         
         // In a real app, you would make an AJAX call to update the status
-        setTimeout(() => {
-            $.ajax({
-                url: `/accounts/user/setstatus/${userId}`,
-                type: 'PUT',
-                xhrFields: { withCredentials: true },
-                headers: {
-                    'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-                },
-                contentType: 'application/json',
-                data: JSON.stringify({ status: newStatus ? 'active' : 'inactive' }),
-                success: function(response) {
-                  // Update UI
-                  button.data('status', newStatus);
-                  button.toggleClass('btn-secondary', newStatus).toggleClass('btn-success', !newStatus);
-                  button.attr('title', newStatus ? 'Deactivate' : 'Activate');
-                  button.find('i').toggleClass('fa-toggle-on fa-toggle-off');
-                  
-                  // Update status badge
-                  const row = button.closest('tr');
-                  // Assuming the status badge is in the 5th column (index 4)
-                  const statusBadge = row.find('td:eq(4) .badge');
-                  statusBadge.removeClass('bg-secondary bg-success')
-                            .addClass(newStatus ? 'bg-success' : 'bg-secondary')
-                            .text(newStatus ? 'Active' : 'Inactive');
-                  
-                  // Restore button state
-                  button.html(originalHtml);
-                  button.prop('disabled', false);
+        $.ajax({
+            url: `/accounts/user/setstatus/${userId}`,
+            type: 'PUT',
+            xhrFields: { withCredentials: true },
+            headers: {
+                'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+            },
+            contentType: 'application/json',
+            data: JSON.stringify({ status: newStatus ? 'active' : 'inactive' }),
+            success: function(response) {
+              console.log('User status updated successfully:', response);
+              // Update UI
+              button.data('status', newStatus);
+              button.toggleClass('btn-secondary', newStatus).toggleClass('btn-success', !newStatus);
+              button.attr('title', newStatus ? 'Deactivate' : 'Activate');
+              button.find('i').toggleClass('fa-toggle-on fa-toggle-off');
+              
+              // Update status badge
+              const row = button.closest('tr');
+              // Assuming the status badge is in the 5th column (index 4)
+              const statusBadge = row.find('td:eq(4) .badge');
+              statusBadge.removeClass('bg-secondary bg-success')
+                        .addClass(newStatus ? 'bg-success' : 'bg-secondary')
+                        .text(newStatus ? 'Active' : 'Inactive');
+              
+              // Restore button state
+              button.html(originalHtml);
+              button.prop('disabled', false);
 
-                  Swal.fire({
-                    icon: 'success',
-                    title: 'Change Status Successfully',
-                    html: `User status has been changed to ${newStatus ? 'Active' : 'Inactive'}.`,
-                    showConfirmButton: false,
-                    timer: 2000
-                  });
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error updating user status:', error);
-                }
-            });
-        }, 800);
+              Swal.fire({
+                icon: 'success',
+                title: 'Change Status Successfully',
+                html: `User status has been changed to ${newStatus ? 'Active' : 'Inactive'}.`,
+                showConfirmButton: false,
+                timer: 2000
+              });
+            },
+            error: function(xhr, status, error) {
+              console.error('Error updating user status:', error);
+              Swal.fire({
+                icon: 'error',
+                title: 'Change Status Failed',
+                html: `Failed to change user status to ${newStatus ? 'Active' : 'Inactive'}.`,
+                showConfirmButton: false,
+                timer: 2000
+              });
+            }
+        });
     });
 
     // Delete user

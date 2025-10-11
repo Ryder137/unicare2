@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import time
 class AccountRepoService:
   def __init__(self):
-    
     try:
       self.supabase: Client = init_supabase(False)
       self.supabase_role: Client = init_supabase(True)
@@ -50,7 +49,13 @@ class AccountRepoService:
         print(f"[DEBUG] Inserting Account Image URL: {accounts_data['image']}")
       
         result = self.supabase.table('user_accounts').insert(accounts_data).execute()
-        inserted_id = result.data[0]['id'] if result.data else None
+        
+        # Send verification email via Supabase
+        time.sleep(2)  # Wait for 2 seconds to ensure user creation is fully processed
+        from services.auth_service import auth_service
+        response = auth_service.send_verification_email(account.email)
+        print(f"[DEBUG] Supabase email verification response: {response}")
+        
         return user_id
     else:
         print(f"[ERROR] User creation failed: {response}")
@@ -82,15 +87,11 @@ class AccountRepoService:
         }
     )
     return response
-  
-  def send_email_verification(self, user_id: str):
-    response = self.supabase.auth.admin.send_email_verification_email(user_id)
-    return response
 
   def update_account(self, id: str, account):
     return (self.supabase.table('user_accounts')
                 .update(account)
-                .eq('id', id)
+                .eq('user_id', id)
                 .execute())
     
   def update_psychologist_detail(self, user_id: str, details):
@@ -102,7 +103,7 @@ class AccountRepoService:
   def delete_account(self, id: str):
     return (self.supabase.table('user_accounts')
                 .update({'is_deleted': True})
-                .eq('id', id)
+                .eq('user_id', id)
                 .execute())
   
   def get_all_accounts(self):
@@ -114,13 +115,22 @@ class AccountRepoService:
     return result
   
   def get_account_by_user_id(self, user_id: str):
-    return self.supabase.table('user_accounts').select('*').eq('user_id', user_id).execute()
+    return (self.supabase.table('user_accounts')
+                .select('*')
+                .eq('user_id', user_id)
+                .execute())
 
   def get_account_by_role(self, role: str):
-    return self.supabase.table('user_accounts').select("*").eq('role', role).execute()
+    return (self.supabase.table('user_accounts')
+                .select("*")
+                .eq('role', role)
+                .execute())
 
   def get_account_by_email(self, email: str):
-    return self.supabase.table('user_accounts').select('*').eq('email', email.lower().strip()).execute()
+    return (self.supabase.table('user_accounts')
+                .select('*')
+                .eq('email', email.lower().strip())
+                .execute())
 
   def update_attempts(self, email: str, role: str, attempts: int):
     return (self.supabase.table('user_accounts')
