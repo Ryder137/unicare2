@@ -24,6 +24,7 @@ class AccountsModel():
 
 class AccountsModelDto():
   def __init__(self, id: str,
+               user_id: str,
                first_name: str, 
                middle_name: str, 
                last_name: str, 
@@ -40,6 +41,7 @@ class AccountsModelDto():
                is_authenticated: bool = False,
                username: str = None):
     self.id = id
+    self.user_id = user_id
     self.first_name = first_name
     self.middle_name = middle_name
     self.last_name = last_name

@@ -298,6 +298,7 @@ def register_blueprints(app):
     from routes.accounts_routes import accounts_bp
     from routes.content_routes import content_bp
     from routes.auth_routes import auth_bp
+    from routes.audit_routes import audit_bp
     
     # Register blueprints with URL prefixes
     app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -305,6 +306,7 @@ def register_blueprints(app):
     app.register_blueprint(accounts_bp, url_prefix='/accounts')
     app.register_blueprint(content_bp, url_prefix='/content')
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(audit_bp, url_prefix='/audit') 
     
     # Import and register other blueprints when they're available
     # from routes.auth import auth_bp
