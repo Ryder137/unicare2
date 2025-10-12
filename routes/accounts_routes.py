@@ -14,7 +14,7 @@ from flask_login import current_user, login_required, login_url, login_user, log
 from werkzeug.security import check_password_hash, generate_password_hash
 from forms import RegisterForm
 from models.accounts import AccountsModel,PsychologistDetailModel
-
+from utils.audit_decorator import audit_action
 
 # Add the project root to the Python path first
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -88,7 +88,10 @@ def management():
         'new_users_count': new_users_count,
         'pending_counts': pending_counts
       }
-    
+
+      auditResp = audit_action("viewed user management", "AccountsModel")(lambda: None)()
+      print(f"[DEBUG] Audit log response: {auditResp}")
+
       return render_template('accounts/user_management.html',
         users= users_data,
         user_counts=user_counts,

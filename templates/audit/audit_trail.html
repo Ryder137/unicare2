@@ -1,0 +1,391 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Audit Trail - UniCare{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">System Audit Trail</h3>
+                    <div class="d-flex align-items-center">
+                        <label for="perPageSelect" class="form-label me-2 mb-0">Items per page:</label>
+                        <select id="perPageSelect" class="form-select form-select-sm" style="width: auto;">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Loading indicator -->
+                    <div id="loadingIndicator" class="text-center py-4" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading audit trail data...</p>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="auditTrailTable">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Username</th>
+                                    <th>Action</th>
+                                    <th>Resource</th>
+                                    <th>IP Address</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTrailBody">
+                                <!-- Data will be loaded via AJAX -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination Info -->
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div id="paginationInfo" class="text-muted">
+                                <!-- Pagination info will be loaded here -->
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Pagination Controls -->
+                            <nav aria-label="Audit trail pagination">
+                                <ul class="pagination justify-content-end mb-0" id="paginationControls">
+                                    <!-- Pagination buttons will be loaded here -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentPage = 1;
+let perPage = 25;
+let totalPages = 1;
+
+$(document).ready(function() {
+    console.log('[DEBUG] Document ready, loading audit trail...');
+    loadAuditTrail(currentPage, perPage);
+    
+    // Handle per page change
+    $('#perPageSelect').change(function() {
+        perPage = parseInt($(this).val());
+        currentPage = 1; // Reset to first page
+        loadAuditTrail(currentPage, perPage);
+    });
+});
+
+function loadAuditTrail(page = 1, itemsPerPage = 25) {
+    console.log(`[DEBUG] Loading audit trail - Page: ${page}, Per page: ${itemsPerPage}`);
+    
+    // Show loading indicator
+    $('#loadingIndicator').show();
+    $('#auditTrailTable').hide();
+    
+    $.ajax({
+        url: 'audit-trail/data',
+        method: 'GET',
+        data: {
+            page: page,
+            per_page: itemsPerPage
+        },
+        success: function(response) {
+            console.log('[DEBUG] AJAX success:', response);
+            
+            // Hide loading indicator
+            $('#loadingIndicator').hide();
+            $('#auditTrailTable').show();
+            
+            const tbody = $('#auditTrailBody');
+            tbody.empty();
+            
+            if (response.audit_trails && response.audit_trails.length > 0) {
+                response.audit_trails.forEach(function(trail) {
+                    const timestamp = new Date(trail.timestamp);
+                    const formattedDate = timestamp.toLocaleDateString();
+                    const formattedTime = timestamp.toLocaleTimeString();
+                    
+                    const row = `
+                        <tr>
+                            <td>
+                                <small>${formattedDate}</small>
+                                <br>
+                                <small class="text-muted">${formattedTime}</small>
+                            </td>
+                            <td>
+                                <span class="font-monospace text-sm">${trail.email_name}</span>
+                                <br>
+                                <small class="text-muted">${trail.user_id}</small>
+                            </td>
+                            <td>
+                                <small class="badge bg-primary">${trail.action}</small>
+                            </td>
+                            <td>
+                                <small>${trail.resource_type}</small>
+                                ${trail.resource_id ? '<br><small class="text-muted">ID: ' + trail.resource_id + '</small>' : ''}
+                            </td>
+                            <td>
+                              <small>${trail.ip_address || '<span class="text-muted">N/A</span>'}</small>
+                            </td>
+                            <td>
+                                <small>
+                                ${trail.details ? 
+                                    '<button class="btn btn-sm btn-outline-info" onclick="showDetails(\'' + trail.id + '\', \'' + escapeHtml(trail.details) + '\')">View</button>' : 
+                                    '<span class="text-muted">N/A</span>'
+                                }
+                                </small>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.append(row);
+                });
+                
+                // Update pagination
+                updatePagination(response.pagination);
+                
+                console.log(`[DEBUG] Added ${response.audit_trails.length} rows to table`);
+            } else {
+                tbody.html('<tr><td colspan="6" class="text-center">No audit trail data found</td></tr>');
+                updatePagination(null);
+                console.log('[DEBUG] No audit trail data found');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('[ERROR] AJAX request failed:', {
+                status: xhr.status,
+                statusText: xhr.statusText,
+                responseText: xhr.responseText,
+                error: error
+            });
+            
+            // Hide loading indicator
+            $('#loadingIndicator').hide();
+            $('#auditTrailTable').show();
+            
+            const tbody = $('#auditTrailBody');
+            tbody.html(`
+                <tr>
+                    <td colspan="6" class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle mb-2"></i><br>
+                        Failed to load audit trail data.<br>
+                        <small>Status: ${xhr.status} - ${error}</small><br>
+                        <button class="btn btn-sm btn-primary mt-2" onclick="loadAuditTrail(${page}, ${itemsPerPage})">
+                            <i class="fas fa-redo"></i> Retry
+                        </button>
+                    </td>
+                </tr>
+            `);
+            
+            updatePagination(null);
+        }
+    });
+}
+
+function updatePagination(pagination) {
+    const paginationInfo = $('#paginationInfo');
+    const paginationControls = $('#paginationControls');
+    
+    if (!pagination) {
+        paginationInfo.html('');
+        paginationControls.html('');
+        return;
+    }
+    
+    // Update pagination info
+    const startItem = ((pagination.current_page - 1) * pagination.per_page) + 1;
+    const endItem = Math.min(pagination.current_page * pagination.per_page, pagination.total_items);
+    
+    paginationInfo.html(`
+        Showing ${startItem} to ${endItem} of ${pagination.total_items} entries
+    `);
+    
+    // Update pagination controls
+    let paginationHtml = '';
+    
+    // Previous button
+    if (pagination.has_prev) {
+        paginationHtml += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="changePage(${pagination.prev_page}); return false;">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </a>
+            </li>
+        `;
+    } else {
+        paginationHtml += `
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
+            </li>
+        `;
+    }
+    
+    // Page numbers
+    const startPage = Math.max(1, pagination.current_page - 2);
+    const endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
+    
+    // First page and ellipsis
+    if (startPage > 1) {
+        paginationHtml += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="changePage(1); return false;">1</a>
+            </li>
+        `;
+        if (startPage > 2) {
+            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+    }
+    
+    // Page number buttons
+    for (let i = startPage; i <= endPage; i++) {
+        if (i === pagination.current_page) {
+            paginationHtml += `
+                <li class="page-item active">
+                    <span class="page-link">${i}</span>
+                </li>
+            `;
+        } else {
+            paginationHtml += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>
+                </li>
+            `;
+        }
+    }
+    
+    // Last page and ellipsis
+    if (endPage < pagination.total_pages) {
+        if (endPage < pagination.total_pages - 1) {
+            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+        paginationHtml += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="changePage(${pagination.total_pages}); return false;">${pagination.total_pages}</a>
+            </li>
+        `;
+    }
+    
+    // Next button
+    if (pagination.has_next) {
+        paginationHtml += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="changePage(${pagination.next_page}); return false;">
+                    Next <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `;
+    } else {
+        paginationHtml += `
+            <li class="page-item disabled">
+                <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
+            </li>
+        `;
+    }
+    
+    paginationControls.html(paginationHtml);
+    
+    // Update global variables
+    currentPage = pagination.current_page;
+    totalPages = pagination.total_pages;
+}
+
+function changePage(page) {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+        loadAuditTrail(page, perPage);
+    }
+}
+
+function showDetails(trailId, details) {
+    try {
+        const parsedDetails = JSON.parse(details);
+        const formattedDetails = JSON.stringify(parsedDetails, null, 2);
+        
+        // Create modal or use existing one
+        const modalHtml = `
+            <div class="modal fade" id="detailsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Audit Trail Details</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <h6>Trail ID: ${trailId}</h6>
+                            <h6>Details:</h6>
+                            <pre class="bg-light p-3 rounded"><code>${formattedDetails}</code></pre>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        $('#detailsModal').remove();
+        
+        // Add new modal to body
+        $('body').append(modalHtml);
+        
+        // Show modal
+        $('#detailsModal').modal('show');
+        
+    } catch (e) {
+        alert('Error displaying details: ' + details);
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.font-monospace {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.pagination .page-link {
+    color: #007bff;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+}
+
+#auditTrailTable th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %}

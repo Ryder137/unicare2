@@ -85,6 +85,7 @@ class User(UserMixin):
         email = data.get('email', '')
         user_obj = AccountsModelDto(
             id = data.get('id'),
+            user_id= data.get('user_id'),
             first_name = data.get('first_name', ''),
             middle_name = data.get('middle_name', ''),
             last_name = data.get('last_name', ''),

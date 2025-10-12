@@ -101,6 +101,7 @@ class AuthService:
       # Create a user object for flask login.
       user_obj = User(
               id=user_id,
+              user_id=user_id,
               email=email,
               username=username,
               is_admin=(user_role != 'client'),
