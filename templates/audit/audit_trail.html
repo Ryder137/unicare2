@@ -34,7 +34,7 @@
                             <thead>
                                 <tr>
                                     <th>Timestamp</th>
-                                    <th>User ID</th>
+                                    <th>Username</th>
                                     <th>Action</th>
                                     <th>Resource</th>
                                     <th>IP Address</th>
@@ -121,25 +121,32 @@ function loadAuditTrail(page = 1, itemsPerPage = 25) {
                     const row = `
                         <tr>
                             <td>
-                                <div>${formattedDate}</div>
+                                <small>${formattedDate}</small>
+                                <br>
                                 <small class="text-muted">${formattedTime}</small>
                             </td>
                             <td>
-                                <span class="font-monospace text-sm">${trail.user_id}</span>
+                                <span class="font-monospace text-sm">${trail.email_name}</span>
+                                <br>
+                                <small class="text-muted">${trail.user_id}</small>
                             </td>
                             <td>
-                                <span class="badge bg-primary">${trail.action}</span>
+                                <small class="badge bg-primary">${trail.action}</small>
                             </td>
                             <td>
-                                <strong>${trail.resource_type}</strong>
+                                <small>${trail.resource_type}</small>
                                 ${trail.resource_id ? '<br><small class="text-muted">ID: ' + trail.resource_id + '</small>' : ''}
                             </td>
-                            <td>${trail.ip_address || '<span class="text-muted">N/A</span>'}</td>
                             <td>
+                              <small>${trail.ip_address || '<span class="text-muted">N/A</span>'}</small>
+                            </td>
+                            <td>
+                                <small>
                                 ${trail.details ? 
                                     '<button class="btn btn-sm btn-outline-info" onclick="showDetails(\'' + trail.id + '\', \'' + escapeHtml(trail.details) + '\')">View</button>' : 
                                     '<span class="text-muted">N/A</span>'
                                 }
+                                </small>
                             </td>
                         </tr>
                     `;

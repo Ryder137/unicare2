@@ -16,11 +16,12 @@ def audit_action(action: str, resource_type: str):
             try:
                 # Get user info
                 user_id = getattr(current_user, 'user_id', None) if current_user.is_authenticated else None
-                print(f"[DEBUG] AuditTrail Current user ID: {user_id}")
+                print(f"[DEBUG] AuditTrail Current user ID: {user_id}", {current_user})
                 if user_id:
                     # Get resource ID from kwargs or args
                     resource_id = kwargs.get('id') or kwargs.get('user_id') or (args[0] if args else None)
-                    
+                    username = getattr(current_user, 'username', 'Unknown') if current_user.is_authenticated else 'Anonymous'
+                    print(f"[DEBUG] AuditTrail username: {username}")
                     # Get request details
                     ip_address = request.environ.get('HTTP_X_FORWARDED_FOR') or request.environ.get('REMOTE_ADDR')
                     user_agent = request.environ.get('HTTP_USER_AGENT')
@@ -43,7 +44,8 @@ def audit_action(action: str, resource_type: str):
                         details=details,
                         ip_address=ip_address,
                         user_agent=user_agent,
-                        session_id=session_id
+                        session_id=session_id,
+                        username=username
                     )
                     
                     # Log the action

@@ -30,7 +30,8 @@ class AuditTrailService:
                 'ip_address': audit_data.ip_address,
                 'user_agent': audit_data.user_agent,
                 'timestamp': audit_data.timestamp.isoformat(),
-                'session_id': audit_data.session_id
+                'session_id': audit_data.session_id,
+                'email_name': audit_data.username
             }
             
             print(f"[DEBUG-REPOSERVICE] Audit data to insert: {audit_dict}")
