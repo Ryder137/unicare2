@@ -366,17 +366,45 @@ function escapeHtml(text) {
     font-size: 0.875rem;
 }
 
+.text-xs {
+    font-size: 0.75rem;
+}
+
+/* Extra small pagination */
+.pagination-xs .page-link {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+    line-height: 1.2;
+}
+
+/* Regular pagination with white text */
 .pagination .page-link {
-    color: #007bff;
+    color: white !important;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.pagination .page-link:hover {
+    color: white !important;
+    background-color: #5a6268;
+    border-color: #545b62;
 }
 
 .pagination .page-item.active .page-link {
     background-color: #007bff;
     border-color: #007bff;
+    color: white !important;
 }
 
 .pagination .page-item.disabled .page-link {
-    color: #6c757d;
+    color: #6c757d !important;
+    background-color: #fff;
+    border-color: #dee2e6;
+}
+
+.pagination .page-item.disabled .page-link:hover {
+    color: #6c757d !important;
+    background-color: #fff;
 }
 
 #auditTrailTable th {
