@@ -22,6 +22,9 @@ from .role_forms import (
     RoleSelectionForm
 )
 
+# Import content forms
+from .content_forms import ContentForm, ContentSearchForm
+
 __all__ = [
     'AdminRegisterForm',
     'AdminLoginForm',
@@ -37,5 +40,7 @@ __all__ = [
     'PsychologistLoginForm',
     'GuidanceCounselorLoginForm',
     'ClientLoginForm',
-    'RoleSelectionForm'
+    'RoleSelectionForm',
+    'ContentForm',
+    'ContentSearchForm'
 ]
