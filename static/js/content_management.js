@@ -122,12 +122,21 @@ function initializeDataTable() {
         let orderColumn = Math.min(5, columnCount - 1); // Safe order column
         
         // More conservative column definitions
-        if (columnCount >= 7) {
+        if (columnCount >= 9) {
+            // Standard content table: checkbox, content_type, author, messages, status, date, actions, hidden_status, hidden_contenttype
             columnDefs = [
                 { orderable: false, targets: [0] }, // Checkbox column
-                { orderable: false, targets: [columnCount - 1] }, // Actions column (last)
-                { visible: false, targets: [columnCount - 2, columnCount - 3] }, // Hidden columns (last two)
-                { searchable: false, targets: [0, columnCount - 1, columnCount - 2, columnCount - 3] }
+                { orderable: false, targets: [6] }, // Actions column (column 6)
+                { visible: false, targets: [7, 8] }, // Hidden columns (hidden_status, hidden_contenttype) - DataTables will hide these
+                { searchable: false, targets: [0, 6, 7, 8] } // Non-searchable columns
+            ];
+            orderColumn = 5; // Date created column
+        } else if (columnCount >= 7) {
+            columnDefs = [
+                { orderable: false, targets: [0] }, // Checkbox column
+                { orderable: false, targets: [6] }, // Actions column (column 6)
+                { visible: false, targets: [7, 8] }, // Hidden columns (hidden_status, hidden_contenttype) - DataTables will hide these
+                { searchable: false, targets: [0, 6, 7, 8] } // Non-searchable columns
             ];
             orderColumn = 5; // Date created column
         } else if (columnCount > 2) {
@@ -327,10 +336,7 @@ function viewContent(contentId) {
                 
                 $('#view_author').text(content.author || 'N/A');
                 $('#view_content_type').text(formatContentType(content.content_type) || 'N/A');
-                $('#view_category').text(formatCategory(content.category) || 'N/A');
-                $('#view_target_audience').text(formatTargetAudience(content.target_audience) || 'N/A');
                 $('#view_messages').html(content.messages || 'N/A');
-                $('#view_tags').text(content.tags || 'No tags');
                 
                 const statusBadge = content.is_active ? 
                     '<span class="badge bg-success">Active</span>' : 
@@ -360,10 +366,7 @@ function editContent(contentId) {
                 $('#edit_content_id').val(content.id);
                 $('#edit_author').val(content.author);
                 $('#edit_content_type').val(content.content_type);
-                $('#edit_category').val(content.category);
-                $('#edit_target_audience').val(content.target_audience);
                 $('#edit_messages').val(content.messages);
-                $('#edit_tags').val(content.tags);
                 $('#edit_is_active').prop('checked', content.is_active);
                 
                 $('#editContentModal').modal('show');
@@ -454,17 +457,37 @@ function applyFilter(filter) {
         
         // Remove any existing custom search functions
         $.fn.dataTable.ext.search = [];
-        
         // Apply custom filter based on hidden columns
         if (filter && filter !== 'all') {
-            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-                // data array contains all column values
-                // Column 7 (index 7): hidden_status
-                // Column 8 (index 8): hidden_contenttype
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex, rowData, counter) {
+                // Try to get the actual table instance
+                const table = $('#contentTable').DataTable();
+                const row = table.row(dataIndex);
+                const $row = $(row.node());
                 
-                // Handle null/undefined values by defaulting to appropriate values
-                const status = data[7] || 'inactive';
-                const contentType = data[8] || 'general';
+                // Get status and content type from data attributes on the row
+                const statusFromAttr = $row.attr('data-status');
+                const contentTypeFromAttr = $row.attr('data-content-type');
+                
+                // Also try from the data array (columns 7 and 8)
+                const statusFromData = data[7];
+                const contentTypeFromData = data[8];
+                
+                // Use data attributes as primary source, fall back to column data
+                let status = statusFromAttr || statusFromData || 'inactive';
+                let contentType = contentTypeFromAttr || contentTypeFromData || 'general';
+                
+                // Fallback: if status is from visible column (capitalized), convert to lowercase
+                if (!statusFromAttr && !statusFromData && data[4]) {
+                    const visibleStatus = data[4];
+                    if (typeof visibleStatus === 'string') {
+                        if (visibleStatus.includes('Active')) {
+                            status = 'active';
+                        } else if (visibleStatus.includes('Inactive')) {
+                            status = 'inactive';
+                        }
+                    }
+                }
                 
                 switch(filter) {
                     case 'active':
@@ -555,33 +578,6 @@ function formatContentType(type) {
         'announcement': 'Announcement'
     };
     return types[type] || type;
-}
-
-function formatCategory(category) {
-    const categories = {
-        'student_support': 'Student Support',
-        'wellness': 'Wellness',
-        'academic': 'Academic',
-        'social': 'Social',
-        'career': 'Career',
-        'health': 'Health',
-        'emergency': 'Emergency'
-    };
-    return categories[category] || category;
-}
-
-function formatTargetAudience(audience) {
-    const audiences = {
-        'all_students': 'All Students',
-        'freshmen': 'Freshmen',
-        'sophomores': 'Sophomores',
-        'juniors': 'Juniors',
-        'seniors': 'Seniors',
-        'graduate_students': 'Graduate Students',
-        'staff': 'Staff',
-        'faculty': 'Faculty'
-    };
-    return audiences[audience] || audience;
 }
 
 function formatDateTime(dateString) {

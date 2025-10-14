@@ -54,49 +54,6 @@
                             </span>
                         </p>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Category:</label>
-                        <p class="ms-3">
-                            {% if content.category %}
-                                {% set categories = {
-                                    'student_support': 'Student Support',
-                                    'wellness': 'Wellness',
-                                    'academic': 'Academic',
-                                    'social': 'Social',
-                                    'career': 'Career',
-                                    'health': 'Health',
-                                    'emergency': 'Emergency'
-                                } %}
-                                <span class="badge bg-secondary">
-                                    {{ categories.get(content.category, content.category) }}
-                                </span>
-                            {% else %}
-                                <span class="text-muted">No category assigned</span>
-                            {% endif %}
-                        </p>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Target Audience:</label>
-                        <p class="ms-3">
-                            {% if content.target_audience %}
-                                {% set audiences = {
-                                    'all_students': 'All Students',
-                                    'freshmen': 'Freshmen',
-                                    'sophomores': 'Sophomores',
-                                    'juniors': 'Juniors',
-                                    'seniors': 'Seniors',
-                                    'graduate_students': 'Graduate Students',
-                                    'staff': 'Staff',
-                                    'faculty': 'Faculty'
-                                } %}
-                                {{ audiences.get(content.target_audience, content.target_audience) }}
-                            {% else %}
-                                <span class="text-muted">No specific audience</span>
-                            {% endif %}
-                        </p>
-                    </div>
                 </div>
                 
                 <!-- Meta Information -->
@@ -143,22 +100,6 @@
                             {{ content.messages|safe if content.messages else '<span class="text-muted">No message content</span>' }}
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Tags -->
-            <div class="row">
-                <div class="col-12 mb-4">
-                    <h6 class="text-primary mb-3">Tags</h6>
-                    {% if content.tags %}
-                        <div class="tags-container">
-                            {% for tag in content.tags.split(',') %}
-                                <span class="badge bg-light text-dark me-2 mb-2">{{ tag.strip() }}</span>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p class="text-muted">No tags assigned</p>
-                    {% endif %}
                 </div>
             </div>
             
