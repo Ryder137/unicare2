@@ -1,0 +1,148 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ 'Edit' if content else 'Add' }} Content - UNICARE Back Office{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-{{ 'edit' if content else 'plus-circle' }} me-2"></i>
+            {{ 'Edit' if content else 'Add New' }} Content
+        </h1>
+        <a href="{{ url_for('content.management') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Content List
+        </a>
+    </div>
+
+    <!-- Content Form Card -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Content Details</h6>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="contentForm">
+                {{ form.hidden_tag() if form }}
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="author" class="form-label">Author *</label>
+                        {% if form %}
+                            {{ form.author(class="form-control") }}
+                        {% else %}
+                            <input type="text" class="form-control" id="author" name="author" 
+                                   value="{{ content.author if content else '' }}" required>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="content_type" class="form-label">Content Type</label>
+                        {% if form %}
+                            {{ form.content_type(class="form-select") }}
+                        {% else %}
+                            <select class="form-select" id="content_type" name="content_type">
+                                <option value="general" {{ 'selected' if content and content.content_type == 'general' else '' }}>General</option>
+                                <option value="mental_health" {{ 'selected' if content and content.content_type == 'mental_health' else '' }}>Mental Health</option>
+                                <option value="educational" {{ 'selected' if content and content.content_type == 'educational' else '' }}>Educational</option>
+                                <option value="motivational" {{ 'selected' if content and content.content_type == 'motivational' else '' }}>Motivational</option>
+                                <option value="awareness" {{ 'selected' if content and content.content_type == 'awareness' else '' }}>Awareness</option>
+                                <option value="announcement" {{ 'selected' if content and content.content_type == 'announcement' else '' }}>Announcement</option>
+                            </select>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="messages" class="form-label">Content Message *</label>
+                    {% if form %}
+                        {{ form.messages(class="form-control", rows="5") }}
+                    {% else %}
+                        <textarea class="form-control" id="messages" name="messages" rows="5" required>{{ content.messages if content else '' }}</textarea>
+                    {% endif %}
+                </div>
+
+                <div class="form-check mb-4">
+                    {% if form %}
+                        {{ form.is_active(class="form-check-input") }}
+                        {{ form.is_active.label(class="form-check-label") }}
+                    {% else %}
+                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                               {{ 'checked' if not content or content.is_active else '' }}>
+                        <label class="form-check-label" for="is_active">
+                            Active (Content will be visible to users)
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>{{ 'Update' if content else 'Save' }} Content
+                    </button>
+                    <a href="{{ url_for('content.management') }}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#contentForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
+        data.is_active = $('#is_active').is(':checked');
+        
+        const url = '{{ url_for("content.edit_content", content_id=content.id) if content else url_for("content.add_content") }}';
+        
+        $.ajax({
+            url: url,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    // Show success message
+                    const alert = $(`
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            ${response.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `);
+                    $('.container-fluid').prepend(alert);
+                    
+                    // Redirect after a short delay
+                    setTimeout(() => {
+                        window.location.href = '{{ url_for("content.management") }}';
+                    }, 1500);
+                } else {
+                    showAlert('error', response.error || 'Failed to save content');
+                }
+            },
+            error: function(xhr) {
+                showAlert('error', xhr.responseJSON?.error || 'Failed to save content');
+            }
+        });
+    });
+    
+    function showAlert(type, message) {
+        const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+        const alert = $(`
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `);
+        $('.container-fluid').prepend(alert);
+        
+        setTimeout(() => {
+            alert.fadeOut();
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

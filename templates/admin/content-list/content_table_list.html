@@ -6,50 +6,106 @@
                   <input class="form-check-input" type="checkbox" id="selectAll">
               </div>
           </th>
+          <th>Content Type</th>
           <th>Author</th>
           <th>Messages</th>
           <th>Status</th>
           <th>Date Created</th>
-          <th>Actions</th>
+          <th width="200">Actions</th>
           <th class="d-none">hidden_status</th>
+          <th class="d-none">hidden_contenttype</th>
       </tr>
   </thead>
   <tbody>
     {% for content in contents %}
-      <tr data-content-id="{{ content['id'] }}" data-status="{{ 'active' if content['is_active'] else 'inactive' }}" data-role="{{ content['role']|lower }}">
+      <tr data-content-id="{{ content['id'] }}" data-status="{{ 'active' if content['is_active'] else 'inactive' }}" data-content-type="{{ content['content_type']|lower if content['content_type'] else 'general' }}">
         <td>
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="selectContent{{ content['id'] }}">
+            <input class="form-check-input item-checkbox" type="checkbox" value="{{ content['id'] }}" id="selectContent{{ content['id'] }}">
           </div>
         </td>
-        <td>{{ content['author'] }}</td>
-        <td>{{ content['messages'] }}</td>
         <td>
-            <span class="badge bg-{{ 'success' if content['is_active'] else 'secondary' }}">
-              {{ 'Active' if content['is_active'] else 'Inactive' }}
-            </span>
-          </td>
-        <td>{{ content['created_at']|parse_iso_datetime|datetimeformat('%m/%d/%Y %I:%M %p') }}</td>
+          {% set content_type_map = {
+            'general': 'General',
+            'mental_health': 'Mental Health',
+            'educational': 'Educational',
+            'motivational': 'Motivational',
+            'awareness': 'Awareness',
+            'announcement': 'Announcement'
+          } %}
+          <span class="badge bg-info">{{ content_type_map.get(content['content_type'], content['content_type'] or 'General') }}</span>
+        </td>
+        <td>
+          <div class="d-flex align-items-center">
+            <div>
+              <div class="fw-bold">{{ content['author'] }}</div>
+              {% if content['created_by'] %}
+                <small class="text-muted">by {{ content['created_by'] }}</small>
+              {% endif %}
+            </div>
+          </div>
+        </td>
+        <td>
+          <div class="text-truncate" style="max-width: 300px;" title="{{ content['messages'] }}">
+            {{ content['messages'][:100] }}
+            {% if content['messages']|length > 100 %}...{% endif %}
+          </div>
+        </td>
+        <td>
+          <span class="badge bg-{{ 'success' if content['is_active'] else 'secondary' }}">
+            {{ 'Active' if content['is_active'] else 'Inactive' }}
+          </span>
+        </td>
+        <td>
+          <div>{{ content['created_at']|parse_iso_datetime|datetimeformat('%m/%d/%Y') }}</div>
+          <small class="text-muted">{{ content['created_at']|parse_iso_datetime|datetimeformat('%I:%M %p') }}</small>
+          {% if content['updated_at'] and content['updated_at'] != content['created_at'] %}
+            <div><small class="text-info">Updated: {{ content['updated_at']|parse_iso_datetime|datetimeformat('%m/%d/%Y') }}</small></div>
+          {% endif %}
+        </td>
         <td>
           <div class="d-flex justify-content-center align-items-center gap-1">
-            <button class="btn btn-info btn-sm view-content" data-content-id="{{ content['id'] }}">
+            <!-- View Button -->
+            <button class="btn btn-info btn-sm view-content" 
+                    data-content-id="{{ content['id'] }}" 
+                    title="View Content">
               <i class="fas fa-eye"></i>
             </button>
-            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editContentModal{{ content['id'] }}">
+            
+            <!-- Edit Button -->
+            <button class="btn btn-primary btn-sm edit-content" 
+                    data-content-id="{{ content['id'] }}" 
+                    title="Edit Content">
               <i class="fas fa-edit"></i>
             </button>
+            
+            <!-- Toggle Status Button -->
             <button class="btn btn-{{ 'secondary' if content['is_active'] else 'success' }} btn-sm toggle-status" 
-                  data-user-id="{{ content['id'] }}" 
-                  data-status="{{ content['is_active'] }}"
-                  title="{{ 'Deactivate' if content['is_active'] else 'Activate' }}">
-                <i class="fas fa-{{ 'toggle-on' if content['is_active'] else 'toggle-off' }}"></i>
+                    data-content-id="{{ content['id'] }}" 
+                    data-status="{{ content['is_active'] }}"
+                    title="{{ 'Deactivate' if content['is_active'] else 'Activate' }}">
+              <i class="fas fa-{{ 'toggle-on' if content['is_active'] else 'toggle-off' }}"></i>
             </button>
-            <button class="btn btn-danger btn-sm delete-user" data-user-id="{{ content['id'] }}" title="Delete">
+            
+            <!-- Delete Button -->
+            <button class="btn btn-danger btn-sm delete-content" 
+                    data-content-id="{{ content['id'] }}" 
+                    title="Delete Content">
               <i class="fas fa-trash"></i>
             </button>
           </div>    
         </td>
-        <td class="d-none">{{ content['hidden_status'] }}</td>
+        <td class="d-none">{{ 'active' if content['is_active'] else 'inactive' }}</td>
+        <td class="d-none">{{ content['content_type']|lower if content['content_type'] else 'general' }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="9" class="text-center py-4">
+          <div class="text-muted">
+            <i class="fas fa-file-alt fa-3x mb-3"></i>
+            <p>No content found</p>
+          </div>
+        </td>
       </tr>
     {% endfor %}  
   </tbody>

@@ -18,6 +18,8 @@ from .client import Client
 from .appointment import Appointment
 from .accounts import AccountsModel,PsychologistDetailModel
 from .audit_trail import AuditTrailModel
+from .content import Content
+
 # Make models available at package level
 __all__ = [
     'db',
@@ -33,4 +35,5 @@ __all__ = [
     'AccountsModel',
     'PsychologistDetailModel',
     'AuditTrailModel',
+    'Content',
 ]

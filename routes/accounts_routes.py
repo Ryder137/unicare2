@@ -105,14 +105,6 @@ def management():
       flash('An error occurred while loading user data. Please check the logs for details.', 'error')
       return redirect(url_for('admin.dashboard'))
 
-@accounts_bp.route('/register', methods=['GET', 'POST'])
-def register():
-  print("\n[DEBUG] Accounts/Register route called") 
-  form = RegisterForm()
-  
-  
-  return render_template('accounts/register_client.html',form=form)
-
 # API AJAX URL CALLS
 
 @accounts_bp.route('/user/<string:id>',methods=['GET'])
@@ -193,6 +185,8 @@ def create_user():
       
     new_user = account_repo_service.create_account(reqAccounts)
     print(f"[DEBUG] New User Created: {new_user}")
+    
+    auditResp = audit_action("create user management", "AccountsModel")(lambda: reqAccounts)()
     
     # If the new user is a psychologist, create a corresponding psychologist detail record
     if reqAccounts.role == 'psychologist' and new_user is not None:
